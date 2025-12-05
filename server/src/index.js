@@ -1,0 +1,188 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const config = require('./config/env');
+const { runMigrations } = require('./db/connection');
+const { errorHandler, notFoundHandler } = require('./middleware/error');
+
+// Routes
+const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
+const walletRoutes = require('./routes/wallet');
+const billingRoutes = require('./routes/billing');
+const toolsRoutes = require('./routes/tools');
+const jobsRoutes = require('./routes/jobs');
+const candidatesRoutes = require('./routes/candidates');
+const resumesRoutes = require('./routes/resumes');
+const emailRoutes = require('./routes/email');
+const analyticsRoutes = require('./routes/analytics');
+const testSheetsRoutes = require('./routes/test-sheets');
+const testConnectionRoutes = require('./routes/testConnection');
+const clientAnalyticsRoutes = require('./routes/client-analytics');
+
+const adminCandidatesRoutes = require('./routes/admin-candidates');
+const voiceRoutes = require('./routes/voice');
+const applicationsRoutes = require('./routes/applications');
+const resumeParserRoutes = require('./routes/resume-parser');
+const insuranceRoutes = require('./routes/insurance');
+const insuranceConfigRoutes = require('./routes/insuranceConfig');
+const messageWebhooksRoutes = require('./routes/messageWebhooks');
+
+
+const app = express();
+
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+
+app.use(morgan('dev'));
+
+// Stripe webhook needs raw body
+app.use('/api/billing/stripe/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/billing/razorpay/webhook', express.raw({ type: 'application/json' }));
+
+// Body parsing
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Initialize database and run migrations
+async function initializeDatabase() {
+  try {
+    await runMigrations();
+    
+    // Run insurance company name migration
+    const migration004 = require('../migrations/004-set-insurance-company-names');
+    await migration004.up();
+    console.log('✅ Insurance company names migration completed');
+    
+    // Run client message tables migration
+    const migration005 = require('../migrations/005-create-client-message-tables');
+    await migration005.up();
+    console.log('✅ Client message tables migration completed');
+    
+    // Seed admin user
+    await seedAdminUser();
+  } catch (err) {
+    console.error('❌ Failed to initialize database:', err);
+    process.exit(1);
+  }
+}
+
+async function seedAdminUser() {
+  const bcrypt = require('bcryptjs');
+  const { get, run } = require('./db/connection');
+  
+  const users = [
+    {
+      email: 'vaibhavkar0009@gmail.com',
+      password: 'Vaibhav@121',
+      name: 'Admin',
+      role: 'admin',
+      client_type: 'hr',
+      google_sheet_url: 'https://docs.google.com/spreadsheets/d/1amZkYzhw2lMmIbw0ftFAw8KJ1SX86zJ2rubWDQgs8CE/edit'
+    },
+    {
+      email: 'kvreddy1809@gmail.com',
+      password: 'kmg123',
+      name: 'KMG Insurance',
+      role: 'client',
+      client_type: 'insurance',
+      google_sheet_url: 'https://docs.google.com/spreadsheets/d/1EpMAg1gSXPKr83cTugvGexrqv3Yt5Tb85Re2Shah8mw/edit'
+    },
+    {
+      email: 'jobanputra@gmail.com',
+      password: 'joban123',
+      name: 'Joban Putra Insurance Shoppe',
+      role: 'client',
+      client_type: 'insurance',
+      google_sheet_url: 'https://docs.google.com/spreadsheets/d/1oX5MGRMo6oz87ivTXeMOy6vtIDPJXXawz_lGqmOvUEo/edit'
+    }
+  ];
+  
+  for (const user of users) {
+    try {
+      const existing = await get('SELECT * FROM users WHERE email = ?', [user.email]);
+      
+      if (existing) {
+        console.log(`✅ ${user.name} exists`);
+        const wallet = await get('SELECT * FROM wallets WHERE user_id = ?', [existing.id]);
+        if (!wallet) {
+          await run('INSERT INTO wallets (user_id, balance_cents) VALUES (?, ?)', [existing.id, 1000000]);
+          console.log(`✅ Wallet created for ${user.name}`);
+        }
+        continue;
+      }
+      
+      const passwordHash = await bcrypt.hash(user.password, 10);
+      
+      const result = await run(
+        'INSERT INTO users (email, password_hash, name, role, client_type, google_sheet_url, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [user.email, passwordHash, user.name, user.role, user.client_type, user.google_sheet_url, 'active']
+      );
+      
+      await run('INSERT INTO wallets (user_id, balance_cents) VALUES (?, ?)', [result.lastID, 1000000]);
+      console.log(`✅ ${user.name} created`);
+    } catch (err) {
+      console.log(`⚠️ Skipping ${user.name}: ${err.message}`);
+    }
+  }
+}
+
+initializeDatabase();
+
+// Health check
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Viral Bug Automations API', 
+    version: '1.0.0',
+    status: 'running' 
+  });
+});
+
+app.use('/uploads', express.static('uploads'));
+
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/tools', toolsRoutes);
+app.use('/api/jobs', jobsRoutes);
+app.use('/api/candidates', candidatesRoutes);
+app.use('/api/resumes', resumesRoutes);
+app.use('/api/email', emailRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/test-sheets', testSheetsRoutes);
+app.use('/api/client-analytics', clientAnalyticsRoutes);
+app.use('/api/test-connection', testConnectionRoutes);
+app.use('/api/test', require('./routes/test-sync'));
+app.use('/api/admin/candidates', adminCandidatesRoutes);
+app.use('/api/voice', voiceRoutes);
+app.use('/api/applications', applicationsRoutes);
+app.use('/api/resume-parser', resumeParserRoutes);
+app.use('/api/debug-sheets', require('./routes/debugSheets'));
+app.use('/api/debug-sheet', require('./routes/debug-sheet'));
+app.use('/api/debug', require('./routes/debug'));
+app.use('/api/insurance', insuranceRoutes);
+app.use('/api/insurance-config', insuranceConfigRoutes);
+app.use('/api/policies', require('./routes/policies'));
+app.use('/api/webhooks', messageWebhooksRoutes);
+
+
+// Error handling
+app.use(notFoundHandler);
+app.use(errorHandler);
+
+// Start server
+app.listen(config.port, () => {
+  console.log(`🚀 Viral Bug Automations server running on http://localhost:${config.port}`);
+  console.log(`📝 Environment: ${config.nodeEnv}`);
+  console.log(`🔗 Frontend URL: ${config.frontendUrl}`);
+});
+
+module.exports = app;

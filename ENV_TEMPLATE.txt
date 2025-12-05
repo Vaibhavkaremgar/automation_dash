@@ -1,0 +1,14 @@
+# Replace these values in your .env file:
+
+# From your downloaded JSON file:
+GOOGLE_PROJECT_ID=your-actual-project-id
+GOOGLE_CLIENT_EMAIL=hirehero-sheets@your-project-id.iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
+...your actual private key content...
+-----END PRIVATE KEY-----"
+
+# IMPORTANT: 
+# 1. Keep the quotes around the private key
+# 2. Keep the line breaks in the private key exactly as shown
+# 3. Don't add \n - use actual line breaks

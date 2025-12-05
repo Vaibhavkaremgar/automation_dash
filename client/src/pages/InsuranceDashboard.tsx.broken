@@ -1,0 +1,497 @@
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { api } from '../lib/api';
+
+const SPREADSHEET_ID = '1EpMAg1gSXPKr83cTugvGexrqv3Yt5Tb85Re2Shah8mw';
+const SHEET_TAB_NAME = 'updating_input';
+
+interface Customer {
+  id: number;
+  name: string;
+  mobile_number: string;
+  insurance_activated_date: string;
+  renewal_date: string;
+  od_expiry_date: string;
+  tp_expiry_date: string;
+  company: string;
+  product: string;
+  registration_no: string;
+  premium: number;
+  status: string;
+  reason: string;
+  vertical: string;
+}
+
+interface Analytics {
+  totalCustomers: number;
+  upcomingRenewals: number;
+  messagesSent: number;
+  totalSpent: number;
+  totalPolicies?: number;
+  activePolicies?: number;
+  expiredPolicies?: number;
+  expiringPolicies?: number;
+  totalPremium?: number;
+}
+
+export default function InsuranceDashboard() {
+  const location = useLocation();
+  const [verticalFilter, setVerticalFilter] = useState('all');
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [renewalStats, setRenewalStats] = useState({ reminders_today: 0, customers_reminded: 0 });
+  const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteCustomerId, setNoteCustomerId] = useState<number | null>(null);
+  const [note, setNote] = useState('');
+  const [customerHistory, setCustomerHistory] = useState<any[]>([]);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [policyTab, setPolicyTab] = useState<'active' | 'total' | 'lost' | 'pending'>('active');
+
+  const getCurrentTab = () => {
+    const path = location.pathname;
+    if (path.includes('/customers')) return 'customers';
+    if (path.includes('/policies')) return 'policies';
+    if (path.includes('/renewals')) return 'renewals';
+    return 'dashboard';
+  };
+
+  const currentTab = getCurrentTab();
+
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    mobile_number: '',
+    insurance_activated_date: '',
+    renewal_date: '',
+    od_expiry_date: '',
+    tp_expiry_date: '',
+    premium_mode: '',
+    premium: '',
+    vertical: 'motor',
+    product: '',
+    registration_no: '',
+    current_policy_no: '',
+    company: '',
+    status: 'pending',
+    new_policy_no: '',
+    new_company: '',
+    policy_doc_link: '',
+    thank_you_sent: '',
+    reason: '',
+    email: ''
+  });
+
+  useEffect(() => {
+    loadData();
+    
+    const handleVerticalChange = (e: any) => {
+      setVerticalFilter(e.detail);
+    };
+    
+    window.addEventListener('insuranceVerticalChange', handleVerticalChange);
+    
+    const syncInterval = setInterval(() => {
+      console.log('Auto-syncing from Google Sheets...');
+      syncFromSheets(true);
+    }, 2 * 60 * 1000);
+    
+    return () => {
+      window.removeEventListener('insuranceVerticalChange', handleVerticalChange);
+      clearInterval(syncInterval);
+    };
+  }, [verticalFilter]);
+
+  useEffect(() => {
+    if (currentTab === 'renewals') {
+      loadRenewalStats();
+    }
+  }, [currentTab]);
+
+  const loadRenewalStats = async () => {
+    try {
+      const res = await api.get('/api/insurance/renewal-stats');
+      setRenewalStats(res.data);
+    } catch (error) {
+      console.error('Failed to load renewal stats:', error);
+    }
+  };
+
+  const getDaysUntilExpiry = (customer: Customer) => {
+    let renewalDate = '';
+    if (customer.vertical === 'motor') {
+      const odDate = customer.od_expiry_date;
+      const tpDate = customer.tp_expiry_date;
+      renewalDate = odDate || tpDate || customer.renewal_date;
+    } else {
+      renewalDate = customer.renewal_date;
+    }
+    if (!renewalDate || !renewalDate.includes('/')) return 999;
+    const [day, month, year] = renewalDate.split('/');
+    const expiry = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const getExpiryDate = (customer: Customer) => {
+    if (customer.vertical === 'motor') {
+      return customer.od_expiry_date || customer.tp_expiry_date || customer.renewal_date;
+    }
+    return customer.renewal_date;
+  };
+
+  const categorizeCustomers = () => {
+    const overdue = customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'pending');
+    const expiring7 = customers.filter(c => {
+      const days = getDaysUntilExpiry(c);
+      return days >= 0 && days <= 7 && c.status.trim().toLowerCase() === 'pending';
+    });
+    const expiring30 = customers.filter(c => {
+      const days = getDaysUntilExpiry(c);
+      return days > 7 && days <= 30 && c.status.trim().toLowerCase() === 'pending';
+    });
+    const renewed = customers.filter(c => c.status.trim().toLowerCase() === 'done');
+    
+    return { overdue, expiring7, expiring30, renewed };
+  };
+
+  const handleBulkStatusToggle = async () => {
+    if (selectedCustomers.length === 0) {
+      alert('Please select customers');
+      return;
+    }
+    
+    const selectedCustomerData = customers.filter(c => selectedCustomers.includes(c.id));
+    const allPending = selectedCustomerData.every(c => c.status.trim().toLowerCase() === 'pending');
+    const allDone = selectedCustomerData.every(c => c.status.trim().toLowerCase() === 'done');
+    
+    let newStatus = '';
+    let action = '';
+    
+    if (allPending) {
+      newStatus = 'done';
+      action = 'renewed';
+    } else if (allDone) {
+      newStatus = 'pending';
+      action = 'marked as pending';
+    } else {
+      const confirmAction = confirm('Selected customers have mixed statuses. Mark all as Renewed?');
+      newStatus = confirmAction ? 'done' : 'pending';
+      action = confirmAction ? 'renewed' : 'marked as pending';
+    }
+    
+    try {
+      for (const customerId of selectedCustomers) {
+        await api.put(`/api/insurance/customers/${customerId}`, {
+          ...customers.find(c => c.id === customerId),
+          status: newStatus
+        });
+      }
+      
+      await api.post('/api/insurance/sync/to-sheet', {
+        spreadsheetId: SPREADSHEET_ID,
+        tabName: SHEET_TAB_NAME
+      });
+      
+      if (newStatus === 'done' && confirm('Send Thank You messages via WhatsApp to renewed customers?')) {
+        selectedCustomerData.forEach(customer => {
+          const message = `Dear ${customer.name},\\n\\nThank you for renewing your insurance policy with us! 🎉\\n\\nYour policy is now active and you are covered.\\n\\nWe appreciate your trust in KMG Insurance Agency.\\n\\nFor any assistance, feel free to contact us anytime.\\n\\nThank you!`;
+          window.open(`https://wa.me/${customer.mobile_number.replace(/\\D/g, '')}?text=${encodeURIComponent(message)}`);
+        });
+      }
+      
+      setSelectedCustomers([]);
+      loadData();
+      alert(`${selectedCustomers.length} customers ${action}`);
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      alert('Failed to update customer status');
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!noteCustomerId || !note) return;
+    
+    try {
+      await api.post(`/api/insurance/customers/${noteCustomerId}/notes`, { note });
+      setShowNoteModal(false);
+      setNote('');
+      setNoteCustomerId(null);
+      alert('Note added successfully');
+    } catch (error) {
+      console.error('Failed to add note:', error);
+    }
+  };
+
+  const viewHistory = async (customerId: number) => {
+    try {
+      const res = await api.get(`/api/insurance/customers/${customerId}/history`);
+      setCustomerHistory(res.data);
+      setShowHistoryModal(true);
+    } catch (error) {
+      console.error('Failed to load history:', error);
+    }
+  };
+
+  const toggleCustomerSelection = (id: number) => {
+    setSelectedCustomers(prev => 
+      prev.includes(id) ? prev.filter(cid => cid !== id) : [...prev, id]
+    );
+  };
+
+  const renderRenewalCard = (customer: Customer, daysLabel: string, colorClass: string, isRenewed: boolean = false) => {
+    const expiryDate = getExpiryDate(customer);
+    const days = getDaysUntilExpiry(customer);
+    
+    return (
+      <div key={customer.id} className={`p-4 bg-slate-700/50 rounded-lg border ${colorClass} flex items-center gap-4`}>
+        <input
+          type="checkbox"
+          checked={selectedCustomers.includes(customer.id)}
+          onChange={() => toggleCustomerSelection(customer.id)}
+          className="w-4 h-4"
+        />
+        <div className="flex-1">
+          <h4 className="font-medium text-white">{customer.name}</h4>
+          <p className="text-sm text-slate-300">{customer.registration_no} - {customer.company}</p>
+          <p className="text-sm font-medium mt-1">{daysLabel}</p>
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-white text-lg">₹{customer.premium?.toLocaleString()}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => alert('🔒 Premium Feature\\n\\nUpgrade to Voice Bot Premium to enable automated calling.\\n\\nContact support to upgrade.')} className="opacity-60" title="Premium Feature">📞🔒</Button>
+          <Button size="sm" variant="outline" onClick={() => {
+            let message = '';
+            
+            if (isRenewed) {
+              message = `Dear ${customer.name},\\n\\nThank you for renewing your insurance policy with us! 🎉\\n\\nYour policy is now active and you are covered.\\n\\nWe appreciate your trust in KMG Insurance Agency.\\n\\nFor any assistance, feel free to contact us anytime.\\n\\nThank you!`;
+            } else {
+              if (days < 0) {
+                message = `Dear ${customer.name},\\n\\nYour insurance policy has expired on ${expiryDate}. Please renew it immediately to avoid any inconvenience.\\n\\nFor renewal assistance, contact KMG Insurance Agency.\\n\\nThank you!`;
+              } else if (days === 0 || days === 1) {
+                message = `🚨 URGENT REMINDER 🚨\\n\\nDear ${customer.name},\\n\\nYour insurance policy expires TOMORROW (${expiryDate})! Please renew immediately to avoid policy lapse.\\n\\nContact KMG Insurance Agency NOW for instant renewal.\\n\\nThank you!`;
+              } else if (days <= 7) {
+                message = `Dear ${customer.name},\\n\\nThis is a reminder that your insurance policy will expire on ${expiryDate} (in ${days} days).\\n\\nPlease renew your policy at the earliest to ensure continuous coverage.\\n\\nKMG Insurance Agency\\nYour trusted insurance partner.\\n\\nThank you!`;
+              } else if (days <= 30) {
+                message = `Dear ${customer.name},\\n\\nYour insurance policy is due for renewal on ${expiryDate} (in ${days} days).\\n\\nWe recommend renewing early to avoid last-minute hassles.\\n\\nKMG Insurance Agency is here to assist you.\\n\\nThank you!`;
+              }
+            }
+            window.open(`https://wa.me/${customer.mobile_number.replace(/\\D/g, '')}?text=${encodeURIComponent(message)}`);
+          }}>💬</Button>
+          <Button size="sm" variant="outline" onClick={() => { setNoteCustomerId(customer.id); setShowNoteModal(true); }}>📝</Button>
+          <Button size="sm" variant="outline" onClick={() => viewHistory(customer.id)}>📋</Button>
+        </div>
+      </div>
+    );
+  };
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const verticalParam = `?vertical=${verticalFilter}`;
+      const [customersRes, analyticsRes, policyAnalyticsRes] = await Promise.all([
+        api.get(`/api/insurance/customers${verticalParam}`),
+        api.get(`/api/insurance/analytics${verticalParam}`),
+        api.get(`/api/policies/analytics${verticalParam}`)
+      ]);
+      setCustomers(customersRes.data);
+      setAnalytics({...analyticsRes.data, ...policyAnalyticsRes.data});
+    } catch (error) {
+      console.error('Failed to load data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddCustomer = async () => {
+    try {
+      const convertDate = (date: string) => {
+        if (!date) return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          const [year, month, day] = date.split('-');
+          return `${day}/${month}/${year}`;
+        }
+        return date;
+      };
+      
+      await api.post('/api/insurance/customers', {
+        ...newCustomer,
+        insurance_activated_date: convertDate(newCustomer.insurance_activated_date),
+        renewal_date: convertDate(newCustomer.renewal_date),
+        od_expiry_date: convertDate(newCustomer.od_expiry_date),
+        tp_expiry_date: convertDate(newCustomer.tp_expiry_date),
+        premium: parseFloat(newCustomer.premium) || 0
+      });
+      console.log('Customer added, syncing to sheet...');
+      try {
+        await api.post('/api/insurance/sync/to-sheet', {
+          spreadsheetId: SPREADSHEET_ID,
+          tabName: SHEET_TAB_NAME
+        });
+        console.log('Sync to sheet successful');
+      } catch (syncError) {
+        console.error('Sync to sheet failed:', syncError);
+        alert('Customer added but sync to sheet failed. Check console.');
+      }
+      setShowAddModal(false);
+      setNewCustomer({
+        name: '',
+        mobile_number: '',
+        insurance_activated_date: '',
+        renewal_date: '',
+        od_expiry_date: '',
+        tp_expiry_date: '',
+        premium_mode: '',
+        premium: '',
+        vertical: 'motor',
+        product: '',
+        registration_no: '',
+        current_policy_no: '',
+        company: '',
+        status: 'pending',
+        new_policy_no: '',
+        new_company: '',
+        policy_doc_link: '',
+        thank_you_sent: '',
+        reason: '',
+        email: ''
+      });
+      loadData();
+    } catch (error) {
+      console.error('Failed to add customer:', error);
+      alert('Failed to add customer');
+    }
+  };
+
+  const handleUpdateCustomer = async () => {
+    if (!editingCustomer) return;
+    
+    try {
+      const convertDate = (date: string) => {
+        if (!date) return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+          const [year, month, day] = date.split('-');
+          return `${day}/${month}/${year}`;
+        }
+        return date;
+      };
+      
+      console.log('Updating customer:', editingCustomer.id);
+      await api.put(`/api/insurance/customers/${editingCustomer.id}`, {
+        ...editingCustomer,
+        insurance_activated_date: convertDate(editingCustomer.insurance_activated_date),
+        renewal_date: convertDate(editingCustomer.renewal_date),
+        od_expiry_date: convertDate(editingCustomer.od_expiry_date),
+        tp_expiry_date: convertDate(editingCustomer.tp_expiry_date)
+      });
+      console.log('Customer updated, syncing to sheet...');
+      
+      try {
+        await api.post('/api/insurance/sync/to-sheet', {
+          spreadsheetId: SPREADSHEET_ID,
+          tabName: SHEET_TAB_NAME
+        });
+        console.log('Sync successful');
+      } catch (syncError) {
+        console.error('Sync failed but customer updated:', syncError);
+        alert('Customer updated but sync to sheet failed');
+      }
+      
+      setEditingCustomer(null);
+      loadData();
+    } catch (error) {
+      console.error('Failed to update customer:', error);
+      alert('Failed to update customer: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const handleDeleteCustomer = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this customer?')) return;
+    
+    try {
+      await api.delete(`/api/insurance/customers/${id}`);
+      await api.post('/api/insurance/sync/to-sheet', {
+        spreadsheetId: SPREADSHEET_ID,
+        tabName: SHEET_TAB_NAME
+      });
+      loadData();
+    } catch (error) {
+      console.error('Failed to delete customer:', error);
+    }
+  };
+
+  const syncFromSheets = async (silent = false) => {
+    try {
+      setSyncing(true);
+      const result = await api.post('/api/insurance/sync/from-sheet', {
+        spreadsheetId: SPREADSHEET_ID,
+        tabName: SHEET_TAB_NAME
+      });
+      if (!silent) {
+        alert(`Sync completed! Imported: ${result.data.imported}`);
+      }
+      loadData();
+    } catch (error) {
+      console.error('Failed to sync from sheets:', error);
+      if (!silent) {
+        alert('Sync failed. Please check your Google Sheets connection.');
+      }
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const filteredCustomers = customers.filter(customer => {
+    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.mobile_number.includes(searchTerm) ||
+      customer.registration_no.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || customer.status.trim().toLowerCase() === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  const syncToSheets = async () => {
+    try {
+      setSyncing(true);
+      const result = await api.post('/api/insurance/sync/to-sheet', {
+        spreadsheetId: SPREADSHEET_ID,
+        tabName: SHEET_TAB_NAME
+      });
+      alert(`Successfully synced ${result.data.exported} customers to Google Sheets!`);
+    } catch (error) {
+      console.error('Failed to sync to sheets:', error);
+      alert('Sync to sheets failed: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Insurance Dashboard</h1>
+      <div className="mb-4">
+        <Button onClick={syncFromSheets} disabled={syncing}>
+          {syncing ? 'Syncing...' : 'Sync from Sheets'}
+        </Button>
+      </div>
+      <div className="text-white">
+        <p>Total Customers: {customers.length}</p>
+        <p>Dashboard is loading...</p>
+      </div>
+    </div>
+  );
+}
