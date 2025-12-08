@@ -140,22 +140,18 @@ router.post('/messages/webhook', async (req, res) => {
 // setInterval(cleanupOldMessages, 24 * 60 * 60 * 1000);
 // cleanupOldMessages(); // Run on startup
 
-// Debug endpoint to check message logs
-router.get('/message-logs/debug', authRequired, (req, res) => {
-  try {
-    db.all('SELECT ml.*, ic.user_id FROM message_logs ml LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id LIMIT 20', [], (err, rows) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ total: rows.length, messages: rows, currentUserId: req.user.id });
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Get all message logs
-router.get('/message-logs', authRequired, (req, res) => {
+router.get('/message-logs', authRequired, async (req, res) => {
   try {
     const { channel, status, limit } = req.query;
+    
+    // Get user's client_key
+    const { get } = require('../db/connection');
+    const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
+    const { getClientConfig } = require('../config/insuranceClients');
+    const clientConfig = getClientConfig(user?.email);
+    const userClientKey = clientConfig.key;
+    
     let query = `
       SELECT 
         ml.id,
@@ -168,9 +164,9 @@ router.get('/message-logs', authRequired, (req, res) => {
         ml.sent_at
       FROM message_logs ml
       LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id
-      WHERE (ic.user_id = ? OR (ml.customer_id IS NULL AND ml.customer_name_fallback IS NOT NULL))
+      WHERE (ic.user_id = ? OR (ml.customer_id IS NULL AND ml.client_key = ?))
     `;
-    const params = [req.user.id];
+    const params = [req.user.id, userClientKey];
     
     if (channel) {
       query += ' AND ml.channel = ?';
@@ -384,9 +380,9 @@ router.post('/log-message', async (req, res) => {
     }
     
     db.run(`
-      INSERT INTO message_logs (customer_id, message_type, channel, message_content, status, sent_at, customer_name_fallback)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [customer_id || null, message_type || 'general', channel, message_content || '', status || 'sent', sent_at || new Date().toISOString(), customer_name || null], function(err) {
+      INSERT INTO message_logs (customer_id, message_type, channel, message_content, status, sent_at, customer_name_fallback, client_key)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [customer_id || null, message_type || 'general', channel, message_content || '', status || 'sent', sent_at || new Date().toISOString(), customer_name || null, client_key || null], function(err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ success: true, id: this.lastID });
     });

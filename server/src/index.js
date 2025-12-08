@@ -96,6 +96,10 @@ async function initializeDatabase() {
     const migration012 = require('../migrations/012-fix-message-logs-columns');
     await migration012.up();
     
+    // Run client key migration
+    const migration013 = require('../migrations/013-add-client-key-to-message-logs');
+    await migration013.up();
+    
     // Seed admin user
     await seedAdminUser();
   } catch (err) {
