@@ -31,7 +31,7 @@ function run(sql, params = []) {
         console.error('SQL Error (run):', err.message);
         reject(err);
       } else {
-        resolve({ id: this.lastID, lastID: this.lastID, changes: this.changes });
+        resolve({ lastID: this.lastID, changes: this.changes });
       }
     });
   });
