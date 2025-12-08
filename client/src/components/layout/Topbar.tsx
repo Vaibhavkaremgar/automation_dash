@@ -1,5 +1,6 @@
 import { memo, useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import WalletBadge from './WalletBadge'
 import { Menu } from 'lucide-react'
@@ -7,10 +8,12 @@ import AICube from '../ui/AICube'
 
 export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const isInsuranceClient = user?.client_type === 'insurance'
   const [selectedVertical, setSelectedVertical] = useState(() => {
     return localStorage.getItem('insuranceVerticalFilter') || 'all'
   })
+  const profileName = localStorage.getItem('selectedProfileName')
   
   return (
     <header className="h-14 border-b border-slate-800 bg-slate-900/60 backdrop-blur flex items-center justify-between px-4">
@@ -22,6 +25,18 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
         <div className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">VB Automations</div>
       </div>
       <div className="flex items-center gap-3">
+        {profileName && (
+          <button
+            onClick={() => navigate('/profiles')}
+            className="px-3 py-1.5 bg-indigo-900/20 border border-indigo-700/50 rounded-lg text-indigo-300 text-sm hover:bg-indigo-900/40 transition-all flex items-center gap-2"
+          >
+            <span className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold text-white">
+              {profileName.charAt(0).toUpperCase()}
+            </span>
+            {profileName}
+          </button>
+        )}
+        
         {isInsuranceClient && (
           <select
             className="px-3 py-1.5 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-indigo-500"

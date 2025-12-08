@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import ActivityFeed from '../components/ActivityFeed';
 import { api } from '../lib/api';
 
 // Dynamic config
@@ -633,6 +634,9 @@ export default function InsuranceDashboard() {
             </div>
           )}
         </div>
+
+        {/* Activity Feed */}
+        <ActivityFeed />
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

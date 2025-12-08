@@ -28,6 +28,7 @@ const resumeParserRoutes = require('./routes/resume-parser');
 const insuranceRoutes = require('./routes/insurance');
 const insuranceConfigRoutes = require('./routes/insuranceConfig');
 const messageWebhooksRoutes = require('./routes/messageWebhooks');
+const profilesRoutes = require('./routes/profiles');
 
 
 const app = express();
@@ -99,6 +100,10 @@ async function initializeDatabase() {
     // Run client key migration
     const migration013 = require('../migrations/013-add-client-key-to-message-logs');
     await migration013.up();
+    
+    // Run profiles and activity migration
+    const migration014 = require('../migrations/014-create-profiles-and-activity');
+    await migration014.up();
     
     // Seed admin user
     await seedAdminUser();
@@ -207,6 +212,7 @@ app.use('/api/insurance', insuranceRoutes);
 app.use('/api/insurance-config', insuranceConfigRoutes);
 app.use('/api/policies', require('./routes/policies'));
 app.use('/api/webhooks', messageWebhooksRoutes);
+app.use('/api/profiles', profilesRoutes);
 app.use('/api/reset-passwords', require('./routes/reset-passwords'));
 app.use('/api/debug-railway', require('./routes/debug-railway'));
 

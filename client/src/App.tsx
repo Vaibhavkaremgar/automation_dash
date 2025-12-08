@@ -27,6 +27,7 @@ const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsers'))
 const AdminToolsPricingPage = lazy(() => import('./pages/admin/AdminToolsPricing'))
 const AdminTransactionsPage = lazy(() => import('./pages/admin/AdminTransactions'))
 const AccessDeniedPage = lazy(() => import('./pages/AccessDenied'))
+const ProfileSelectionPage = lazy(() => import('./pages/ProfileSelection'))
 
 const ProtectedRoute = memo(function ProtectedRoute({ roles }: { roles?: Array<'admin' | 'client'> }) {
   const { user, loading } = useAuth()
@@ -64,6 +65,7 @@ export default function App() {
           <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/access-denied" element={<AccessDeniedPage />} />
+          <Route path="/profiles" element={<ProfileSelectionPage />} />
 
           <Route element={<ProtectedRoute />}> 
             <Route element={<AppLayout />}> 
