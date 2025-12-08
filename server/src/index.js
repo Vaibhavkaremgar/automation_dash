@@ -33,7 +33,7 @@ const messageWebhooksRoutes = require('./routes/messageWebhooks');
 const app = express();
 
 app.use(cors({
-  origin: [
+  origin: config.nodeEnv === 'production' ? true : [
     "http://localhost:5173",
     config.frontendUrl
   ].filter(Boolean),
