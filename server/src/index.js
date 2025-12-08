@@ -68,6 +68,10 @@ async function initializeDatabase() {
     await migration005.up();
     console.log('✅ Client message tables migration completed');
     
+    // Run missing columns migration
+    const migration006 = require('../migrations/006-add-missing-columns');
+    await migration006.up();
+    
     // Seed admin user
     await seedAdminUser();
   } catch (err) {
