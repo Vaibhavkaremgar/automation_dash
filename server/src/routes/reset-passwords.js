@@ -4,7 +4,7 @@ const { get, run } = require('../db/connection');
 
 const router = express.Router();
 
-router.post('/force-reset', async (req, res) => {
+const resetHandler = async (req, res) => {
   try {
     const users = [
       { email: 'vaibhavkar0009@gmail.com', password: 'Vaibhav@121' },
@@ -21,6 +21,9 @@ router.post('/force-reset', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
-});
+};
+
+router.get('/force-reset', resetHandler);
+router.post('/force-reset', resetHandler);
 
 module.exports = router;
