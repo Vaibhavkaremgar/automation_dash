@@ -140,6 +140,18 @@ router.post('/messages/webhook', async (req, res) => {
 // setInterval(cleanupOldMessages, 24 * 60 * 60 * 1000);
 // cleanupOldMessages(); // Run on startup
 
+// Debug endpoint to check message logs
+router.get('/message-logs/debug', authRequired, (req, res) => {
+  try {
+    db.all('SELECT ml.*, ic.user_id FROM message_logs ml LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id LIMIT 20', [], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ total: rows.length, messages: rows, currentUserId: req.user.id });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get all message logs
 router.get('/message-logs', authRequired, (req, res) => {
   try {
@@ -155,8 +167,8 @@ router.get('/message-logs', authRequired, (req, res) => {
         ml.status,
         ml.sent_at
       FROM message_logs ml
-      INNER JOIN insurance_customers ic ON ml.customer_id = ic.id
-      WHERE ic.user_id = ?
+      LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id
+      WHERE (ic.user_id = ? OR (ml.customer_id IS NULL AND ml.customer_name_fallback IS NOT NULL))
     `;
     const params = [req.user.id];
     
