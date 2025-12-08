@@ -50,7 +50,8 @@ export default function ProfileSelection() {
       await api.post(`/api/profiles/${profile.id}/select`);
       localStorage.setItem('selectedProfileId', profile.id.toString());
       localStorage.setItem('selectedProfileName', profile.profile_name);
-      navigate('/');
+      // Don't navigate away - just reload profiles to show selection
+      loadProfiles();
     } catch (error) {
       console.error('Failed to select profile:', error);
     }
@@ -93,23 +94,34 @@ export default function ProfileSelection() {
         </h1>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-          {profiles.map((profile) => (
-            <button
-              key={profile.id}
-              onClick={() => selectProfile(profile)}
-              className="group flex flex-col items-center gap-4 p-6 rounded-lg hover:bg-white/10 transition-all"
-            >
-              <div
-                className="w-32 h-32 rounded-lg flex items-center justify-center text-4xl font-bold text-white group-hover:scale-110 transition-transform"
-                style={{ backgroundColor: profile.avatar_color }}
+          {profiles.map((profile) => {
+            const isSelected = localStorage.getItem('selectedProfileId') === profile.id.toString();
+            return (
+              <button
+                key={profile.id}
+                onClick={() => selectProfile(profile)}
+                className={`group flex flex-col items-center gap-4 p-6 rounded-lg hover:bg-white/10 transition-all ${
+                  isSelected ? 'ring-4 ring-green-400 bg-white/10' : ''
+                }`}
               >
-                {profile.profile_name.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-white text-lg font-medium">
-                {profile.profile_name}
-              </span>
-            </button>
-          ))}
+                <div
+                  className="w-32 h-32 rounded-lg flex items-center justify-center text-4xl font-bold text-white group-hover:scale-110 transition-transform relative"
+                  style={{ backgroundColor: profile.avatar_color }}
+                >
+                  {profile.profile_name.charAt(0).toUpperCase()}
+                  {isSelected && (
+                    <div className="absolute -top-2 -right-2 bg-green-500 rounded-full w-8 h-8 flex items-center justify-center text-white text-xl">
+                      ✓
+                    </div>
+                  )}
+                </div>
+                <span className="text-white text-lg font-medium">
+                  {profile.profile_name}
+                  {isSelected && <span className="text-green-400 ml-2">(Active)</span>}
+                </span>
+              </button>
+            );
+          })}
 
           {profiles.length < 5 && (
             <button
@@ -126,7 +138,15 @@ export default function ProfileSelection() {
           )}
         </div>
 
-        <div className="text-center">
+        <div className="text-center space-y-3">
+          {localStorage.getItem('selectedProfileId') && (
+            <Button
+              onClick={() => navigate('/')}
+              className="mr-3"
+            >
+              Continue to Dashboard
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => {

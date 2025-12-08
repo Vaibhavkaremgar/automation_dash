@@ -50,9 +50,28 @@ export default function AdminUsersPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin','users'] }),
   })
 
+  const setupIpRestriction = useMutation({
+    mutationFn: async () => (await api.post('/api/admin/setup-ip-restriction')).data,
+    onSuccess: (data) => {
+      alert(`✅ IP Restriction Setup Complete!\n\nIP: ${data.ip}\nMax Sessions: ${data.maxSessions}\n\nKMG user will now be blocked from logging in.`);
+    },
+    onError: (error: any) => {
+      alert(`Failed: ${error.response?.data?.error || error.message}`);
+    }
+  });
+
   return (
     <div className="space-y-6 p-6">
-      <h1 className="text-2xl font-bold text-white">Client Management</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-white">Client Management</h1>
+        <button
+          onClick={() => setupIpRestriction.mutate()}
+          disabled={setupIpRestriction.isPending}
+          className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white px-4 py-2 rounded flex items-center gap-2"
+        >
+          🔒 {setupIpRestriction.isPending ? 'Setting up...' : 'Setup IP Restriction (KMG)'}
+        </button>
+      </div>
 
       <div className="bg-slate-800 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-white mb-4">Create New Client</h2>
