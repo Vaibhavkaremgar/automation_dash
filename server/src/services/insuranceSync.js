@@ -145,9 +145,9 @@ class InsuranceSyncService {
           registration_no: row[7] || '',
           premium: parseFloat(row[9]) || 0,
           premium_mode: row[10] || '',
-          renewal_date: row[11] || '',
-          tp_expiry_date: row[12] || '',
-          insurance_activated_date: row[13] || '',
+          renewal_date: this.formatDate(row[11]) || '',
+          tp_expiry_date: this.formatDate(row[12]) || '',
+          insurance_activated_date: this.formatDate(row[13]) || '',
           status: (row[14] || 'pending').toLowerCase(),
           thank_you_sent: row[15] || '',
           od_expiry_date: '',
@@ -171,10 +171,10 @@ class InsuranceSyncService {
         customer = {
           name: row[0] || '',
           mobile_number: row[1] || '',
-          insurance_activated_date: row[2] || '',
-          renewal_date: row[3] || '',
-          od_expiry_date: row[4] || '',
-          tp_expiry_date: row[5] || '',
+          insurance_activated_date: this.formatDate(row[2]) || '',
+          renewal_date: this.formatDate(row[3]) || '',
+          od_expiry_date: this.formatDate(row[4]) || '',
+          tp_expiry_date: this.formatDate(row[5]) || '',
           premium_mode: row[6] || '',
           premium: parseFloat(row[7]) || 0,
           vertical: vertical,
@@ -308,9 +308,14 @@ class InsuranceSyncService {
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
       return dateStr;
     }
+    // Handle YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const [year, month, day] = dateStr.split('-');
+      return `${day}/${month}/${year}`;
+    }
     // Convert other formats to DD/MM/YYYY
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return '';
+    if (isNaN(date.getTime())) return dateStr; // Return as-is if can't parse
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
