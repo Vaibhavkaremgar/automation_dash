@@ -950,7 +950,7 @@ router.get('/reports', authRequired, async (req, res) => {
     });
 
     // Claims Summary
-    const claimsWhereClause = (vertical && vertical !== 'all') ? `WHERE c.user_id = ? AND ic.vertical = ?` : `WHERE c.user_id = ?`;
+    const claimsWhereClause = (vertical && vertical !== 'all') ? `WHERE ic.user_id = ? AND ic.vertical = ?` : `WHERE ic.user_id = ?`;
     const claimsParams = (vertical && vertical !== 'all') ? [userId, vertical] : [userId];
     
     const totalFiled = await new Promise((resolve, reject) => {

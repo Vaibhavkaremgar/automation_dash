@@ -80,6 +80,10 @@ async function initializeDatabase() {
     const migration008 = require('../migrations/008-add-notes-column');
     await migration008.up();
     
+    // Run message logs fix migration
+    const migration009 = require('../migrations/009-fix-message-logs');
+    await migration009.up();
+    
     // Seed admin user
     await seedAdminUser();
   } catch (err) {
