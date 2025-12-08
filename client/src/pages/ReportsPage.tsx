@@ -67,10 +67,13 @@ export default function ReportsPage() {
     try {
       setLoading(true);
       const verticalParam = `?vertical=${verticalFilter}`;
+      console.log('Loading reports from:', `/api/insurance/reports${verticalParam}`);
       const response = await api.get(`/api/insurance/reports${verticalParam}`);
+      console.log('Reports loaded successfully:', response.data);
       setReportData(response.data);
     } catch (error) {
       console.error('Failed to load reports:', error);
+      console.error('Error details:', error.response?.data || error.message);
     } finally {
       setLoading(false);
     }
