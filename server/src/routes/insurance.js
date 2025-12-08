@@ -141,17 +141,9 @@ router.post('/messages/webhook', async (req, res) => {
 // cleanupOldMessages(); // Run on startup
 
 // Get all message logs
-router.get('/message-logs', authRequired, async (req, res) => {
+router.get('/message-logs', authRequired, (req, res) => {
   try {
     const { channel, status, limit } = req.query;
-    
-    // Get user's client_key
-    const { get } = require('../db/connection');
-    const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
-    const { getClientConfig } = require('../config/insuranceClients');
-    const clientConfig = getClientConfig(user?.email);
-    const userClientKey = clientConfig.key;
-    
     let query = `
       SELECT 
         ml.id,
@@ -164,9 +156,8 @@ router.get('/message-logs', authRequired, async (req, res) => {
         ml.sent_at
       FROM message_logs ml
       LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id
-      WHERE (ic.user_id = ? OR (ml.customer_id IS NULL AND ml.client_key = ?))
     `;
-    const params = [req.user.id, userClientKey];
+    const params = [];
     
     if (channel) {
       query += ' AND ml.channel = ?';
