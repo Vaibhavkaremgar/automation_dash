@@ -8,7 +8,7 @@ RUN npm install
 
 COPY . .
 
-RUN node node_modules/vite/bin/vite.js build
+RUN npm run build
 
 RUN npm install -g serve
 
