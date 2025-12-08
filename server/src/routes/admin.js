@@ -236,6 +236,53 @@ router.post('/users/:id/refresh-analytics', async (req, res, next) => {
   }
 });
 
+// Get user's IP allowlist
+router.get('/users/:id/ips', async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const ips = await all('SELECT * FROM user_ip_allowlist WHERE user_id = ? ORDER BY created_at DESC', [userId]);
+    res.json({ ips });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Add IP to user's allowlist
+router.post('/users/:id/ips', async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { ip_address } = req.body;
+    
+    if (!ip_address || !ip_address.trim()) {
+      return res.status(400).json({ error: 'IP address is required' });
+    }
+    
+    // Check if IP already exists
+    const existing = await get('SELECT id FROM user_ip_allowlist WHERE user_id = ? AND ip_address = ?', [userId, ip_address.trim()]);
+    if (existing) {
+      return res.status(409).json({ error: 'IP address already exists' });
+    }
+    
+    await run('INSERT INTO user_ip_allowlist (user_id, ip_address) VALUES (?, ?)', [userId, ip_address.trim()]);
+    res.json({ success: true, message: 'IP address added' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete IP from user's allowlist
+router.delete('/users/:id/ips/:ipId', async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const ipId = parseInt(req.params.ipId, 10);
+    
+    await run('DELETE FROM user_ip_allowlist WHERE id = ? AND user_id = ?', [ipId, userId]);
+    res.json({ success: true, message: 'IP address removed' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Add IP restriction for KMG user
 router.post('/setup-ip-restriction', async (req, res, next) => {
   try {

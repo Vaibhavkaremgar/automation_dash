@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
+import IPManagementModal from '../../components/IPManagementModal'
 
 export default function AdminUsersPage() {
   const qc = useQueryClient()
@@ -204,6 +205,15 @@ export default function AdminUsersPage() {
                     Save
                   </button>
                   <button 
+                    onClick={() => {
+                      const modal = document.getElementById(`ip-modal-${user.id}`) as HTMLDialogElement;
+                      modal?.showModal();
+                    }}
+                    className="text-purple-400 hover:underline"
+                  >
+                    IP Access
+                  </button>
+                  <button 
                     onClick={async () => {
                       if (!confirm('Permanently delete this client and all their data?')) return
                       try {
@@ -253,6 +263,16 @@ export default function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+
+      {/* IP Management Modals */}
+      {data?.map(user => (
+        <IPManagementModal
+          key={user.id}
+          userId={user.id}
+          userName={user.name || user.email}
+          modalId={`ip-modal-${user.id}`}
+        />
+      ))}
     </div>
   )
 }
