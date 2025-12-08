@@ -84,7 +84,21 @@ export default function ReportsPage() {
   }
 
   if (!reportData) {
-    return <div className="p-6 text-white">Failed to load reports</div>;
+    return (
+      <div className="p-6 space-y-4">
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 text-center">
+          <h2 className="text-xl font-bold text-yellow-400 mb-2">⚠️ No Data Available</h2>
+          <p className="text-slate-300 mb-4">Reports cannot be generated because there is no customer data in the database.</p>
+          <p className="text-slate-400 text-sm mb-4">Please sync data from Google Sheets first by going to the Insurance Dashboard and clicking "Sync from Sheets".</p>
+          <button 
+            onClick={() => window.location.href = '/insurance'}
+            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg"
+          >
+            Go to Dashboard
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -92,6 +92,10 @@ async function initializeDatabase() {
     const migration011 = require('../migrations/011-add-claim-status-history');
     await migration011.up();
     
+    // Run message logs columns fix migration
+    const migration012 = require('../migrations/012-fix-message-logs-columns');
+    await migration012.up();
+    
     // Seed admin user
     await seedAdminUser();
   } catch (err) {
