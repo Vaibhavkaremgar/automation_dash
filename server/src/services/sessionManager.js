@@ -117,12 +117,24 @@ class SessionManager {
    * Clean up old sessions (older than 30 days)
    */
   async cleanupOldSessions() {
+    if (!config.security.enableSessionLimits) {
+      return; // Sessions disabled
+    }
+    
     return new Promise((resolve, reject) => {
       db.run(
         `DELETE FROM sessions WHERE created_at < datetime('now', '-30 days')`,
         (err) => {
-          if (err) reject(err);
-          else resolve();
+          if (err) {
+            // Silently ignore if table doesn't exist
+            if (err.message.includes('no such table')) {
+              resolve();
+            } else {
+              reject(err);
+            }
+          } else {
+            resolve();
+          }
         }
       );
     });

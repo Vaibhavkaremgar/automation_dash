@@ -86,6 +86,8 @@ async function runMigrations() {
         google_sheet_url TEXT,
         client_type TEXT DEFAULT 'hr',
         company_name TEXT,
+        max_sessions INTEGER DEFAULT 5,
+        can_change_password INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -387,6 +389,29 @@ async function runMigrations() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (policy_id) REFERENCES insurance_policies(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Create sessions table
+    await run(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        token TEXT NOT NULL,
+        ip_address TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Create user_ip_allowlist table
+    await run(`
+      CREATE TABLE IF NOT EXISTS user_ip_allowlist (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        ip_address TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
 
