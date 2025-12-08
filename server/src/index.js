@@ -184,6 +184,7 @@ app.use('/api/insurance-config', insuranceConfigRoutes);
 app.use('/api/policies', require('./routes/policies'));
 app.use('/api/webhooks', messageWebhooksRoutes);
 app.use('/api/reset-passwords', require('./routes/reset-passwords'));
+app.use('/api/debug-railway', require('./routes/debug-railway'));
 
 
 // Error handling
