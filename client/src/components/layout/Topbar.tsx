@@ -25,17 +25,15 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
         <div className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">VB Automations</div>
       </div>
       <div className="flex items-center gap-3">
-        {profileName && (
-          <button
-            onClick={() => navigate('/profiles')}
-            className="px-3 py-1.5 bg-indigo-900/20 border border-indigo-700/50 rounded-lg text-indigo-300 text-sm hover:bg-indigo-900/40 transition-all flex items-center gap-2"
-          >
-            <span className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold text-white">
-              {profileName.charAt(0).toUpperCase()}
-            </span>
-            {profileName}
-          </button>
-        )}
+        <button
+          onClick={() => navigate('/profiles')}
+          className="px-3 py-1.5 bg-indigo-900/20 border border-indigo-700/50 rounded-lg text-indigo-300 text-sm hover:bg-indigo-900/40 transition-all flex items-center gap-2"
+        >
+          <span className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold text-white">
+            {profileName ? profileName.charAt(0).toUpperCase() : '👤'}
+          </span>
+          {profileName || 'Select Profile'}
+        </button>
         
         {isInsuranceClient && (
           <select
