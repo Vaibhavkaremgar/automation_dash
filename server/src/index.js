@@ -76,6 +76,10 @@ async function initializeDatabase() {
     const migration007 = require('../migrations/007-fix-renewal-reminders');
     await migration007.up();
     
+    // Run notes column migration
+    const migration008 = require('../migrations/008-add-notes-column');
+    await migration008.up();
+    
     // Seed admin user
     await seedAdminUser();
   } catch (err) {

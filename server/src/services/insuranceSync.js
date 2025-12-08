@@ -73,16 +73,20 @@ class InsuranceSyncService {
     let rows;
     if (this.sheets) {
       try {
+        console.log('Attempting Google Sheets API read...');
         const response = await this.sheets.spreadsheets.values.get({
           spreadsheetId,
           range: `${tabName}!A:Y`,
         });
         rows = response.data.values;
-        console.log(`Got ${rows?.length || 0} rows from Google Sheets API`);
+        console.log(`✅ Got ${rows?.length || 0} rows from Google Sheets API`);
       } catch (e) {
-        console.log('Google Sheets API failed, trying CSV fallback:', e.message);
+        console.error('❌ Google Sheets API failed:', e.message);
+        console.log('Trying CSV fallback...');
         rows = null;
       }
+    } else {
+      console.log('⚠️  Google Sheets API not initialized, using CSV fallback');
     }
 
     // Fallback: public CSV
@@ -93,10 +97,11 @@ class InsuranceSyncService {
         const resp = await axios.get(url, { timeout: 10000 });
         const csvRows = parseCsv(resp.data);
         rows = csvRows;
-        console.log(`Got ${rows?.length || 0} rows from CSV fallback`);
+        console.log(`✅ Got ${rows?.length || 0} rows from CSV fallback`);
       } catch (e) {
-        console.error('CSV fallback failed:', e.message);
-        throw new Error('Google Sheets not accessible');
+        console.error('❌ CSV fallback failed:', e.message);
+        console.error('Error details:', e.response?.status, e.response?.statusText);
+        throw new Error(`Google Sheets not accessible: ${e.message}`);
       }
     }
 
