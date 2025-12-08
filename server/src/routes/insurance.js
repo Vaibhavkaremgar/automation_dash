@@ -125,20 +125,20 @@ router.post('/messages/webhook', async (req, res) => {
 });
 
 // Auto-cleanup old messages (30+ days)
-// const cleanupOldMessages = () => {
-//   db.run(`DELETE FROM message_logs WHERE sent_at < datetime('now', '-30 days')`, (err) => {
-//     if (err) console.error('Failed to cleanup old messages:', err);
-//     else console.log('Old messages cleaned up');
-//   });
-//   db.run(`DELETE FROM renewal_reminders WHERE sent_at < datetime('now', '-30 days')`, (err) => {
-//     if (err) console.error('Failed to cleanup old reminders:', err);
-//     else console.log('Old reminders cleaned up');
-//   });
-// };
+const cleanupOldMessages = () => {
+  db.run(`DELETE FROM message_logs WHERE sent_at < datetime('now', '-30 days')`, (err) => {
+    if (err) console.error('Failed to cleanup old messages:', err);
+    else console.log('Old messages cleaned up');
+  });
+  db.run(`DELETE FROM renewal_reminders WHERE sent_at < datetime('now', '-30 days')`, (err) => {
+    if (err) console.error('Failed to cleanup old reminders:', err);
+    else console.log('Old reminders cleaned up');
+  });
+};
 
-// // Run cleanup daily
-// setInterval(cleanupOldMessages, 24 * 60 * 60 * 1000);
-// cleanupOldMessages(); // Run on startup
+// Run cleanup daily
+setInterval(cleanupOldMessages, 24 * 60 * 60 * 1000);
+cleanupOldMessages(); // Run on startup
 
 // Get all message logs
 router.get('/message-logs', authRequired, async (req, res) => {

@@ -65,11 +65,11 @@ export default memo(function Sidebar() {
         <div className="mb-4 flex justify-center">
           <img 
             src={user?.email?.toLowerCase().includes('joban') 
-              ? 'https://drive.google.com/thumbnail?id=1R2CNXhJr0rqnYkML3g4GWKPdaZt8-ffc&sz=w200'
-              : 'https://drive.google.com/thumbnail?id=1FzuJ03-cQ8VA7fAUDcoz1QW-2_We5FiL&sz=w200'
+              ? 'https://drive.google.com/thumbnail?id=1R2CNXhJr0rqnYkML3g4GWKPdaZt8-ffc&sz=w300'
+              : 'https://drive.google.com/thumbnail?id=1FzuJ03-cQ8VA7fAUDcoz1QW-2_We5FiL&sz=w300'
             }
             alt="Company Logo" 
-            className="h-12 w-auto object-contain"
+            className="h-20 w-auto object-contain"
             onError={(e) => {
               e.currentTarget.style.display = 'none'
             }}
