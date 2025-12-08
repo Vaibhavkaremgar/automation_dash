@@ -84,6 +84,14 @@ async function initializeDatabase() {
     const migration009 = require('../migrations/009-fix-message-logs');
     await migration009.up();
     
+    // Run claims table fix migration
+    const migration010 = require('../migrations/010-fix-claims-table');
+    await migration010.up();
+    
+    // Run claim status history migration
+    const migration011 = require('../migrations/011-add-claim-status-history');
+    await migration011.up();
+    
     // Seed admin user
     await seedAdminUser();
   } catch (err) {
