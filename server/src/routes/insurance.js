@@ -155,7 +155,7 @@ router.get('/message-logs', authRequired, (req, res) => {
         ml.status,
         ml.sent_at
       FROM message_logs ml
-      LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id
+      INNER JOIN insurance_customers ic ON ml.customer_id = ic.id
       WHERE ic.user_id = ?
     `;
     const params = [req.user.id];
