@@ -236,6 +236,37 @@ router.post('/users/:id/refresh-analytics', async (req, res, next) => {
   }
 });
 
+// Add IP restriction for KMG user
+router.post('/setup-ip-restriction', async (req, res, next) => {
+  try {
+    const kmgEmail = 'kvreddy1809@gmail.com';
+    const restrictedIP = '0.0.0.0';
+    
+    const user = await get('SELECT id FROM users WHERE email = ?', [kmgEmail]);
+    if (!user) {
+      return res.status(404).json({ error: 'KMG user not found' });
+    }
+    
+    // Delete existing IPs
+    await run('DELETE FROM user_ip_allowlist WHERE user_id = ?', [user.id]);
+    
+    // Add restricted IP
+    await run('INSERT INTO user_ip_allowlist (user_id, ip_address) VALUES (?, ?)', [user.id, restrictedIP]);
+    
+    // Set max sessions
+    await run('UPDATE users SET max_sessions = 5 WHERE id = ?', [user.id]);
+    
+    res.json({ 
+      success: true, 
+      message: 'IP restriction added for KMG user',
+      ip: restrictedIP,
+      maxSessions: 5
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Admin sync client data from Google Sheets
 router.post('/users/:id/sync-from-sheet', async (req, res, next) => {
   try {
