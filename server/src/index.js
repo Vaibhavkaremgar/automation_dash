@@ -72,6 +72,10 @@ async function initializeDatabase() {
     const migration006 = require('../migrations/006-add-missing-columns');
     await migration006.up();
     
+    // Run renewal reminders fix migration
+    const migration007 = require('../migrations/007-fix-renewal-reminders');
+    await migration007.up();
+    
     // Seed admin user
     await seedAdminUser();
   } catch (err) {

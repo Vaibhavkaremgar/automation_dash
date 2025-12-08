@@ -108,11 +108,14 @@ async function runMigrations() {
     await run(`
       CREATE TABLE IF NOT EXISTS renewal_reminders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER,
         customer_name TEXT,
         policy_number TEXT,
         reminder_type TEXT,
         reminder_date TEXT,
-        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        sent_via TEXT,
+        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (customer_id) REFERENCES insurance_customers(id) ON DELETE SET NULL
       )
     `);
 

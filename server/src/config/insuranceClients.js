@@ -3,8 +3,8 @@ const insuranceClients = {
   kmg: {
     identifier: ['kmg', 'kmginsurance'],
     name: 'KMG Insurance Agency',
-    spreadsheetId: process.env.KMG_INSURANCE_SHEETS_SPREADSHEET_ID,
-    tabName: process.env.KMG_INSURANCE_SHEETS_TAB,
+    spreadsheetId: process.env.KMG_INSURANCE_SHEETS_SPREADSHEET_ID || '1EpMAg1gSXPKr83cTugvGexrqv3Yt5Tb85Re2Shah8mw',
+    tabName: process.env.KMG_INSURANCE_SHEETS_TAB || 'updating_input',
     schema: {
       name: 'name',
       mobile_number: 'mobile_number',
@@ -31,8 +31,8 @@ const insuranceClients = {
   joban: {
     identifier: ['joban', 'jobanputra', 'joban putra'],
     name: 'Joban Putra Insurance',
-    spreadsheetId: process.env.JOBAN_INSURANCE_SHEETS_SPREADSHEET_ID,
-    tabName: process.env.JOBAN_INSURANCE_SHEETS_TAB,
+    spreadsheetId: process.env.JOBAN_INSURANCE_SHEETS_SPREADSHEET_ID || '1oX5MGRMo6oz87ivTXeMOy6vtIDPJXXawz_lGqmOvUEo',
+    tabName: process.env.JOBAN_INSURANCE_SHEETS_TAB || 'Sheet1',
     schema: {
       name: 'name',
       mobile_number: 'mobile_number',
