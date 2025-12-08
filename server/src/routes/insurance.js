@@ -156,7 +156,7 @@ router.get('/message-logs', authRequired, (req, res) => {
         ml.sent_at
       FROM message_logs ml
       LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id
-      WHERE (ic.user_id = ? OR ml.customer_id IS NULL)
+      WHERE ic.user_id = ?
     `;
     const params = [req.user.id];
     
