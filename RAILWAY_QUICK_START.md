@@ -125,7 +125,7 @@ JOBAN_INSURANCE_SHEETS_TAB=Sheet1
 
 **Environment Variable:**
 ```
-VITE_API_URL=https://YOUR-BACKEND-URL.up.railway.app
+VITE_API_URL=https://automationdash-production.up.railway.app
 ```
 
 **Copy Frontend URL** from Settings tab
