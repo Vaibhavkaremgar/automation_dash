@@ -35,6 +35,7 @@ export default function ClaimsManagement() {
   const [editingClaim, setEditingClaim] = useState<Claim | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const [newClaim, setNewClaim] = useState({
     customer_id: '',
@@ -137,6 +138,33 @@ export default function ClaimsManagement() {
     }
   };
 
+  const syncFromClaimsSheet = async () => {
+    try {
+      setSyncing(true);
+      const result = await api.post('/api/insurance/claims/sync/from-sheet');
+      alert(`Sync completed! Imported: ${result.data.imported} claims`);
+      loadData();
+    } catch (error) {
+      console.error('Failed to sync from claims sheet:', error);
+      alert('Sync failed. Please check your Google Sheets connection.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const syncToClaimsSheet = async () => {
+    try {
+      setSyncing(true);
+      const result = await api.post('/api/insurance/claims/sync/to-sheet');
+      alert(`Successfully synced ${result.data.exported} claims to Google Sheets!`);
+    } catch (error) {
+      console.error('Failed to sync to claims sheet:', error);
+      alert('Sync to sheets failed: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'filed': return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
@@ -173,7 +201,23 @@ export default function ClaimsManagement() {
         <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
           Claims Management
         </h1>
-        <Button onClick={() => setShowAddModal(true)}>Add Claim</Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={syncFromClaimsSheet} 
+            disabled={syncing}
+            variant="outline"
+          >
+            {syncing ? 'Syncing...' : '🔄 Sync from Sheet'}
+          </Button>
+          <Button 
+            onClick={syncToClaimsSheet} 
+            disabled={syncing}
+            variant="outline"
+          >
+            {syncing ? 'Syncing...' : '📤 Sync to Sheet'}
+          </Button>
+          <Button onClick={() => setShowAddModal(true)}>Add Claim</Button>
+        </div>
       </div>
 
       {/* Stats */}

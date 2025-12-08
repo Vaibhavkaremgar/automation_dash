@@ -17,12 +17,19 @@ const AVATAR_COLORS = [
   '#f59e0b', '#10b981', '#06b6d4', '#3b82f6'
 ];
 
+interface EditingProfile {
+  id: number;
+  profile_name: string;
+  avatar_color: string;
+}
+
 export default function ProfileSelection() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
   const [selectedColor, setSelectedColor] = useState(AVATAR_COLORS[0]);
+  const [editingProfile, setEditingProfile] = useState<EditingProfile | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,8 +57,9 @@ export default function ProfileSelection() {
       await api.post(`/api/profiles/${profile.id}/select`);
       localStorage.setItem('selectedProfileId', profile.id.toString());
       localStorage.setItem('selectedProfileName', profile.profile_name);
-      // Don't navigate away - just reload profiles to show selection
       loadProfiles();
+      // Navigate to dashboard after selection
+      setTimeout(() => navigate('/'), 500);
     } catch (error) {
       console.error('Failed to select profile:', error);
     }
@@ -78,6 +86,41 @@ export default function ProfileSelection() {
     }
   };
 
+  const updateProfile = async () => {
+    if (!editingProfile || !editingProfile.profile_name.trim()) {
+      alert('Profile name is required');
+      return;
+    }
+
+    try {
+      await api.put(`/api/profiles/${editingProfile.id}`, {
+        profile_name: editingProfile.profile_name.trim(),
+        avatar_color: editingProfile.avatar_color
+      });
+      setEditingProfile(null);
+      loadProfiles();
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      alert('Failed to update profile');
+    }
+  };
+
+  const deleteProfile = async (profileId: number) => {
+    if (!confirm('Delete this profile? All activity history will be kept.')) return;
+
+    try {
+      await api.delete(`/api/profiles/${profileId}`);
+      if (localStorage.getItem('selectedProfileId') === profileId.toString()) {
+        localStorage.removeItem('selectedProfileId');
+        localStorage.removeItem('selectedProfileName');
+      }
+      loadProfiles();
+    } catch (error) {
+      console.error('Failed to delete profile:', error);
+      alert('Failed to delete profile');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
@@ -97,29 +140,52 @@ export default function ProfileSelection() {
           {profiles.map((profile) => {
             const isSelected = localStorage.getItem('selectedProfileId') === profile.id.toString();
             return (
-              <button
-                key={profile.id}
-                onClick={() => selectProfile(profile)}
-                className={`group flex flex-col items-center gap-4 p-6 rounded-lg hover:bg-white/10 transition-all ${
-                  isSelected ? 'ring-4 ring-green-400 bg-white/10' : ''
-                }`}
-              >
-                <div
-                  className="w-32 h-32 rounded-lg flex items-center justify-center text-4xl font-bold text-white group-hover:scale-110 transition-transform relative"
-                  style={{ backgroundColor: profile.avatar_color }}
+              <div key={profile.id} className="relative">
+                <button
+                  onClick={() => selectProfile(profile)}
+                  className={`group flex flex-col items-center gap-4 p-6 rounded-lg hover:bg-white/10 transition-all w-full ${
+                    isSelected ? 'ring-4 ring-green-400 bg-white/10' : ''
+                  }`}
                 >
-                  {profile.profile_name.charAt(0).toUpperCase()}
-                  {isSelected && (
-                    <div className="absolute -top-2 -right-2 bg-green-500 rounded-full w-8 h-8 flex items-center justify-center text-white text-xl">
-                      ✓
-                    </div>
-                  )}
+                  <div
+                    className="w-32 h-32 rounded-lg flex items-center justify-center text-4xl font-bold text-white group-hover:scale-110 transition-transform relative"
+                    style={{ backgroundColor: profile.avatar_color }}
+                  >
+                    {profile.profile_name.charAt(0).toUpperCase()}
+                    {isSelected && (
+                      <div className="absolute -top-2 -right-2 bg-green-500 rounded-full w-8 h-8 flex items-center justify-center text-white text-xl">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-white text-lg font-medium">
+                    {profile.profile_name}
+                    {isSelected && <span className="text-green-400 ml-2">(Active)</span>}
+                  </span>
+                </button>
+                <div className="absolute top-2 right-2 flex gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingProfile(profile);
+                    }}
+                    className="bg-blue-500/80 hover:bg-blue-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs"
+                    title="Edit Profile"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteProfile(profile.id);
+                    }}
+                    className="bg-red-500/80 hover:bg-red-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs"
+                    title="Delete Profile"
+                  >
+                    🗑️
+                  </button>
                 </div>
-                <span className="text-white text-lg font-medium">
-                  {profile.profile_name}
-                  {isSelected && <span className="text-green-400 ml-2">(Active)</span>}
-                </span>
-              </button>
+              </div>
             );
           })}
 
@@ -192,6 +258,43 @@ export default function ProfileSelection() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Edit Profile Modal */}
+      <Modal open={!!editingProfile} onClose={() => setEditingProfile(null)} title="Edit Profile">
+        {editingProfile && (
+          <div className="space-y-4">
+            <Input
+              placeholder="Profile Name"
+              value={editingProfile.profile_name}
+              onChange={(e) => setEditingProfile({...editingProfile, profile_name: e.target.value})}
+              maxLength={20}
+            />
+
+            <div>
+              <label className="block text-sm text-slate-300 mb-2">Choose Avatar Color</label>
+              <div className="grid grid-cols-4 gap-3">
+                {AVATAR_COLORS.map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => setEditingProfile({...editingProfile, avatar_color: color})}
+                    className={`w-full h-12 rounded-lg transition-all ${
+                      editingProfile.avatar_color === color ? 'ring-4 ring-white scale-110' : ''
+                    }`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button onClick={updateProfile}>Update Profile</Button>
+              <Button variant="outline" onClick={() => setEditingProfile(null)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

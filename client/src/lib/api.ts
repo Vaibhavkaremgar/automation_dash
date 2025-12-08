@@ -167,6 +167,14 @@ api.interceptors.request.use((cfg) => {
     cfg.headers = cfg.headers || {}
     cfg.headers.Authorization = `Bearer ${token}`
   }
+  
+  // Add profile ID to headers if available
+  const profileId = localStorage.getItem('selectedProfileId')
+  if (profileId) {
+    cfg.headers = cfg.headers || {}
+    cfg.headers['x-profile-id'] = profileId
+  }
+  
   return cfg
 })
 

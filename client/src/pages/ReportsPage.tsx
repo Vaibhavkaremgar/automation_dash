@@ -165,12 +165,12 @@ export default function ReportsPage() {
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Monthly Renewal Trend (Last 6 Months)</h3>
-            <div className="flex items-end gap-4 h-48">
+            <h3 className="text-lg font-semibold text-white mb-4">Monthly Renewal Trend (Last 12 Months)</h3>
+            <div className="flex items-end gap-2 h-48 overflow-x-auto">
               {reportData.renewalPerformance.monthlyTrend.map((item, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center">
+                <div key={idx} className="flex-1 min-w-[60px] flex flex-col items-center">
                   <div className="w-full bg-indigo-500/30 rounded-t" style={{ height: `${(item.count / Math.max(...reportData.renewalPerformance.monthlyTrend.map(t => t.count))) * 100}%` }}>
-                    <div className="text-center text-white text-sm pt-2">{item.count}</div>
+                    <div className="text-center text-white text-xs pt-1">{item.count}</div>
                   </div>
                   <div className="text-slate-400 text-xs mt-2">{item.month}</div>
                 </div>

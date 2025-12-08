@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ActivityFeed from '../components/ActivityFeed';
+import ProfileActivity from '../components/dashboard/ProfileActivity';
 import { api } from '../lib/api';
 
 // Dynamic config
@@ -113,6 +114,14 @@ export default function InsuranceDashboard() {
   useEffect(() => {
     loadClientConfig();
     loadData();
+    
+    // Auto-sync on login/mount
+    const hasAutoSynced = sessionStorage.getItem('hasAutoSynced');
+    if (!hasAutoSynced) {
+      console.log('Auto-syncing from Google Sheets on login...');
+      syncFromSheets(true); // silent mode
+      sessionStorage.setItem('hasAutoSynced', 'true');
+    }
     
     const handleVerticalChange = (e: any) => {
       setVerticalFilter(e.detail);
@@ -636,7 +645,10 @@ export default function InsuranceDashboard() {
         </div>
 
         {/* Activity Feed */}
-        <ActivityFeed />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <ActivityFeed />
+          <ProfileActivity />
+        </div>
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

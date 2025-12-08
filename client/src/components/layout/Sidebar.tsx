@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { LayoutDashboard, Briefcase, Users, Upload, Wallet, BarChart3, Mail, Settings, Receipt, Shield, MessageSquare } from 'lucide-react'
 import AIBackground from '../ui/AIBackground'
+import AICube from '../ui/AICube'
 
 const linkCls = ({ isActive }: { isActive: boolean }) =>
   `group flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-indigo-600/20 to-cyan-600/20 border border-indigo-500/30 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`
@@ -61,31 +62,42 @@ export default memo(function Sidebar() {
     <aside className="hidden md:block w-[var(--sidebar-width)] border-r border-slate-800/50 bg-slate-900/40 backdrop-blur-xl relative z-10">
       <AIBackground />
       <div className="p-6 border-b border-slate-800/50">
-        {/* Client-specific Logo */}
-        <div className="mb-4 flex justify-center">
-          <img 
-            src={user?.email?.toLowerCase().includes('joban') 
-              ? 'https://drive.google.com/thumbnail?id=1R2CNXhJr0rqnYkML3g4GWKPdaZt8-ffc&sz=w300'
-              : 'https://drive.google.com/thumbnail?id=1FzuJ03-cQ8VA7fAUDcoz1QW-2_We5FiL&sz=w300'
-            }
-            alt="Company Logo" 
-            className="h-20 w-auto object-contain"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none'
-            }}
-          />
-        </div>
-        {sidebarTitle && (
-          <Link to="/" className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
-            {sidebarTitle}
+        {/* VB Automation Logo with Rotating Cube */}
+        <div className="mb-4 flex items-center justify-center gap-2">
+          <AICube size={32} />
+          <Link to="/" className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
+            VB Automation
           </Link>
+        </div>
+        
+        {/* Client-specific Logo */}
+        {user?.client_type === 'insurance' && (
+          <div className="mb-3 flex justify-center">
+            <img 
+              src={user?.email?.toLowerCase().includes('joban') 
+                ? 'https://drive.google.com/thumbnail?id=1R2CNXhJr0rqnYkML3g4GWKPdaZt8-ffc&sz=w300'
+                : 'https://drive.google.com/thumbnail?id=1FzuJ03-cQ8VA7fAUDcoz1QW-2_We5FiL&sz=w300'
+              }
+              alt="Company Logo" 
+              className="h-16 w-auto object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+            />
+          </div>
+        )}
+        
+        {sidebarTitle && (
+          <div className="text-lg font-semibold text-white text-center">
+            {sidebarTitle.replace(/🏢\s*/, '')}
+          </div>
         )}
         {user?.client_type && (
-          <div className="text-xs text-indigo-300 mt-1">
+          <div className="text-xs text-indigo-300 mt-1 text-center">
             {user.client_type === 'insurance' ? 'Insurance Agency' : 'HR Agency'}
           </div>
         )}
-        <div className="text-xs text-slate-400 truncate mt-1" title={user?.email || ''}>
+        <div className="text-xs text-slate-400 truncate mt-1 text-center" title={user?.email || ''}>
           {user?.email}
         </div>
       </div>
@@ -99,16 +111,14 @@ export default memo(function Sidebar() {
                 onClick={() => alert('🔒 Premium Feature\n\nWallet feature coming soon for insurance agencies.\n\nContact support for more info.')}
               >
                 <div className="flex items-center gap-3 w-full">
-                  <span className="text-lg">{item.emoji}</span>
-                  <item.icon className="w-4 h-4 opacity-70" />
+                  <item.icon className="w-5 h-5 opacity-70" />
                   <span className="font-medium">{item.label}</span>
                 </div>
               </div>
             ) : (
               <NavLink to={item.to} className={linkCls} title={item.label}>
                 <div className="flex items-center gap-3 w-full hover:translate-x-1 transition-transform duration-150">
-                  <span className="text-lg">{item.emoji}</span>
-                  <item.icon className="w-4 h-4 opacity-70" />
+                  <item.icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
                 </div>
               </NavLink>

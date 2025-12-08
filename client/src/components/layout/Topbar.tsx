@@ -21,17 +21,8 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
         <button className="md:hidden inline-flex items-center justify-center p-2 rounded border border-slate-800 hover:bg-slate-800/60" onClick={onMenu} aria-label="Open menu">
           <Menu className="w-5 h-5" />
         </button>
-        <img 
-          src={user?.email?.toLowerCase().includes('joban') 
-            ? 'https://drive.google.com/thumbnail?id=1R2CNXhJr0rqnYkML3g4GWKPdaZt8-ffc&sz=w200'
-            : 'https://drive.google.com/thumbnail?id=1FzuJ03-cQ8VA7fAUDcoz1QW-2_We5FiL&sz=w200'
-          }
-          alt="Logo" 
-          className="h-10 w-auto object-contain"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none'
-          }}
-        />
+        <AICube size={20} />
+        <div className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">VB Automations</div>
       </div>
       <div className="flex items-center gap-3">
         <button

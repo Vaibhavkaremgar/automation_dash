@@ -65,13 +65,6 @@ export default function AdminUsersPage() {
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-white">Client Management</h1>
-        <button
-          onClick={() => setupIpRestriction.mutate()}
-          disabled={setupIpRestriction.isPending}
-          className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white px-4 py-2 rounded flex items-center gap-2"
-        >
-          🔒 {setupIpRestriction.isPending ? 'Setting up...' : 'Setup IP Restriction (KMG)'}
-        </button>
       </div>
 
       <div className="bg-slate-800 rounded-lg p-6">
