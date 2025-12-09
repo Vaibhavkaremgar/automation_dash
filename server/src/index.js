@@ -35,7 +35,7 @@ const app = express();
 
 app.use(cors({
   origin: config.nodeEnv === 'production' 
-    ? ['https://enthusiastic-cat-production-f8b7.up.railway.app', config.frontendUrl].filter(Boolean)
+    ? ['https://enthusiastic-cat-production-f806.up.railway.app', config.frontendUrl].filter(Boolean)
     : ['http://localhost:5173', config.frontendUrl].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
