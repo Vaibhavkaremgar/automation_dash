@@ -636,11 +636,8 @@ export default function InsuranceDashboard() {
           )}
         </div>
 
-        {/* Activity Feed */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <ActivityFeed />
-          <ProfileActivity />
-        </div>
+        {/* Profile Activity */}
+        <ProfileActivity />
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

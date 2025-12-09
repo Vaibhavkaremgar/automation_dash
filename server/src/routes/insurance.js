@@ -3,12 +3,18 @@ const { authRequired } = require('../middleware/auth');
 const { getDatabase } = require('../db/connection');
 const insuranceSync = require('../services/insuranceSync');
 const insuranceMessaging = require('../services/insuranceMessaging');
+const claimsSync = require('../services/claimsSync');
+const { activityLogger } = require('../middleware/activityLogger');
+const { enforceDataIsolation, validateCustomerOwnership, validateClaimOwnership } = require('../middleware/dataIsolation');
 const router = express.Router();
 
 const db = getDatabase();
 
+// Apply data isolation to all insurance routes
+router.use(authRequired, enforceDataIsolation);
+
 // Get all insurance customers
-router.get('/customers', authRequired, (req, res) => {
+router.get('/customers', (req, res) => {
   try {
     const { search, status, vertical } = req.query;
     let query = 'SELECT * FROM insurance_customers WHERE user_id = ?';
@@ -41,7 +47,7 @@ router.get('/customers', authRequired, (req, res) => {
 });
 
 // Create new insurance customer
-router.post('/customers', authRequired, (req, res) => {
+router.post('/customers', activityLogger, (req, res) => {
   try {
     const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent } = req.body;
     
@@ -57,6 +63,7 @@ router.post('/customers', authRequired, (req, res) => {
       
       db.get('SELECT * FROM insurance_customers WHERE id = ?', [this.lastID], (err, customer) => {
         if (err) return res.status(500).json({ error: err.message });
+        req.logActivity('customer_add', `Added customer: ${name}`);
         res.status(201).json(customer);
       });
     });
@@ -66,7 +73,7 @@ router.post('/customers', authRequired, (req, res) => {
 });
 
 // Update insurance customer
-router.put('/customers/:id', authRequired, (req, res) => {
+router.put('/customers/:id', validateCustomerOwnership, activityLogger, (req, res) => {
   try {
     const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent } = req.body;
     
@@ -79,6 +86,7 @@ router.put('/customers/:id', authRequired, (req, res) => {
       
       db.get('SELECT * FROM insurance_customers WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, customer) => {
         if (err) return res.status(500).json({ error: err.message });
+        req.logActivity('customer_update', `Updated customer: ${name}`);
         res.json(customer);
       });
     });
@@ -88,10 +96,11 @@ router.put('/customers/:id', authRequired, (req, res) => {
 });
 
 // Delete insurance customer
-router.delete('/customers/:id', authRequired, (req, res) => {
+router.delete('/customers/:id', validateCustomerOwnership, activityLogger, (req, res) => {
   try {
     db.run('DELETE FROM insurance_customers WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err) => {
       if (err) return res.status(500).json({ error: err.message });
+      req.logActivity('customer_delete', `Deleted customer ID: ${req.params.id}`);
       res.json({ message: 'Customer deleted successfully' });
     });
   } catch (error) {
@@ -127,17 +136,48 @@ router.post('/messages/webhook', async (req, res) => {
 
 
 // Get all message logs
-router.get('/message-logs', authRequired, async (req, res) => {
+router.get('/message-logs', async (req, res) => {
   try {
-    // Return empty array if table doesn't exist
-    res.json([]);
+    const { channel, status, limit } = req.query;
+    
+    let query = `
+      SELECT ml.*, 
+        COALESCE(ic.name, ml.customer_name_fallback, 'Unknown') as customer_name, 
+        ic.mobile_number
+      FROM message_logs ml
+      LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id AND ic.user_id = ?
+      WHERE (ml.customer_id IN (SELECT id FROM insurance_customers WHERE user_id = ?) OR ml.customer_id IS NULL)
+    `;
+    const params = [req.user.id, req.user.id];
+    
+    if (channel) {
+      query += ' AND ml.channel = ?';
+      params.push(channel);
+    }
+    
+    if (status) {
+      query += ' AND ml.status = ?';
+      params.push(status);
+    }
+    
+    query += ' ORDER BY ml.sent_at DESC';
+    
+    if (limit) {
+      query += ' LIMIT ?';
+      params.push(parseInt(limit));
+    }
+    
+    db.all(query, params, (err, messages) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(messages || []);
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Get message history
-router.get('/messages', authRequired, (req, res) => {
+router.get('/messages', (req, res) => {
   try {
     db.all(`
       SELECT im.*, ic.name as customer_name, ic.mobile_number 
@@ -155,7 +195,7 @@ router.get('/messages', authRequired, (req, res) => {
 });
 
 // Sync from Google Sheets
-router.post('/sync/from-sheet', authRequired, async (req, res) => {
+router.post('/sync/from-sheet', activityLogger, async (req, res) => {
   try {
     const { get } = require('../db/connection');
     
@@ -181,6 +221,7 @@ router.post('/sync/from-sheet', authRequired, async (req, res) => {
 
     console.log('Syncing from sheet - User:', req.user.id, 'Email:', email, 'Sheet:', spreadsheetId, 'Tab:', tabName);
     const result = await insuranceSync.syncFromSheet(req.user.id, spreadsheetId, tabName);
+    req.logActivity('sync_from_sheet', `Synced ${result.imported || 0} customers from Google Sheets`);
     res.json(result);
   } catch (error) {
     console.error('Sync from sheet error:', error);
@@ -189,7 +230,7 @@ router.post('/sync/from-sheet', authRequired, async (req, res) => {
 });
 
 // Sync to Google Sheets
-router.post('/sync/to-sheet', authRequired, async (req, res) => {
+router.post('/sync/to-sheet', activityLogger, async (req, res) => {
   try {
     const { get } = require('../db/connection');
     
@@ -216,6 +257,7 @@ router.post('/sync/to-sheet', authRequired, async (req, res) => {
     console.log('Syncing to sheet - User:', req.user.id, 'Email:', email, 'Sheet:', spreadsheetId, 'Tab:', tabName);
     const result = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, tabName);
     console.log('Sync result:', result);
+    req.logActivity('sync_to_sheet', `Synced ${result.exported || 0} customers to Google Sheets`);
     res.json(result);
   } catch (error) {
     console.error('Sync to sheet error:', error.message);
@@ -224,7 +266,7 @@ router.post('/sync/to-sheet', authRequired, async (req, res) => {
 });
 
 // Schedule reminders
-router.post('/messages/schedule', authRequired, async (req, res) => {
+router.post('/messages/schedule', async (req, res) => {
   try {
     const result = await insuranceMessaging.scheduleReminders(req.user.id);
     res.json(result);
@@ -234,7 +276,7 @@ router.post('/messages/schedule', authRequired, async (req, res) => {
 });
 
 // Send pending messages
-router.post('/messages/send', authRequired, async (req, res) => {
+router.post('/messages/send', async (req, res) => {
   try {
     const result = await insuranceMessaging.sendPendingMessages(req.user.id);
     res.json(result);
@@ -244,7 +286,7 @@ router.post('/messages/send', authRequired, async (req, res) => {
 });
 
 // Clean up duplicate customers
-router.post('/customers/cleanup-duplicates', authRequired, (req, res) => {
+router.post('/customers/cleanup-duplicates', (req, res) => {
   try {
     db.run(`
       DELETE FROM insurance_customers 
@@ -266,7 +308,22 @@ router.post('/customers/cleanup-duplicates', authRequired, (req, res) => {
 // Log message from n8n (with client validation)
 router.post('/log-message', async (req, res) => {
   try {
-    res.json({ success: true, id: 0 });
+    const { customer_id, customer_name, message_type, channel, message_content, status, sent_at } = req.body;
+    
+    if (!channel) {
+      return res.status(400).json({ error: 'Channel is required' });
+    }
+    
+    db.run(`
+      INSERT INTO message_logs (customer_id, customer_name_fallback, message_type, channel, message_content, status, sent_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [customer_id || null, customer_name || null, message_type || 'general', channel, message_content || '', status || 'sent', sent_at || new Date().toISOString()], function(err) {
+      if (err) {
+        console.error('Log message error:', err);
+        return res.json({ success: true, id: 0 });
+      }
+      res.json({ success: true, id: this.lastID });
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -275,14 +332,29 @@ router.post('/log-message', async (req, res) => {
 // Log reminder from n8n (with client validation)
 router.post('/log-reminder', async (req, res) => {
   try {
-    res.json({ success: true, id: 0 });
+    const { customer_id, reminder_type, sent_via, sent_at } = req.body;
+    
+    if (!customer_id || !reminder_type || !sent_via) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    db.run(`
+      INSERT INTO renewal_reminders (customer_id, reminder_type, sent_via, sent_at)
+      VALUES (?, ?, ?, ?)
+    `, [customer_id, reminder_type, sent_via, sent_at || new Date().toISOString()], function(err) {
+      if (err) {
+        console.error('Log reminder error:', err);
+        return res.json({ success: true, id: 0 });
+      }
+      res.json({ success: true, id: this.lastID });
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Add customer note
-router.post('/customers/:id/notes', authRequired, async (req, res) => {
+router.post('/customers/:id/notes', validateCustomerOwnership, async (req, res) => {
   try {
     const { note } = req.body;
     
@@ -331,25 +403,52 @@ router.post('/customers/:id/notes', authRequired, async (req, res) => {
 });
 
 // Get customer notes and reminders
-router.get('/customers/:id/history', authRequired, (req, res) => {
+router.get('/customers/:id/history', validateCustomerOwnership, (req, res) => {
   try {
-    res.json([]);
+    db.all(`
+      SELECT 'note' as type, note as content, created_at, created_by
+      FROM customer_notes
+      WHERE customer_id = ?
+      UNION ALL
+      SELECT 'reminder' as type, reminder_type || ' via ' || sent_via as content, sent_at as created_at, NULL as created_by
+      FROM renewal_reminders
+      WHERE customer_id = ?
+      ORDER BY created_at DESC
+    `, [req.params.id, req.params.id], (err, history) => {
+      if (err) {
+        console.error('History error:', err);
+        return res.json([]);
+      }
+      res.json(history || []);
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Get renewal statistics
-router.get('/renewal-stats', authRequired, (req, res) => {
+router.get('/renewal-stats', (req, res) => {
   try {
-    res.json({ reminders_today: 0, customers_reminded: 0 });
+    db.get(`
+      SELECT 
+        COUNT(CASE WHEN sent_at >= date('now') THEN 1 END) as reminders_today,
+        COUNT(DISTINCT customer_id) as customers_reminded
+      FROM renewal_reminders
+      WHERE customer_id IN (SELECT id FROM insurance_customers WHERE user_id = ?)
+    `, [req.user.id], (err, stats) => {
+      if (err) {
+        console.error('Renewal stats error:', err);
+        return res.json({ reminders_today: 0, customers_reminded: 0 });
+      }
+      res.json(stats || { reminders_today: 0, customers_reminded: 0 });
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Bulk mark as renewed
-router.post('/customers/bulk-renew', authRequired, (req, res) => {
+router.post('/customers/bulk-renew', (req, res) => {
   try {
     const { customer_ids } = req.body;
     
@@ -372,7 +471,7 @@ router.post('/customers/bulk-renew', authRequired, (req, res) => {
 });
 
 // Get all claims
-router.get('/claims', authRequired, (req, res) => {
+router.get('/claims', (req, res) => {
   try {
     db.all(`
       SELECT c.*, ic.name as customer_name, ic.mobile_number
@@ -390,7 +489,7 @@ router.get('/claims', authRequired, (req, res) => {
 });
 
 // Create new claim
-router.post('/claims', authRequired, (req, res) => {
+router.post('/claims', activityLogger, (req, res) => {
   try {
     const { customer_id, policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount } = req.body;
     
@@ -406,6 +505,7 @@ router.post('/claims', authRequired, (req, res) => {
       
       db.get('SELECT * FROM insurance_claims WHERE id = ?', [this.lastID], (err, claim) => {
         if (err) return res.status(500).json({ error: err.message });
+        req.logActivity('claim_add', `Filed new claim for vehicle: ${vehicle_number}`);
         res.status(201).json(claim);
       });
     });
@@ -415,7 +515,7 @@ router.post('/claims', authRequired, (req, res) => {
 });
 
 // Update claim status
-router.patch('/claims/:id/status', authRequired, (req, res) => {
+router.patch('/claims/:id/status', validateClaimOwnership, (req, res) => {
   try {
     const { claim_status, notes } = req.body;
     
@@ -452,7 +552,7 @@ router.patch('/claims/:id/status', authRequired, (req, res) => {
 });
 
 // Update claim
-router.put('/claims/:id', authRequired, (req, res) => {
+router.put('/claims/:id', validateClaimOwnership, (req, res) => {
   try {
     const { policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount } = req.body;
     
@@ -474,7 +574,7 @@ router.put('/claims/:id', authRequired, (req, res) => {
 });
 
 // Delete claim
-router.delete('/claims/:id', authRequired, (req, res) => {
+router.delete('/claims/:id', validateClaimOwnership, (req, res) => {
   try {
     db.run('DELETE FROM insurance_claims WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -486,7 +586,7 @@ router.delete('/claims/:id', authRequired, (req, res) => {
 });
 
 // Get claim status history
-router.get('/claims/:id/history', authRequired, (req, res) => {
+router.get('/claims/:id/history', validateClaimOwnership, (req, res) => {
   try {
     db.all(`
       SELECT * FROM claim_status_history
@@ -501,8 +601,60 @@ router.get('/claims/:id/history', authRequired, (req, res) => {
   }
 });
 
+// Sync claims from Google Sheets
+router.post('/claims/sync/from-sheet', async (req, res) => {
+  try {
+    const { get } = require('../db/connection');
+    const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const email = user.email.toLowerCase();
+    let spreadsheetId, tabName;
+
+    if (email.includes('joban')) {
+      spreadsheetId = process.env.JOBAN_CLAIMS_SHEETS_SPREADSHEET_ID;
+      tabName = process.env.JOBAN_CLAIMS_SHEETS_TAB || 'claims';
+    } else {
+      spreadsheetId = process.env.KMG_CLAIMS_SHEETS_SPREADSHEET_ID;
+      tabName = process.env.KMG_CLAIMS_SHEETS_TAB || 'claims';
+    }
+
+    const result = await claimsSync.syncClaimsFromSheet(req.user.id, spreadsheetId, tabName);
+    res.json(result);
+  } catch (error) {
+    console.error('Claims sync from sheet error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Sync claims to Google Sheets
+router.post('/claims/sync/to-sheet', async (req, res) => {
+  try {
+    const { get } = require('../db/connection');
+    const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const email = user.email.toLowerCase();
+    let spreadsheetId, tabName;
+
+    if (email.includes('joban')) {
+      spreadsheetId = process.env.JOBAN_CLAIMS_SHEETS_SPREADSHEET_ID;
+      tabName = process.env.JOBAN_CLAIMS_SHEETS_TAB || 'claims';
+    } else {
+      spreadsheetId = process.env.KMG_CLAIMS_SHEETS_SPREADSHEET_ID;
+      tabName = process.env.KMG_CLAIMS_SHEETS_TAB || 'claims';
+    }
+
+    const result = await claimsSync.syncClaimsToSheet(req.user.id, spreadsheetId, tabName);
+    res.json(result);
+  } catch (error) {
+    console.error('Claims sync to sheet error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Send claim update notification
-router.post('/claims/:id/notify', authRequired, async (req, res) => {
+router.post('/claims/:id/notify', validateClaimOwnership, async (req, res) => {
   try {
     const { channel } = req.body; // 'whatsapp', 'sms', 'email'
     
@@ -530,7 +682,7 @@ router.post('/claims/:id/notify', authRequired, async (req, res) => {
 
 
 // Get reports data
-router.get('/reports', authRequired, async (req, res) => {
+router.get('/reports', async (req, res) => {
   try {
     const userId = req.user.id;
     const { vertical } = req.query;
@@ -892,7 +1044,7 @@ router.get('/reports', authRequired, async (req, res) => {
 });
 
 // Get analytics
-router.get('/analytics', authRequired, (req, res) => {
+router.get('/analytics', (req, res) => {
   try {
     const { vertical } = req.query;
     let whereClause = 'WHERE user_id = ?';

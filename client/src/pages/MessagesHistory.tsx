@@ -158,7 +158,7 @@ export default function MessagesHistory() {
                 filteredMessages.map((message) => (
                   <tr key={message.id} className="hover:bg-slate-700/30">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                      {message.customer_name}
+                      {message.customer_name || 'Unknown Customer'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100">
                       {getMessageTypeLabel(message.message_type)}

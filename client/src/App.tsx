@@ -46,12 +46,17 @@ function RoleHome() {
     return <Navigate to="/admin" replace />
   }
   
-  // Route based on client type
+  // Insurance clients - check if profile is selected
   if (user.client_type === 'insurance') {
+    const hasProfile = localStorage.getItem('selectedProfileId')
+    if (!hasProfile) {
+      return <Navigate to="/profiles" replace />
+    }
     return <Navigate to="/insurance" replace />
   }
   
-  return <Navigate to="/dashboard" replace /> // Default to HR dashboard
+  // HR clients go to dashboard
+  return <Navigate to="/dashboard" replace />
 }
 
 export default function App() {
@@ -65,9 +70,12 @@ export default function App() {
           <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/access-denied" element={<AccessDeniedPage />} />
-          <Route path="/profiles" element={<ProfileSelectionPage />} />
+          
+          <Route element={<ProtectedRoute />}>
+            <Route path="/profiles" element={<ProfileSelectionPage />} />
+          </Route>
 
-          <Route element={<ProtectedRoute />}> 
+          <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}> 
               <Route path="/" element={<RoleHome />} />
               

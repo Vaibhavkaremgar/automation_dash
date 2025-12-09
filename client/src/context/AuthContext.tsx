@@ -15,7 +15,7 @@ export type User = {
 type AuthContextType = {
   user: User | null
   loading: boolean
-  login: (email: string, password: string, forceLogin?: boolean) => Promise<void>
+  login: (email: string, password: string, forceLogin?: boolean) => Promise<User>
   logout: () => void
   refreshMe: () => Promise<void>
 }
@@ -40,9 +40,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function login(email: string, password: string, forceLogin = false) {
     try {
+      localStorage.removeItem('selectedProfileId')
+      localStorage.removeItem('selectedProfileName')
       const res = await api.post('/api/auth/login', { email, password, forceLogin })
       persistToken(res.data.token)
       setUser(res.data.user)
+      return res.data.user
     } catch (err) {
       console.error('Login failed:', err)
       throw err
@@ -52,6 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function logout() {
     persistToken(null)
     setUser(null)
+    localStorage.removeItem('selectedProfileId')
+    localStorage.removeItem('selectedProfileName')
     try {
       await api.post('/api/auth/logout')
     } catch (err) {

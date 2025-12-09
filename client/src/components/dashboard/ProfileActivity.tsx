@@ -3,8 +3,8 @@ import { api } from '../../lib/api';
 
 interface Activity {
   id: number;
-  action_type: string;
-  action_description: string;
+  activity_type: string;
+  activity_description: string;
   created_at: string;
   profile_name?: string;
 }
@@ -15,6 +15,10 @@ export default function ProfileActivity() {
 
   useEffect(() => {
     loadActivities();
+    
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(loadActivities, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadActivities = async () => {
@@ -30,7 +34,7 @@ export default function ProfileActivity() {
     } catch (error) {
       console.error('Failed to load activities:', error);
     } finally {
-      setLoading(false);
+      if (loading) setLoading(false);
     }
   };
 
@@ -56,16 +60,29 @@ export default function ProfileActivity() {
     <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
       <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
       <div className="space-y-3">
-        {activities.map((activity) => (
-          <div key={activity.id} className="flex items-start gap-3 p-3 bg-slate-700/50 rounded-lg">
-            <div className="flex-1">
-              <p className="text-sm text-white">{activity.action_description}</p>
-              <p className="text-xs text-slate-400 mt-1">
-                {new Date(activity.created_at).toLocaleString()}
-              </p>
+        {activities.map((activity) => {
+          // Convert UTC to IST (add 5 hours 30 minutes)
+          const utcDate = new Date(activity.created_at);
+          const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+          
+          return (
+            <div key={activity.id} className="flex items-start gap-3 p-3 bg-slate-700/50 rounded-lg">
+              <div className="flex-1">
+                <p className="text-sm text-white">{activity.activity_description}</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {istDate.toLocaleString('en-IN', { 
+                    day: '2-digit',
+                    month: '2-digit', 
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </p>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

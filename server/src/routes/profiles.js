@@ -1,12 +1,16 @@
 const express = require('express');
 const { authRequired } = require('../middleware/auth');
 const { getDatabase } = require('../db/connection');
+const { enforceDataIsolation, validateProfileOwnership } = require('../middleware/dataIsolation');
 const router = express.Router();
 
 const db = getDatabase();
 
+// Apply data isolation to all profile routes
+router.use(authRequired, enforceDataIsolation);
+
 // Get all profiles for current user
-router.get('/', authRequired, (req, res) => {
+router.get('/', (req, res) => {
   db.all('SELECT * FROM user_profiles WHERE user_id = ? ORDER BY is_default DESC, last_used_at DESC', [req.user.id], (err, profiles) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(profiles);
@@ -14,7 +18,7 @@ router.get('/', authRequired, (req, res) => {
 });
 
 // Create new profile
-router.post('/', authRequired, (req, res) => {
+router.post('/', (req, res) => {
   const { profile_name, avatar_color } = req.body;
   
   if (!profile_name || !profile_name.trim()) {
@@ -36,7 +40,7 @@ router.post('/', authRequired, (req, res) => {
 });
 
 // Update profile
-router.put('/:id', authRequired, (req, res) => {
+router.put('/:id', validateProfileOwnership, (req, res) => {
   const { profile_name, avatar_color } = req.body;
   
   db.run(
@@ -54,7 +58,7 @@ router.put('/:id', authRequired, (req, res) => {
 });
 
 // Delete profile
-router.delete('/:id', authRequired, (req, res) => {
+router.delete('/:id', validateProfileOwnership, (req, res) => {
   db.run('DELETE FROM user_profiles WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true });
@@ -62,7 +66,7 @@ router.delete('/:id', authRequired, (req, res) => {
 });
 
 // Select profile (update last_used_at)
-router.post('/:id/select', authRequired, (req, res) => {
+router.post('/:id/select', validateProfileOwnership, (req, res) => {
   db.run(
     'UPDATE user_profiles SET last_used_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
     [req.params.id, req.user.id],
@@ -74,7 +78,7 @@ router.post('/:id/select', authRequired, (req, res) => {
 });
 
 // Get recent activity for profile
-router.get('/:id/activity', authRequired, (req, res) => {
+router.get('/:id/activity', validateProfileOwnership, (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   
   db.all(
@@ -88,7 +92,7 @@ router.get('/:id/activity', authRequired, (req, res) => {
 });
 
 // Get recent activity for user (all profiles)
-router.get('/activity/all', authRequired, (req, res) => {
+router.get('/activity/all', (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   
   db.all(

@@ -20,7 +20,14 @@ export default function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      await login(email, password, forceLogin)
+      const userData = await login(email, password, forceLogin)
+      
+      // Insurance clients must select profile first
+      if (userData?.client_type === 'insurance') {
+        navigate('/profiles', { replace: true })
+        return
+      }
+      
       const dest = location.state?.from?.pathname || '/'
       navigate(dest, { replace: true })
     } catch (err: any) {

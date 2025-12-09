@@ -34,13 +34,13 @@ const profilesRoutes = require('./routes/profiles');
 const app = express();
 
 app.use(cors({
-  origin: config.nodeEnv === 'production' ? true : [
-    "http://localhost:5173",
-    config.frontendUrl
-  ].filter(Boolean),
+  origin: config.nodeEnv === 'production' 
+    ? ['https://enthusiastic-cat-production-f8b7.up.railway.app', config.frontendUrl].filter(Boolean)
+    : ['http://localhost:5173', config.frontendUrl].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-profile-id'],
+  exposedHeaders: ['Content-Type', 'Authorization']
 }));
 
 

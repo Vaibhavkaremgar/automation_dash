@@ -62,30 +62,23 @@ export default memo(function Sidebar() {
     <aside className="hidden md:block w-[var(--sidebar-width)] border-r border-slate-800/50 bg-slate-900/40 backdrop-blur-xl relative z-10">
       <AIBackground />
       <div className="p-6 border-b border-slate-800/50">
-        {/* VB Automation Logo with Rotating Cube */}
-        <div className="mb-4 flex items-center justify-center gap-2">
-          <AICube size={32} />
-          <Link to="/" className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
-            VB Automation
-          </Link>
-        </div>
-        
-        {/* Client-specific Logo */}
+        {/* Client Logo at Top */}
         {user?.client_type === 'insurance' && (
-          <div className="mb-3 flex justify-center">
+          <div className="mb-4 flex justify-center">
             <img 
               src={user?.email?.toLowerCase().includes('joban') 
                 ? 'https://drive.google.com/thumbnail?id=1R2CNXhJr0rqnYkML3g4GWKPdaZt8-ffc&sz=w300'
                 : 'https://drive.google.com/thumbnail?id=1FzuJ03-cQ8VA7fAUDcoz1QW-2_We5FiL&sz=w300'
               }
               alt="Company Logo" 
-              className="h-16 w-auto object-contain"
+              className="h-20 w-auto object-contain"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
               }}
             />
           </div>
         )}
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-600 to-transparent mb-4"></div>
         
         {sidebarTitle && (
           <div className="text-lg font-semibold text-white text-center">

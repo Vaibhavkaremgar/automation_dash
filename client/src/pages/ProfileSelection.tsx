@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
+import '../styles/profile-animations.css';
 
 interface Profile {
   id: number;
@@ -40,11 +41,6 @@ export default function ProfileSelection() {
     try {
       const res = await api.get('/api/profiles');
       setProfiles(res.data);
-      
-      // Auto-select if only one profile
-      if (res.data.length === 1) {
-        selectProfile(res.data[0]);
-      }
     } catch (error) {
       console.error('Failed to load profiles:', error);
     } finally {
@@ -57,9 +53,7 @@ export default function ProfileSelection() {
       await api.post(`/api/profiles/${profile.id}/select`);
       localStorage.setItem('selectedProfileId', profile.id.toString());
       localStorage.setItem('selectedProfileName', profile.profile_name);
-      loadProfiles();
-      // Navigate to dashboard after selection
-      setTimeout(() => navigate('/'), 500);
+      navigate('/insurance');
     } catch (error) {
       console.error('Failed to select profile:', error);
     }
@@ -130,25 +124,27 @@ export default function ProfileSelection() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-6">
-      <div className="max-w-4xl w-full">
-        <h1 className="text-4xl font-bold text-white text-center mb-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-6 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-transparent to-transparent"></div>
+      <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]"></div>
+      <div className="max-w-5xl w-full relative z-10">
+        <h1 className="text-5xl font-bold text-white text-center mb-16 animate-fade-in">
           Who's using the dashboard?
         </h1>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
           {profiles.map((profile) => {
             const isSelected = localStorage.getItem('selectedProfileId') === profile.id.toString();
             return (
-              <div key={profile.id} className="relative">
+              <div key={profile.id} className="relative animate-fade-in" style={{animationDelay: `${profiles.indexOf(profile) * 100}ms`}}>
                 <button
                   onClick={() => selectProfile(profile)}
-                  className={`group flex flex-col items-center gap-4 p-6 rounded-lg hover:bg-white/10 transition-all w-full ${
-                    isSelected ? 'ring-4 ring-green-400 bg-white/10' : ''
+                  className={`group flex flex-col items-center gap-4 p-6 rounded-xl hover:bg-white/10 transition-all duration-300 w-full transform hover:scale-105 ${
+                    isSelected ? 'ring-4 ring-indigo-500 bg-white/10 scale-105' : ''
                   }`}
                 >
                   <div
-                    className="w-32 h-32 rounded-lg flex items-center justify-center text-4xl font-bold text-white group-hover:scale-110 transition-transform relative"
+                    className="w-36 h-36 rounded-2xl flex items-center justify-center text-5xl font-bold text-white group-hover:scale-110 transition-all duration-300 shadow-2xl relative border-4 border-white/10"
                     style={{ backgroundColor: profile.avatar_color }}
                   >
                     {profile.profile_name.charAt(0).toUpperCase()}
@@ -204,26 +200,7 @@ export default function ProfileSelection() {
           )}
         </div>
 
-        <div className="text-center space-y-3">
-          {localStorage.getItem('selectedProfileId') && (
-            <Button
-              onClick={() => navigate('/')}
-              className="mr-3"
-            >
-              Continue to Dashboard
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={() => {
-              localStorage.removeItem('selectedProfileId');
-              localStorage.removeItem('selectedProfileName');
-              navigate('/');
-            }}
-          >
-            Skip Profile Selection
-          </Button>
-        </div>
+
       </div>
 
       <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Create New Profile">
