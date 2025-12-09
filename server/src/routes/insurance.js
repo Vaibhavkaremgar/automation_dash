@@ -55,20 +55,7 @@ router.post('/customers', authRequired, (req, res) => {
     `, [req.user.id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status || 'pending', new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent], function(err) {
       if (err) return res.status(500).json({ error: err.message });
       
-      const customerId = this.lastID;
-      
-      // Log activity
-      const profileId = req.headers['x-profile-id'];
-      if (profileId) {
-        db.run(`
-          INSERT INTO activity_logs (user_id, profile_id, action_type, action_description, entity_type, entity_id)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `, [req.user.id, profileId, 'create', `Added new customer: ${name}`, 'customer', customerId], (err) => {
-          if (err) console.error('Failed to log activity:', err);
-        });
-      }
-      
-      db.get('SELECT * FROM insurance_customers WHERE id = ?', [customerId], (err, customer) => {
+      db.get('SELECT * FROM insurance_customers WHERE id = ?', [this.lastID], (err, customer) => {
         if (err) return res.status(500).json({ error: err.message });
         res.status(201).json(customer);
       });
@@ -137,21 +124,7 @@ router.post('/messages/webhook', async (req, res) => {
   }
 });
 
-// Auto-cleanup old messages (30+ days)
-const cleanupOldMessages = () => {
-  db.run(`DELETE FROM message_logs WHERE sent_at < datetime('now', '-30 days')`, (err) => {
-    if (err) console.error('Failed to cleanup old messages:', err);
-    else console.log('Old messages cleaned up');
-  });
-  db.run(`DELETE FROM renewal_reminders WHERE sent_at < datetime('now', '-30 days')`, (err) => {
-    if (err) console.error('Failed to cleanup old reminders:', err);
-    else console.log('Old reminders cleaned up');
-  });
-};
 
-// Run cleanup daily
-setInterval(cleanupOldMessages, 24 * 60 * 60 * 1000);
-cleanupOldMessages(); // Run on startup
 
 // Get all message logs
 router.get('/message-logs', authRequired, async (req, res) => {
@@ -711,59 +684,7 @@ router.post('/claims/:id/notify', authRequired, async (req, res) => {
   }
 });
 
-// Sync claims from Google Sheets
-router.post('/claims/sync/from-sheet', authRequired, async (req, res) => {
-  try {
-    const { get } = require('../db/connection');
-    const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Determine claims spreadsheet ID based on email
-    let spreadsheetId, tabName;
-    const email = user.email.toLowerCase();
-    
-    // Both KMG and Joban use the same claims sheet
-    spreadsheetId = '1EpMAg1gSXPKr83cTugvGexrqv3Yt5Tb85Re2Shah8mw';
-    tabName = 'Claims'; // Assuming claims are in a 'Claims' tab
-    
-    console.log('Syncing claims from sheet - User:', req.user.id, 'Email:', email, 'Sheet:', spreadsheetId, 'Tab:', tabName);
-    
-    // TODO: Implement actual sync logic similar to customer sync
-    res.json({ success: true, imported: 0, message: 'Claims sync from sheet - Coming soon' });
-  } catch (error) {
-    console.error('Sync claims from sheet error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
-// Sync claims to Google Sheets
-router.post('/claims/sync/to-sheet', authRequired, async (req, res) => {
-  try {
-    const { get } = require('../db/connection');
-    const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Determine claims spreadsheet ID based on email
-    let spreadsheetId, tabName;
-    const email = user.email.toLowerCase();
-    
-    // Both KMG and Joban use the same claims sheet
-    spreadsheetId = '1EpMAg1gSXPKr83cTugvGexrqv3Yt5Tb85Re2Shah8mw';
-    tabName = 'Claims';
-    
-    console.log('Syncing claims to sheet - User:', req.user.id, 'Email:', email, 'Sheet:', spreadsheetId, 'Tab:', tabName);
-    
-    // TODO: Implement actual sync logic similar to customer sync
-    res.json({ success: true, exported: 0, message: 'Claims sync to sheet - Coming soon' });
-  } catch (error) {
-    console.error('Sync claims to sheet error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Get reports data
 router.get('/reports', authRequired, async (req, res) => {

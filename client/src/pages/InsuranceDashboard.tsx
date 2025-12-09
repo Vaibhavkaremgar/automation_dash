@@ -115,14 +115,6 @@ export default function InsuranceDashboard() {
     loadClientConfig();
     loadData();
     
-    // Auto-sync on login/mount
-    const hasAutoSynced = sessionStorage.getItem('hasAutoSynced');
-    if (!hasAutoSynced) {
-      console.log('Auto-syncing from Google Sheets on login...');
-      syncFromSheets(true); // silent mode
-      sessionStorage.setItem('hasAutoSynced', 'true');
-    }
-    
     const handleVerticalChange = (e: any) => {
       setVerticalFilter(e.detail);
       localStorage.setItem('insuranceVerticalFilter', e.detail);
