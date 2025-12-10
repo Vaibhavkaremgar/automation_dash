@@ -25,6 +25,24 @@ router.post('/login', async (req, res, next) => {
 
     const isValid = await bcrypt.compare(password, user.password_hash);
     if (!isValid) return res.status(401).json({ error: 'Invalid credentials' });
+    
+    // Check IP restrictions BEFORE creating session
+    const clientIp = getClientIp(req);
+    console.log(`🔐 Login attempt - User: ${email}, IP: ${clientIp}`);
+    
+    if (config.security.enableIpRestrictions) {
+      const { checkIpAllowlist } = require('../middleware/ipAllowlist');
+      const ipCheck = await checkIpAllowlist(user.id, user.role, clientIp);
+      console.log(`🔍 IP Check Result:`, ipCheck);
+      if (!ipCheck.allowed) {
+        console.log(`❌ IP ${clientIp} not allowed for user ${email}`);
+        return res.status(403).json({ 
+          error: 'Access denied. Your IP address is not authorized.',
+          code: 'IP_RESTRICTED'
+        });
+      }
+      console.log(`✅ IP ${clientIp} allowed for user ${email}`);
+    }
 
     // Session limit enforcement
     if (config.security.enableSessionLimits) {
@@ -55,7 +73,6 @@ router.post('/login', async (req, res, next) => {
     );
 
     // Create session record
-    const clientIp = getClientIp(req);
     if (config.security.enableSessionLimits) {
       await sessionManager.createSession(user.id, token, clientIp);
     }

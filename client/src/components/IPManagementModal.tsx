@@ -61,9 +61,18 @@ export default function IPManagementModal({ userId, userName, modalId }: IPManag
 
   useEffect(() => {
     const modal = document.getElementById(modalId) as HTMLDialogElement;
-    const handleOpen = () => loadIPs();
-    modal?.addEventListener('open', handleOpen);
-    return () => modal?.removeEventListener('open', handleOpen);
+    if (!modal) return;
+    
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'open' && modal.hasAttribute('open')) {
+          loadIPs();
+        }
+      });
+    });
+    
+    observer.observe(modal, { attributes: true });
+    return () => observer.disconnect();
   }, [modalId]);
 
   return (

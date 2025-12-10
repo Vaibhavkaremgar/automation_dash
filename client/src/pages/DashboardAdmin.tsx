@@ -113,6 +113,8 @@ function StatCard({ label, value, icon }: { label: string; value: number | strin
 }
 
 function ClientTile({ client, onClick }: { client: any; onClick: () => void }) {
+  const isInsurance = client.client_type === 'insurance';
+  
   return (
     <motion.div
       className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 group cursor-pointer overflow-hidden relative hover:scale-105 transition-all duration-300 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/10"
@@ -123,7 +125,6 @@ function ClientTile({ client, onClick }: { client: any; onClick: () => void }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Gradient overlay on hover */}
       <motion.div 
         className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
         initial={false}
@@ -131,12 +132,15 @@ function ClientTile({ client, onClick }: { client: any; onClick: () => void }) {
       
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
-          <motion.h3 
-            className="font-semibold text-lg text-white group-hover:text-cyan-300 transition-colors"
-            whileHover={{ x: 5 }}
-          >
-            {client.name}
-          </motion.h3>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{isInsurance ? '🛡️' : '💼'}</span>
+            <motion.h3 
+              className="font-semibold text-lg text-white group-hover:text-cyan-300 transition-colors"
+              whileHover={{ x: 5 }}
+            >
+              {client.name}
+            </motion.h3>
+          </div>
           <div className="flex items-center gap-2">
             {client.hasSheet ? (
               <motion.div 
@@ -154,46 +158,78 @@ function ClientTile({ client, onClick }: { client: any; onClick: () => void }) {
           </div>
         </div>
         
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <motion.div 
-              className="text-center p-3 rounded-lg bg-slate-700/50 group-hover:bg-slate-600/50 transition-colors"
-              whileHover={{ scale: 1.05 }}
-            >
-              <div className="text-xs text-slate-400 mb-1">Total Candidates</div>
-              <div className="text-xl font-bold text-cyan-400">{client.totalCandidates}</div>
-            </motion.div>
-            <motion.div 
-              className="text-center p-3 rounded-lg bg-slate-700/50 group-hover:bg-slate-600/50 transition-colors"
-              whileHover={{ scale: 1.05 }}
-            >
-              <div className="text-xs text-slate-400 mb-1">Shortlisted</div>
-              <div className="text-xl font-bold text-green-400">{client.shortlisted}</div>
-            </motion.div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <div className="text-xs text-slate-400">Rejected</div>
-              <div className="font-semibold text-red-400">{client.rejected}</div>
+        {isInsurance ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <motion.div 
+                className="text-center p-3 rounded-lg bg-slate-700/50 group-hover:bg-slate-600/50 transition-colors"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="text-xs text-slate-400 mb-1">Total Customers</div>
+                <div className="text-xl font-bold text-cyan-400">{client.totalCustomers || 0}</div>
+              </motion.div>
+              <motion.div 
+                className="text-center p-3 rounded-lg bg-slate-700/50 group-hover:bg-slate-600/50 transition-colors"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="text-xs text-slate-400 mb-1">Active Policies</div>
+                <div className="text-xl font-bold text-green-400">{client.activePolicies || 0}</div>
+              </motion.div>
             </div>
-            <div className="text-center">
-              <div className="text-xs text-slate-400">Sheet Status</div>
-              <div className={`font-semibold text-xs ${client.hasSheet ? 'text-green-400' : 'text-yellow-400'}`}>
-                {client.hasSheet ? '✓ Connected' : '⚠ Not Set'}
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-xs text-slate-400">Renewals Due</div>
+                <div className="font-semibold text-orange-400">{client.upcomingRenewals || 0}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-slate-400">Total Premium</div>
+                <div className="font-semibold text-green-400">₹{(client.totalPremium || 0).toLocaleString()}</div>
               </div>
             </div>
           </div>
-          
-          <motion.div 
-            className="text-xs text-slate-500 text-center pt-2 border-t border-slate-700"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            Click for details • Last sync: {client.lastSync ? new Date(client.lastSync).toLocaleDateString() : 'Never'}
-          </motion.div>
-        </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <motion.div 
+                className="text-center p-3 rounded-lg bg-slate-700/50 group-hover:bg-slate-600/50 transition-colors"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="text-xs text-slate-400 mb-1">Total Candidates</div>
+                <div className="text-xl font-bold text-cyan-400">{client.totalCandidates}</div>
+              </motion.div>
+              <motion.div 
+                className="text-center p-3 rounded-lg bg-slate-700/50 group-hover:bg-slate-600/50 transition-colors"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div className="text-xs text-slate-400 mb-1">Shortlisted</div>
+                <div className="text-xl font-bold text-green-400">{client.shortlisted}</div>
+              </motion.div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-xs text-slate-400">Rejected</div>
+                <div className="font-semibold text-red-400">{client.rejected}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xs text-slate-400">Sheet Status</div>
+                <div className={`font-semibold text-xs ${client.hasSheet ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {client.hasSheet ? '✓ Connected' : '⚠ Not Set'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        <motion.div 
+          className="text-xs text-slate-500 text-center pt-2 border-t border-slate-700 mt-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          Click for details • Last sync: {client.lastSync ? new Date(client.lastSync).toLocaleDateString() : 'Never'}
+        </motion.div>
       </div>
     </motion.div>
   )

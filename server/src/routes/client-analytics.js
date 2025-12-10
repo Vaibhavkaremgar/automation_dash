@@ -6,32 +6,65 @@ const router = express.Router();
 
 router.use(authRequired);
 
-router.get('/all', requireRole('admin'), (req, res, next) => {
+router.get('/all', requireRole('admin'), async (req, res, next) => {
   try {
     const db = getDatabase();
     
-    db.all(`
-      SELECT 
-        u.id,
-        u.name,
-        u.email,
-        u.google_sheet_url,
-        COUNT(DISTINCT c.id) as totalCandidates,
-        COUNT(DISTINCT CASE WHEN c.status = 'shortlisted' THEN c.id END) as shortlisted,
-        COUNT(DISTINCT CASE WHEN c.status = 'rejected' THEN c.id END) as rejected,
-        COUNT(DISTINCT CASE WHEN c.status = 'in_process' THEN c.id END) as in_process,
-        CASE WHEN u.google_sheet_url IS NOT NULL AND u.google_sheet_url != '' THEN 1 ELSE 0 END as hasSheet,
-        MAX(c.updated_at) as lastSync
-      FROM users u
-      LEFT JOIN candidates c ON u.id = c.user_id
-      WHERE u.role = 'client' AND IFNULL(u.status,'active') <> 'deleted'
-      GROUP BY u.id, u.name, u.email, u.google_sheet_url
-      ORDER BY u.name
-    `, [], (err, clients) => {
-      if (err) return next(err);
-      
-      res.json({ clients: clients || [] });
+    // Get all clients with HR stats
+    const hrClients = await new Promise((resolve, reject) => {
+      db.all(`
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          u.client_type,
+          u.google_sheet_url,
+          COUNT(DISTINCT c.id) as totalCandidates,
+          COUNT(DISTINCT CASE WHEN c.status = 'shortlisted' THEN c.id END) as shortlisted,
+          COUNT(DISTINCT CASE WHEN c.status = 'rejected' THEN c.id END) as rejected,
+          COUNT(DISTINCT CASE WHEN c.status = 'in_process' THEN c.id END) as in_process,
+          CASE WHEN u.google_sheet_url IS NOT NULL AND u.google_sheet_url != '' THEN 1 ELSE 0 END as hasSheet,
+          MAX(c.updated_at) as lastSync
+        FROM users u
+        LEFT JOIN candidates c ON u.id = c.user_id
+        WHERE u.role = 'client' AND IFNULL(u.client_type, 'hr') = 'hr' AND IFNULL(u.status,'active') <> 'deleted'
+        GROUP BY u.id, u.name, u.email, u.google_sheet_url, u.client_type
+        ORDER BY u.name
+      `, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
     });
+    
+    // Get insurance clients with their stats
+    const insuranceClients = await new Promise((resolve, reject) => {
+      db.all(`
+        SELECT 
+          u.id,
+          u.name,
+          u.email,
+          u.client_type,
+          u.google_sheet_url,
+          COUNT(DISTINCT ic.id) as totalCustomers,
+          COUNT(DISTINCT CASE WHEN ic.status = 'done' THEN ic.id END) as activePolicies,
+          SUM(CASE WHEN ic.status = 'done' THEN ic.premium ELSE 0 END) as totalPremium,
+          COUNT(DISTINCT CASE N          WHEN DATE(ic.renewal_date, 'start of month', '+1 month') = DATE('now', 'start of month', '+1 month') 
+          THEN ic.id END) as upcomingRenewals,
+          CASE WHEN u.google_sheet_url IS NOT NULL AND u.google_sheet_url != '' THEN 1 ELSE 0 END as hasSheet,
+          MAX(ic.updated_at) as lastSync
+        FROM users u
+        LEFT JOIN insurance_customers ic ON u.id = ic.user_id
+        WHERE u.role = 'client' AND u.client_type = 'insurance' AND IFNULL(u.status,'active') <> 'deleted'
+        GROUP BY u.id, u.name, u.email, u.google_sheet_url, u.client_type
+        ORDER BY u.name
+      `, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows || []);
+      });
+    });
+    
+    const allClients = [...hrClients, ...insuranceClients];
+    res.json({ clients: allClients });
   } catch (error) {
     next(error);
   }
