@@ -127,7 +127,7 @@ async function seedAdminUser() {
       google_sheet_url: 'https://docs.google.com/spreadsheets/d/1amZkYzhw2lMmIbw0ftFAw8KJ1SX86zJ2rubWDQgs8CE/edit'
     },
     {
-      email: 'kvreddy1809@gmail.com',
+      email: 'kmginsurance@gmail.com',
       password: 'kmg123',
       name: 'KMG Insurance',
       role: 'client',

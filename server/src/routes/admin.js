@@ -314,7 +314,7 @@ router.put('/users/:id/session-limit', async (req, res, next) => {
 // Add IP restriction for KMG user
 router.post('/setup-ip-restriction', async (req, res, next) => {
   try {
-    const kmgEmail = 'kvreddy1809@gmail.com';
+    const kmgEmail = 'kmginsurance@gmail.com';
     const restrictedIP = '0.0.0.0';
     
     const user = await get('SELECT id FROM users WHERE email = ?', [kmgEmail]);
