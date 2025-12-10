@@ -6,9 +6,10 @@ import { X, LayoutDashboard, Briefcase, Users, Upload, Cpu, Wallet, BarChart3, M
 export default function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth()
   return (
-    <div className={`fixed inset-0 z-50 md:hidden transition ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-      <div onClick={onClose} className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity ${open ? 'opacity-100' : 'opacity-0'}`} />
-      <aside className={`absolute left-0 top-0 h-full w-72 bg-slate-900 border-r border-slate-800 p-4 transform transition-transform ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+    <div className={`fixed inset-0 z-[100] md:hidden ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+      <div onClick={onClose} className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`} />
+      <aside className={`absolute left-0 top-0 h-full w-72 bg-slate-900 border-r border-slate-800 overflow-y-auto transform transition-transform duration-300 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             {/* Client-specific Logo */}
@@ -27,8 +28,9 @@ export default function MobileSidebar({ open, onClose }: { open: boolean; onClos
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="text-xs text-slate-400 mb-2 truncate">{user?.email}</div>
-        <nav className="space-y-1 text-sm">
+          <div className="text-xs text-slate-400 mb-2 truncate">{user?.email}</div>
+        </div>
+        <nav className="space-y-1 text-sm px-4 pb-4">
           {user?.role === 'client' && user?.client_type === 'insurance' && (
             <>
               <Item to="/insurance" icon={<Shield className="w-4 h-4"/>} onClose={onClose}>Dashboard</Item>

@@ -147,7 +147,8 @@ export default function AdminUsersPage() {
       </div>
 
       <div className="bg-slate-800 rounded-lg overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
           <thead className="bg-slate-700">
             <tr>
               <th className="text-left p-3 text-white">Email</th>
@@ -255,6 +256,7 @@ export default function AdminUsersPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* IP Management Modals */}

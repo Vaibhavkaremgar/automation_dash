@@ -16,15 +16,15 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const profileName = localStorage.getItem('selectedProfileName')
   
   return (
-    <header className="h-14 border-b border-slate-800 bg-slate-900/60 backdrop-blur flex items-center justify-between px-4">
-      <div className="flex items-center gap-3">
-        <button className="md:hidden inline-flex items-center justify-center p-2 rounded border border-slate-800 hover:bg-slate-800/60" onClick={onMenu} aria-label="Open menu">
+    <header className="h-14 border-b border-slate-800 bg-slate-900/60 backdrop-blur flex items-center justify-between px-2 md:px-4 relative z-20">
+      <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+        <button className="md:hidden inline-flex items-center justify-center p-2 rounded border border-slate-800 hover:bg-slate-800/60 flex-shrink-0" onClick={onMenu} aria-label="Open menu">
           <Menu className="w-5 h-5" />
         </button>
-        <AICube size={20} />
-        <div className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">VB Automations</div>
+        <AICube size={20} className="hidden sm:block flex-shrink-0" />
+        <div className="font-semibold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 text-sm md:text-base truncate">VB Automations</div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
         <button
           onClick={() => navigate('/profiles')}
           className="px-3 py-1.5 bg-indigo-900/20 border border-indigo-700/50 rounded-lg text-indigo-300 text-sm hover:bg-indigo-900/40 transition-all flex items-center gap-2"
