@@ -269,22 +269,22 @@ export default function InsuranceDashboard() {
   };
 
   const renderRenewalCard = (customer: Customer, daysLabel: string, colorClass: string, isRenewed: boolean = false) => (
-    <div key={customer.id} className={`p-4 bg-slate-700/50 rounded-lg border ${colorClass} flex items-center gap-4`}>
+    <div key={customer.id} className={`p-4 bg-slate-700/50 rounded-lg border ${colorClass} flex flex-col md:flex-row items-start md:items-center gap-4`}>
       <input
         type="checkbox"
         checked={selectedCustomers.includes(customer.id)}
         onChange={() => toggleCustomerSelection(customer.id)}
-        className="w-4 h-4"
+        className="w-4 h-4 flex-shrink-0"
       />
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <h4 className="font-medium text-white">{customer.name}</h4>
         <p className="text-sm text-slate-300">{customer.registration_no} - {customer.company}</p>
         <p className="text-sm font-medium mt-1">{daysLabel}</p>
       </div>
-      <div className="text-right">
+      <div className="text-right flex-shrink-0">
         <p className="font-bold text-white text-lg">₹{customer.premium?.toLocaleString()}</p>
       </div>
-      <div className="flex flex-col md:flex-row gap-2">
+      <div className="flex flex-row md:flex-row gap-2 flex-shrink-0">
         <Button size="sm" variant="outline" onClick={() => alert('🔒 Premium Feature\n\nUpgrade to Voice Bot Premium to enable automated calling.\n\nContact support to upgrade.')} className="opacity-60" title="Premium Feature">📞🔒</Button>
         <Button size="sm" variant="outline" onClick={() => {
           let message = '';

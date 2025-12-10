@@ -111,30 +111,34 @@ export default function ReportsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-700">
+      <div className="flex gap-2 border-b border-slate-700 overflow-x-auto">
         <button
-          className={`px-4 py-2 font-medium ${activeTab === 'renewal' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-400'}`}
+          className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'renewal' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-400'}`}
           onClick={() => setActiveTab('renewal')}
         >
-          Renewal Performance
+          <span className="hidden md:inline">Renewal Performance</span>
+          <span className="md:hidden text-xs">Renewals</span>
         </button>
         <button
-          className={`px-4 py-2 font-medium ${activeTab === 'premium' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-400'}`}
+          className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'premium' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-400'}`}
           onClick={() => setActiveTab('premium')}
         >
-          Premium Collection
+          <span className="hidden md:inline">Premium Collection</span>
+          <span className="md:hidden text-xs">Premium</span>
         </button>
         <button
-          className={`px-4 py-2 font-medium ${activeTab === 'growth' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-400'}`}
+          className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'growth' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-400'}`}
           onClick={() => setActiveTab('growth')}
         >
-          Customer Growth
+          <span className="hidden md:inline">Customer Growth</span>
+          <span className="md:hidden text-xs">Growth</span>
         </button>
         <button
-          className={`px-4 py-2 font-medium ${activeTab === 'claims' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-400'}`}
+          className={`px-4 py-2 font-medium whitespace-nowrap ${activeTab === 'claims' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-slate-400'}`}
           onClick={() => setActiveTab('claims')}
         >
-          Claims Summary
+          <span className="hidden md:inline">Claims Summary</span>
+          <span className="md:hidden text-xs">Claims</span>
         </button>
       </div>
 

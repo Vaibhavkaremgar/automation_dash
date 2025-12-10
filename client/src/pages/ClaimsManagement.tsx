@@ -202,11 +202,13 @@ export default function ClaimsManagement() {
           Claims Management
         </h1>
         <div className="flex gap-3">
-          <Button onClick={syncFromClaimsSheet} disabled={syncing} variant="outline">
-            {syncing ? 'Syncing...' : '🔄 Sync from Sheet'}
+          <Button onClick={syncFromClaimsSheet} disabled={syncing} variant="outline" title="Sync from Sheet">
+            <span className="md:hidden">{syncing ? '...' : '🔄'}</span>
+            <span className="hidden md:inline">{syncing ? 'Syncing...' : '🔄 Sync from Sheet'}</span>
           </Button>
-          <Button onClick={syncToClaimsSheet} disabled={syncing} variant="outline">
-            {syncing ? 'Syncing...' : '📤 Sync to Sheet'}
+          <Button onClick={syncToClaimsSheet} disabled={syncing} variant="outline" title="Sync to Sheet">
+            <span className="md:hidden">{syncing ? '...' : '📤'}</span>
+            <span className="hidden md:inline">{syncing ? 'Syncing...' : '📤 Sync to Sheet'}</span>
           </Button>
           <Button onClick={() => setShowAddModal(true)}>Add Claim</Button>
         </div>
