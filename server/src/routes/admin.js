@@ -283,6 +283,34 @@ router.delete('/users/:id/ips/:ipId', async (req, res, next) => {
   }
 });
 
+// Get user's session limit
+router.get('/users/:id/session-limit', async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const user = await get('SELECT max_sessions FROM users WHERE id = ?', [userId]);
+    res.json({ max_sessions: user?.max_sessions || 5 });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update user's session limit
+router.put('/users/:id/session-limit', async (req, res, next) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { max_sessions } = req.body;
+    
+    if (!max_sessions || max_sessions < 1) {
+      return res.status(400).json({ error: 'Session limit must be at least 1' });
+    }
+    
+    await run('UPDATE users SET max_sessions = ? WHERE id = ?', [max_sessions, userId]);
+    res.json({ success: true, message: 'Session limit updated', max_sessions });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Add IP restriction for KMG user
 router.post('/setup-ip-restriction', async (req, res, next) => {
   try {

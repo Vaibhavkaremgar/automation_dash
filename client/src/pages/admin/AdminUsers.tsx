@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import IPManagementModal from '../../components/IPManagementModal'
+import SessionLimitModal from '../../components/SessionLimitModal'
 
 export default function AdminUsersPage() {
   const qc = useQueryClient()
@@ -208,6 +209,15 @@ export default function AdminUsersPage() {
                     IP Access
                   </button>
                   <button 
+                    onClick={() => {
+                      const modal = document.getElementById(`session-modal-${user.id}`) as HTMLDialogElement;
+                      modal?.showModal();
+                    }}
+                    className="text-cyan-400 hover:underline"
+                  >
+                    Sessions
+                  </button>
+                  <button 
                     onClick={async () => {
                       if (!confirm('Permanently delete this client and all their data?')) return
                       try {
@@ -266,6 +276,16 @@ export default function AdminUsersPage() {
           userId={user.id}
           userName={user.name || user.email}
           modalId={`ip-modal-${user.id}`}
+        />
+      ))}
+
+      {/* Session Limit Modals */}
+      {data?.map(user => (
+        <SessionLimitModal
+          key={user.id}
+          userId={user.id}
+          userName={user.name || user.email}
+          modalId={`session-modal-${user.id}`}
         />
       ))}
     </div>

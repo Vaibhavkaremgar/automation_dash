@@ -48,8 +48,7 @@ router.get('/all', requireRole('admin'), async (req, res, next) => {
           COUNT(DISTINCT ic.id) as totalCustomers,
           COUNT(DISTINCT CASE WHEN ic.status = 'done' THEN ic.id END) as activePolicies,
           SUM(CASE WHEN ic.status = 'done' THEN ic.premium ELSE 0 END) as totalPremium,
-          COUNT(DISTINCT CASE N          WHEN DATE(ic.renewal_date, 'start of month', '+1 month') = DATE('now', 'start of month', '+1 month') 
-          THEN ic.id END) as upcomingRenewals,
+          COUNT(DISTINCT CASE WHEN ic.status = 'pending' AND ic.renewal_date IS NOT NULL THEN ic.id END) as upcomingRenewals,
           CASE WHEN u.google_sheet_url IS NOT NULL AND u.google_sheet_url != '' THEN 1 ELSE 0 END as hasSheet,
           MAX(ic.updated_at) as lastSync
         FROM users u
