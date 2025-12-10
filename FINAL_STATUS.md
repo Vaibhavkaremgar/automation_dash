@@ -66,7 +66,7 @@
 | User | Email | Password | Type |
 |------|-------|----------|------|
 | Admin | vaibhavkar0009@gmail.com | Vaibhav@121 | HR Dashboard |
-| KMG | kvreddy1809@gmail.com | kmg123 | Insurance |
+| KMG | kmginsurance@gmail.com | kmg123 | Insurance |
 | Joban | jobanputra@gmail.com | joban123 | Insurance |
 
 ## 📝 Migrations Applied

@@ -74,7 +74,7 @@ npm run dev
 Visit: `http://localhost:5173`
 
 Login with:
-- Email: `kvreddy1809@gmail.com`
+- Email: `kmginsurance@gmail.com`
 - Password: `kmg123`
 
 Click "Sync from Sheets" button
@@ -143,7 +143,7 @@ curl https://automationdash-production.up.railway.app/
 # Test login
 curl -X POST https://automationdash-production.up.railway.app/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"kvreddy1809@gmail.com","password":"kmg123"}'
+  -d '{"email":"kmginsurance@gmail.com","password":"kmg123"}'
 
 # Test sync (need token from login)
 curl -X POST https://automationdash-production.up.railway.app/api/insurance/sync/from-sheet \

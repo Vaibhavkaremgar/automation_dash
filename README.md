@@ -46,7 +46,7 @@ Frontend runs on http://localhost:5173
 - Password: Vaibhav@121
 
 **KMG Insurance:**
-- Email: kvreddy1809@gmail.com
+- Email: kmginsurance@gmail.com
 - Password: kmg123
 
 **Joban Insurance:**

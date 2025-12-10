@@ -31,7 +31,7 @@
 
 ```
 ✅ Admin: vaibhavkar0009@gmail.com - Active
-✅ KMG Insurance: kvreddy1809@gmail.com - Active (5 customers)
+✅ KMG Insurance: kmginsurance@gmail.com - Active (5 customers)
 ✅ Joban Insurance: jobanputra@gmail.com - Active (8 customers)
 ```
 
@@ -43,7 +43,7 @@
 - Type: HR Dashboard
 
 ### KMG Insurance
-- Email: `kvreddy1809@gmail.com`
+- Email: `kmginsurance@gmail.com`
 - Password: `kmg123`
 - Type: Insurance Client
 - Sheet: https://docs.google.com/spreadsheets/d/1EpMAg1gSXPKr83cTugvGexrqv3Yt5Tb85Re2Shah8mw/edit
