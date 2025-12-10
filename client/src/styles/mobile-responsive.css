@@ -1,11 +1,10 @@
-/* Mobile Responsive Styles - No Overlapping */
+/* Mobile Responsive - Optimized for Performance */
 
 @media (max-width: 768px) {
-  /* Prevent all overflow */
+  /* Prevent overflow */
   html, body, #root {
     overflow-x: hidden !important;
     max-width: 100vw !important;
-    width: 100% !important;
   }
 
   /* Main content */
@@ -13,39 +12,24 @@
     padding: 1rem !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch;
   }
 
-  /* Topbar - prevent overlap */
-  header {
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
-  }
-
-  header button, header select {
-    flex-shrink: 0 !important;
-  }
-
-  /* Tables - horizontal scroll */
-  table {
-    display: table !important;
-    width: 100% !important;
-    min-width: 600px !important;
-  }
-
+  /* Tables scroll */
   .overflow-x-auto {
     overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  table {
+    min-width: 600px !important;
   }
 
   th, td {
     white-space: nowrap !important;
     padding: 0.5rem !important;
-    font-size: 0.875rem !important;
   }
 
-  /* Form inputs */
+  /* Forms */
   input, select, textarea {
     font-size: 16px !important;
   }
@@ -56,27 +40,18 @@
     min-width: 44px !important;
   }
 
-  /* Grid responsive */
+  /* Grid */
   .grid-cols-4, .grid-cols-3 {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 
-  /* Modals */
-  dialog, [role="dialog"] {
-    max-width: 100vw !important;
-    width: 100vw !important;
-    max-height: 100vh !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
-  }
-
   /* Spacing */
-  .space-y-6 > * + * {
-    margin-top: 1rem !important;
-  }
-
   .p-6 {
     padding: 1rem !important;
+  }
+
+  .space-y-6 > * + * {
+    margin-top: 1rem !important;
   }
 
   /* Typography */
@@ -87,18 +62,6 @@
   h2 {
     font-size: 1.25rem !important;
   }
-
-  /* Flex - prevent overlap */
-  .flex {
-    flex-wrap: wrap !important;
-  }
-
-  /* Truncate long text */
-  .truncate {
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-  }
 }
 
 /* Smooth scrolling */
@@ -106,13 +69,10 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.5);
-  border-radius: 2px;
+/* Reduce animations for performance */
+@media (max-width: 768px) {
+  * {
+    animation-duration: 0.2s !important;
+    transition-duration: 0.2s !important;
+  }
 }
