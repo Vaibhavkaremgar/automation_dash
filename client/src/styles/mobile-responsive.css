@@ -1,4 +1,4 @@
-/* Mobile Responsive - Optimized for Performance */
+/* Mobile Responsive - No Animations */
 
 @media (max-width: 768px) {
   /* Prevent overflow */
@@ -62,17 +62,15 @@
   h2 {
     font-size: 1.25rem !important;
   }
+
+  /* Remove ALL animations and transitions */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* Smooth scrolling */
 * {
   -webkit-overflow-scrolling: touch;
-}
-
-/* Reduce animations for performance */
-@media (max-width: 768px) {
-  * {
-    animation-duration: 0.2s !important;
-    transition-duration: 0.2s !important;
-  }
 }

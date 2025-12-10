@@ -284,7 +284,7 @@ export default function InsuranceDashboard() {
       <div className="text-right">
         <p className="font-bold text-white text-lg">₹{customer.premium?.toLocaleString()}</p>
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-col md:flex-row gap-2">
         <Button size="sm" variant="outline" onClick={() => alert('🔒 Premium Feature\n\nUpgrade to Voice Bot Premium to enable automated calling.\n\nContact support to upgrade.')} className="opacity-60" title="Premium Feature">📞🔒</Button>
         <Button size="sm" variant="outline" onClick={() => {
           let message = '';
@@ -307,8 +307,8 @@ export default function InsuranceDashboard() {
           }
           window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
         }}>💬</Button>
-        <Button size="sm" variant="outline" onClick={() => { setNoteCustomerId(customer.id); setShowNoteModal(true); }}>📝</Button>
-        <Button size="sm" variant="outline" onClick={() => viewHistory(customer.id)}>📋</Button>
+        <Button size="sm" variant="outline" onClick={() => { setNoteCustomerId(customer.id); setShowNoteModal(true); }} title="Add Note">📝</Button>
+        <Button size="sm" variant="outline" onClick={() => viewHistory(customer.id)} title="View History">📋</Button>
       </div>
     </div>
   );
@@ -723,15 +723,19 @@ export default function InsuranceDashboard() {
           onClick={syncFromSheets} 
           disabled={syncing}
           variant="outline"
+          title="Sync from Sheets"
         >
-          {syncing ? 'Syncing...' : '🔄 Sync from Sheets'}
+          <span className="md:hidden">{syncing ? '...' : '🔄'}</span>
+          <span className="hidden md:inline">{syncing ? 'Syncing...' : '🔄 Sync from Sheets'}</span>
         </Button>
         <Button 
           onClick={syncToSheets} 
           disabled={syncing}
           variant="outline"
+          title="Sync to Sheets"
         >
-          {syncing ? 'Syncing...' : '📤 Sync to Sheets'}
+          <span className="md:hidden">{syncing ? '...' : '📤'}</span>
+          <span className="hidden md:inline">{syncing ? 'Syncing...' : '📤 Sync to Sheets'}</span>
         </Button>
       </div>
       {renderCustomersTable()}
@@ -985,13 +989,13 @@ export default function InsuranceDashboard() {
         <table className="w-full">
           <thead className="bg-slate-700/50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider">Mobile</th>
-              {isMotor && <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider">Vehicle</th>}
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider">Renewal Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider">Premium</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider"><span className="hidden md:inline">Name</span><span className="md:hidden">Name</span></th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider"><span className="hidden md:inline">Mobile</span><span className="md:hidden">Mob</span></th>
+              {isMotor && <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider"><span className="hidden md:inline">Vehicle</span><span className="md:hidden">Veh</span></th>}
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider"><span className="hidden md:inline">Renewal Date</span><span className="md:hidden">Renew</span></th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider"><span className="hidden md:inline">Premium</span><span className="md:hidden">Amt</span></th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider"><span className="hidden md:inline">Status</span><span className="md:hidden">Sts</span></th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider"><span className="hidden md:inline">Actions</span><span className="md:hidden">Act</span></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-700">

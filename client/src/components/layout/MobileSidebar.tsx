@@ -10,8 +10,8 @@ export default function MobileSidebar({ open, onClose }: { open: boolean; onClos
   
   return (
     <div className={`fixed inset-0 z-[100] md:hidden ${open ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-      <div onClick={onClose} className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`} />
-      <aside className={`absolute left-0 top-0 h-full w-72 bg-slate-900 border-r border-slate-800 overflow-y-auto transform transition-transform duration-300 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div onClick={onClose} className={`absolute inset-0 bg-black/70 backdrop-blur-sm ${open ? 'opacity-100' : 'opacity-0'}`} />
+      <aside className={`absolute left-0 top-0 h-full w-72 bg-slate-900 border-r border-slate-800 overflow-y-auto ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">

@@ -25,7 +25,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={() => navigate('/profiles')}
-          className="p-2 bg-indigo-900/20 border border-indigo-700/50 rounded-lg hover:bg-indigo-900/40 transition-all"
+          className="p-2 bg-indigo-900/20 border border-indigo-700/50 rounded-lg hover:bg-indigo-900/40"
           title={profileName || 'Profile'}
         >
           <span className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold text-white">
@@ -54,7 +54,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
 
         <button
           onClick={logout}
-          className="p-2 bg-red-900/20 hover:bg-red-900/40 border border-red-700/50 hover:border-red-600 rounded-lg text-red-400 hover:text-red-300 transition-all"
+          className="p-2 bg-red-900/20 hover:bg-red-900/40 border border-red-700/50 hover:border-red-600 rounded-lg text-red-400 hover:text-red-300"
           title="Logout"
         >
           🚪

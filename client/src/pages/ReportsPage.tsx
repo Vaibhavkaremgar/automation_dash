@@ -143,23 +143,23 @@ export default function ReportsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Expiring This Month</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Expiring This Month</span><span className="md:hidden">Expiring</span></h4>
               <p className="text-2xl font-bold text-orange-400">{reportData.renewalPerformance.expiringThisMonth}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Renewed So Far</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Renewed So Far</span><span className="md:hidden">Renewed</span></h4>
               <p className="text-2xl font-bold text-green-400">{reportData.renewalPerformance.renewedSoFar}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Pending Renewals</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Pending Renewals</span><span className="md:hidden">Pending</span></h4>
               <p className="text-2xl font-bold text-yellow-400">{reportData.renewalPerformance.pendingRenewals}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Expired Without Renewal</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Expired Without Renewal</span><span className="md:hidden">Expired</span></h4>
               <p className="text-2xl font-bold text-red-400">{reportData.renewalPerformance.expiredWithoutRenewal}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Conversion Rate</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Conversion Rate</span><span className="md:hidden">Conv %</span></h4>
               <p className="text-2xl font-bold text-cyan-400">{reportData.renewalPerformance.conversionRate}%</p>
             </div>
           </div>
@@ -182,11 +182,11 @@ export default function ReportsPage() {
             <table className="w-full">
               <thead className="bg-slate-700/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Vehicle</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Renewal Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Premium</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Customer</span><span className="md:hidden">Cust</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Vehicle</span><span className="md:hidden">Veh</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Renewal Date</span><span className="md:hidden">Renew</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Premium</span><span className="md:hidden">Amt</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Status</span><span className="md:hidden">Sts</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
@@ -210,20 +210,20 @@ export default function ReportsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Collected This Month</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Collected This Month</span><span className="md:hidden">Month</span></h4>
               <p className="text-2xl font-bold text-green-400">₹{reportData.premiumCollection.collectedThisMonth}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Collected This Year</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Collected This Year</span><span className="md:hidden">Year</span></h4>
               <p className="text-2xl font-bold text-cyan-400">₹{reportData.premiumCollection.collectedThisYear}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Highest Premium Customer</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Highest Premium Customer</span><span className="md:hidden">Top Cust</span></h4>
               <p className="text-lg font-bold text-purple-400">{reportData.premiumCollection.highestCustomer.name}</p>
               <p className="text-sm text-slate-300">₹{reportData.premiumCollection.highestCustomer.premium}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Top Insurance Company</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Top Insurance Company</span><span className="md:hidden">Top Co</span></h4>
               <p className="text-lg font-bold text-orange-400">{reportData.premiumCollection.highestCompany.name}</p>
               <p className="text-sm text-slate-300">₹{reportData.premiumCollection.highestCompany.premium}</p>
             </div>
@@ -266,11 +266,11 @@ export default function ReportsPage() {
             <table className="w-full">
               <thead className="bg-slate-700/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Company</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Premium</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Renewal Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Customer</span><span className="md:hidden">Cust</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Company</span><span className="md:hidden">Co</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Premium</span><span className="md:hidden">Amt</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Renewal Date</span><span className="md:hidden">Renew</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Status</span><span className="md:hidden">Sts</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
@@ -294,19 +294,19 @@ export default function ReportsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">New This Month</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">New This Month</span><span className="md:hidden">New</span></h4>
               <p className="text-2xl font-bold text-green-400">{reportData.customerGrowth.newThisMonth}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Total Active</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Total Active</span><span className="md:hidden">Active</span></h4>
               <p className="text-2xl font-bold text-cyan-400">{reportData.customerGrowth.totalActive}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Total Inactive</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Total Inactive</span><span className="md:hidden">Inactive</span></h4>
               <p className="text-2xl font-bold text-red-400">{reportData.customerGrowth.totalInactive}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Retention Rate</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Retention Rate</span><span className="md:hidden">Retain %</span></h4>
               <p className="text-2xl font-bold text-purple-400">{reportData.customerGrowth.retentionRate}%</p>
             </div>
           </div>
@@ -329,10 +329,10 @@ export default function ReportsPage() {
             <table className="w-full">
               <thead className="bg-slate-700/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Customer Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Mobile</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Added Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Customer Name</span><span className="md:hidden">Name</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Mobile</span><span className="md:hidden">Mob</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Added Date</span><span className="md:hidden">Date</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Status</span><span className="md:hidden">Sts</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
@@ -355,23 +355,23 @@ export default function ReportsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Total Filed</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Total Filed</span><span className="md:hidden">Filed</span></h4>
               <p className="text-2xl font-bold text-blue-400">{reportData.claimsSummary.totalFiled}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Approved</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Approved</span><span className="md:hidden">Appr</span></h4>
               <p className="text-2xl font-bold text-green-400">{reportData.claimsSummary.approved}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Rejected</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Rejected</span><span className="md:hidden">Rej</span></h4>
               <p className="text-2xl font-bold text-red-400">{reportData.claimsSummary.rejected}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">In Progress</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">In Progress</span><span className="md:hidden">Prog</span></h4>
               <p className="text-2xl font-bold text-orange-400">{reportData.claimsSummary.inProgress}</p>
             </div>
             <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-              <h4 className="text-sm text-slate-300 mb-2">Avg Settlement Time</h4>
+              <h4 className="text-sm text-slate-300 mb-2"><span className="hidden md:inline">Avg Settlement Time</span><span className="md:hidden">Avg Days</span></h4>
               <p className="text-2xl font-bold text-purple-400">{reportData.claimsSummary.avgSettlementDays} days</p>
             </div>
           </div>
@@ -416,13 +416,13 @@ export default function ReportsPage() {
             <table className="w-full">
               <thead className="bg-slate-700/50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Customer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Vehicle</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Company</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Filed Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Updated Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Customer</span><span className="md:hidden">Cust</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Vehicle</span><span className="md:hidden">Veh</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Company</span><span className="md:hidden">Co</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Type</span><span className="md:hidden">Typ</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Status</span><span className="md:hidden">Sts</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Filed Date</span><span className="md:hidden">Filed</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Updated Date</span><span className="md:hidden">Upd</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
