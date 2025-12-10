@@ -186,6 +186,12 @@ app.get('/', (req, res) => {
 
 app.use('/uploads', express.static('uploads'));
 
+// Serve static files from client build
+if (config.nodeEnv === 'production') {
+  const path = require('path');
+  app.use(express.static(path.join(__dirname, '../../client/dist')));
+}
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -216,6 +222,13 @@ app.use('/api/profiles', profilesRoutes);
 app.use('/api/reset-passwords', require('./routes/reset-passwords'));
 app.use('/api/debug-railway', require('./routes/debug-railway'));
 
+// Serve index.html for all non-API routes in production
+if (config.nodeEnv === 'production') {
+  const path = require('path');
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+  });
+}
 
 // Error handling
 app.use(notFoundHandler);

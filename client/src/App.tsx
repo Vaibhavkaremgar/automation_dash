@@ -9,25 +9,30 @@ import Spinner from './components/ui/Spinner'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import './styles/mobile-responsive.css'
 
-const LoginPage = lazy(() => import('./pages/Login'))
-const DashboardClient = lazy(() => import('./pages/DashboardClient'))
-const DashboardAdmin = lazy(() => import('./pages/DashboardAdmin'))
-const InsuranceDashboard = lazy(() => import('./pages/InsuranceDashboard'))
-const ClaimsManagement = lazy(() => import('./pages/ClaimsManagement'))
-const ReportsPage = lazy(() => import('./pages/ReportsPage'))
-const MessagesHistory = lazy(() => import('./pages/MessagesHistory'))
-const JobsPage = lazy(() => import('./pages/Jobs'))
-const CandidatesPage = lazy(() => import('./pages/Candidates'))
-const ResumeUploadPage = lazy(() => import('./pages/ResumeUploadNew'))
-// const ToolkitPage = lazy(() => import('./pages/Toolkit'))
-const WalletPage = lazy(() => import('./pages/Wallet'))
-const AnalyticsPage = lazy(() => import('./pages/Analytics'))
-const EmailHistoryPage = lazy(() => import('./pages/EmailHistory'))
-const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsers'))
-const AdminToolsPricingPage = lazy(() => import('./pages/admin/AdminToolsPricing'))
-const AdminTransactionsPage = lazy(() => import('./pages/admin/AdminTransactions'))
-const AccessDeniedPage = lazy(() => import('./pages/AccessDenied'))
-const ProfileSelectionPage = lazy(() => import('./pages/ProfileSelection'))
+const retryImport = (importFn: () => Promise<any>) => 
+  lazy(() => importFn().catch(() => {
+    window.location.reload()
+    return { default: () => null }
+  }))
+
+const LoginPage = retryImport(() => import('./pages/Login'))
+const DashboardClient = retryImport(() => import('./pages/DashboardClient'))
+const DashboardAdmin = retryImport(() => import('./pages/DashboardAdmin'))
+const InsuranceDashboard = retryImport(() => import('./pages/InsuranceDashboard'))
+const ClaimsManagement = retryImport(() => import('./pages/ClaimsManagement'))
+const ReportsPage = retryImport(() => import('./pages/ReportsPage'))
+const MessagesHistory = retryImport(() => import('./pages/MessagesHistory'))
+const JobsPage = retryImport(() => import('./pages/Jobs'))
+const CandidatesPage = retryImport(() => import('./pages/Candidates'))
+const ResumeUploadPage = retryImport(() => import('./pages/ResumeUploadNew'))
+const WalletPage = retryImport(() => import('./pages/Wallet'))
+const AnalyticsPage = retryImport(() => import('./pages/Analytics'))
+const EmailHistoryPage = retryImport(() => import('./pages/EmailHistory'))
+const AdminUsersPage = retryImport(() => import('./pages/admin/AdminUsers'))
+const AdminToolsPricingPage = retryImport(() => import('./pages/admin/AdminToolsPricing'))
+const AdminTransactionsPage = retryImport(() => import('./pages/admin/AdminTransactions'))
+const AccessDeniedPage = retryImport(() => import('./pages/AccessDenied'))
+const ProfileSelectionPage = retryImport(() => import('./pages/ProfileSelection'))
 
 const ProtectedRoute = memo(function ProtectedRoute({ roles }: { roles?: Array<'admin' | 'client'> }) {
   const { user, loading } = useAuth()
