@@ -25,17 +25,18 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       <div className="flex items-center gap-2 flex-shrink-0">
         <button
           onClick={() => navigate('/profiles')}
-          className="p-2 bg-indigo-900/20 border border-indigo-700/50 rounded-lg hover:bg-indigo-900/40 transition-all"
+          className="flex items-center gap-2 px-3 py-2 bg-indigo-900/20 border border-indigo-700/50 rounded-lg hover:bg-indigo-900/40 transition-all"
           title={profileName || 'Profile'}
         >
           <span className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold text-white">
             {profileName ? profileName.charAt(0).toUpperCase() : '👤'}
           </span>
+          <span className="hidden md:inline text-sm font-medium">{profileName || 'Profile'}</span>
         </button>
         
         {isInsuranceClient && (
           <select
-            className="p-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-xs focus:outline-none focus:border-indigo-500"
+            className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-indigo-500"
             value={selectedVertical}
             onChange={(e) => {
               setSelectedVertical(e.target.value);
@@ -44,20 +45,21 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
               window.dispatchEvent(event);
             }}
           >
-            <option value="all">📋</option>
-            <option value="motor">🚗</option>
-            <option value="health">🏥</option>
-            <option value="non-motor">🏠</option>
-            <option value="life">👤</option>
+            <option value="all">📋 All</option>
+            <option value="motor">🚗 Motor</option>
+            <option value="health">🏥 Health</option>
+            <option value="non-motor">🏠 Non-Motor</option>
+            <option value="life">👤 Life</option>
           </select>
         )}
 
         <button
           onClick={logout}
-          className="p-2 bg-red-900/20 hover:bg-red-900/40 border border-red-700/50 hover:border-red-600 rounded-lg text-red-400 hover:text-red-300 transition-all"
+          className="flex items-center gap-2 px-3 py-2 bg-red-900/20 hover:bg-red-900/40 border border-red-700/50 hover:border-red-600 rounded-lg text-red-400 hover:text-red-300 transition-all"
           title="Logout"
         >
-          🚪
+          <span>🚪</span>
+          <span className="hidden md:inline text-sm font-medium">Logout</span>
         </button>
       </div>
     </header>
