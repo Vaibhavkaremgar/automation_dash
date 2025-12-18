@@ -1,5 +1,6 @@
 const express = require('express');
 const { authRequired } = require('../middleware/auth');
+const { apiKeyAuth } = require('../middleware/apiKeyAuth');
 const { getDatabase } = require('../db/connection');
 const insuranceSync = require('../services/insuranceSync');
 const insuranceMessaging = require('../services/insuranceMessaging');
@@ -192,19 +193,32 @@ router.post('/messages/webhook', async (req, res) => {
 router.get('/message-logs', async (req, res) => {
   try {
     const { channel, status, limit } = req.query;
+    const { get } = require('../db/connection');
+    const { getClientConfig } = require('../config/insuranceClients');
     
     console.log(`📊 Fetching message logs for user ${req.user.id}`);
     
-    // CRITICAL: ONLY show messages for customers that belong to this user
+    // Get user's email to determine client_key
+    const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const clientConfig = getClientConfig(user.email);
+    const clientKey = clientConfig.key; // 'joban' or 'kmg'
+    
+    console.log(`🔑 Client key for user ${req.user.id}: ${clientKey}`);
+    
+    // CRITICAL: ONLY show messages for customers that belong to this user AND match client_key
     let query = `
       SELECT ml.*, 
         COALESCE(ic.name, ml.customer_name_fallback, 'Unknown') as customer_name, 
         ic.mobile_number
       FROM message_logs ml
       INNER JOIN insurance_customers ic ON ml.customer_id = ic.id
-      WHERE ic.user_id = ?
+      WHERE ic.user_id = ? AND (ml.client_key = ? OR ml.client_key IS NULL)
     `;
-    const params = [req.user.id];
+    const params = [req.user.id, clientKey];
     
     if (channel) {
       query += ' AND ml.channel = ?';
@@ -225,7 +239,7 @@ router.get('/message-logs', async (req, res) => {
     
     db.all(query, params, (err, messages) => {
       if (err) return res.status(500).json({ error: err.message });
-      console.log(`✅ Returning ${messages?.length || 0} message logs for user ${req.user.id}`);
+      console.log(`✅ Returning ${messages?.length || 0} message logs for user ${req.user.id} (client: ${clientKey})`);
       res.json(messages || []);
     });
   } catch (error) {
@@ -416,8 +430,44 @@ router.post('/customers/cleanup-duplicates', (req, res) => {
   }
 });
 
+// Log message from n8n (requires API key)
+router.post('/log-message', apiKeyAuth, async (req, res) => {
+  try {
+    const { customer_id, customer_name, message_type, channel, message_content, status, sent_at, client_key } = req.body;
+    
+    if (!customer_id) {
+      return res.status(400).json({ error: 'customer_id is required' });
+    }
+    
+    if (!client_key) {
+      return res.status(400).json({ error: 'client_key is required (joban or kmg)' });
+    }
+    
+    // Validate client_key
+    if (!['joban', 'kmg'].includes(client_key.toLowerCase())) {
+      return res.status(400).json({ error: 'client_key must be either "joban" or "kmg"' });
+    }
+    
+    console.log(`✅ Logging message for customer ${customer_id} (client: ${client_key})`);
+    
+    db.run(`
+      INSERT INTO message_logs (customer_id, message_type, channel, message_content, status, sent_at, customer_name_fallback, client_key)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [customer_id, message_type || 'renewal_reminder', channel || 'whatsapp', message_content || '', status || 'sent', sent_at || new Date().toISOString(), customer_name, client_key.toLowerCase()], function(err) {
+      if (err) {
+        console.error('Log message error:', err);
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ success: true, id: this.lastID });
+    });
+  } catch (error) {
+    console.error('Log message error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Log message from frontend (requires auth)
-router.post('/log-message', authRequired, async (req, res) => {
+router.post('/log-message-frontend', authRequired, async (req, res) => {
   try {
     const { customer_id, customer_name, message_type, channel, message_content, status, sent_at } = req.body;
     
