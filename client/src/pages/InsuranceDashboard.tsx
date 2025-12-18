@@ -337,7 +337,7 @@ export default function InsuranceDashboard() {
             companyName: customer.company,
             premiumAmount: customer.premium?.toString()
           });
-          window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
+          window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
         });
       }
       
@@ -476,7 +476,7 @@ export default function InsuranceDashboard() {
                 });
               }
               logWhatsAppMessage(customer.id, customer.name, message);
-              window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
+              window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
             }}
           >
             💬
@@ -548,7 +548,7 @@ export default function InsuranceDashboard() {
               });
             }
             logWhatsAppMessage(customer.id, customer.name, message);
-            window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
+            window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
           }}
         >
           💬
@@ -922,7 +922,7 @@ export default function InsuranceDashboard() {
                               });
                             }
                             logWhatsAppMessage(customer.id, customer.name, message);
-                            window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
+                            window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
                           }}
                           title="WhatsApp Customer"
                         >
@@ -1686,7 +1686,7 @@ export default function InsuranceDashboard() {
                         premiumAmount: customer.premium?.toString()
                       });
                       logWhatsAppMessage(customer.id, customer.name, message);
-                      window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
+                      window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
                     }}>💬</Button>
                     <Button 
                       size="sm" 

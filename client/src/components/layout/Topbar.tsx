@@ -89,7 +89,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     
     // Log message
     try {
-      await api.post('/api/insurance/log-message', {
+      await api.post('/api/insurance/log-message-frontend', {
         customer_id: customer.id,
         customer_name: customer.name,
         message_type: 'policy_summary',
@@ -102,7 +102,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       console.error('Failed to log message:', error)
     }
     
-    window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(summary)}`)
+    window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(summary)}`, '_blank', 'noopener,noreferrer')
   }
 
   const sendAllSummary = async () => {
@@ -128,7 +128,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       
       // Log message for first customer (as representative)
       try {
-        await api.post('/api/insurance/log-message', {
+        await api.post('/api/insurance/log-message-frontend', {
           customer_id: firstCustomer.id,
           customer_name: firstCustomer.name,
           message_type: 'bulk_summary',
@@ -141,7 +141,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
         console.error('Failed to log message:', error)
       }
       
-      window.open(`https://wa.me/${firstCustomer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(summary)}`)
+      window.open(`https://wa.me/${firstCustomer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(summary)}`, '_blank', 'noopener,noreferrer')
     }
   }
   
