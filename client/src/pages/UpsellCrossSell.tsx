@@ -91,6 +91,22 @@ export default function UpsellCrossSell() {
     setSelectedPolicies(missing.map(p => p.key));
   };
 
+  const logWhatsAppMessage = async (customerId: number, customerName: string, message: string) => {
+    try {
+      await api.post('/api/insurance/log-message-frontend', {
+        customer_id: customerId,
+        customer_name: customerName,
+        message_type: 'upsell_crosssell',
+        channel: 'whatsapp',
+        message_content: message,
+        status: 'sent',
+        sent_at: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Failed to log message:', error);
+    }
+  };
+
   const sendUpsellMessage = () => {
     if (!selectedCustomer) return;
     
@@ -146,7 +162,8 @@ export default function UpsellCrossSell() {
     message += `Warm regards,\n`;
     message += `Your Insurance Advisor`;
     
-    window.open(`https://wa.me/${selectedCustomer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
+    logWhatsAppMessage(selectedCustomer.id, selectedCustomer.name, message);
+    window.open(`https://wa.me/${selectedCustomer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
   };
 
   const filteredCustomers = customers.filter(customer =>

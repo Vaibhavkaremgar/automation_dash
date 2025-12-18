@@ -151,6 +151,22 @@ export default function ClaimsManagement() {
     }
   };
 
+  const logWhatsAppMessage = async (customerId: number, customerName: string, message: string) => {
+    try {
+      await api.post('/api/insurance/log-message-frontend', {
+        customer_id: customerId,
+        customer_name: customerName,
+        message_type: 'claim_update',
+        channel: 'whatsapp',
+        message_content: message,
+        status: 'sent',
+        sent_at: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Failed to log message:', error);
+    }
+  };
+
   const handleNotify = async (claimId: number, channel: string) => {
     try {
       await api.post(`/api/insurance/claims/${claimId}/notify`, { channel });
@@ -347,7 +363,8 @@ export default function ClaimsManagement() {
                           claim.vehicle_number || 'your policy',
                           claim.claim_status
                         );
-                        window.open(`https://wa.me/${claim.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
+                        logWhatsAppMessage(claim.customer_id, claim.customer_name, message);
+                        window.open(`https://wa.me/${claim.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
                       }}
                     >
                       WhatsApp
