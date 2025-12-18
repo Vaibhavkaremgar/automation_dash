@@ -355,12 +355,24 @@ export default function InsuranceDashboard() {
     
     try {
       await api.post(`/api/insurance/customers/${noteCustomerId}/notes`, { note });
+      
+      // Sync to Google Sheets
+      try {
+        await api.post('/api/insurance/sync/to-sheet', {
+          tabName: SHEET_TAB_NAME
+        });
+      } catch (syncError) {
+        console.error('Sync to sheet failed:', syncError);
+      }
+      
       setShowNoteModal(false);
       setNote('');
       setNoteCustomerId(null);
-      alert('Note added successfully');
+      loadData(); // Reload data to show updated notes
+      alert('Note added and synced successfully');
     } catch (error) {
       console.error('Failed to add note:', error);
+      alert('Failed to add note');
     }
   };
 
