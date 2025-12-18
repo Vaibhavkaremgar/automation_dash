@@ -5,6 +5,7 @@ const morgan = require('morgan');
 const config = require('./config/env');
 const { runMigrations } = require('./db/connection');
 const { errorHandler, notFoundHandler } = require('./middleware/error');
+const { initBackupScheduler, stopBackupScheduler } = require('./services/backupScheduler');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -29,6 +30,7 @@ const insuranceRoutes = require('./routes/insurance');
 const insuranceConfigRoutes = require('./routes/insuranceConfig');
 const messageWebhooksRoutes = require('./routes/messageWebhooks');
 const profilesRoutes = require('./routes/profiles');
+const backupRoutes = require('./routes/backup');
 
 
 const app = express();
@@ -233,6 +235,7 @@ app.use('/api/webhooks', messageWebhooksRoutes);
 app.use('/api/profiles', profilesRoutes);
 app.use('/api/reset-passwords', require('./routes/reset-passwords'));
 app.use('/api/debug-railway', require('./routes/debug-railway'));
+app.use('/api/backup', require('./routes/backup'));
 
 // Serve index.html for all non-API routes in production
 if (config.nodeEnv === 'production') {
@@ -251,6 +254,22 @@ app.listen(config.port, () => {
   console.log(`🚀 Viral Bug Automations server running on http://localhost:${config.port}`);
   console.log(`📝 Environment: ${config.nodeEnv}`);
   console.log(`🔗 Frontend URL: ${config.frontendUrl}`);
+  
+  // Initialize backup scheduler (non-blocking)
+  initBackupScheduler();
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  stopBackupScheduler();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  stopBackupScheduler();
+  process.exit(0);
 });
 
 module.exports = app;

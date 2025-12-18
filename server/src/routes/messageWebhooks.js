@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDatabase } = require('../db/connection');
 const { apiKeyAuth } = require('../middleware/apiKeyAuth');
+const { triggerBackup } = require('../services/backupScheduler');
 const router = express.Router();
 
 const db = getDatabase();
@@ -57,6 +58,10 @@ router.post('/n8n/log-message', apiKeyAuth, async (req, res) => {
         console.error(`${client_key.toUpperCase()} n8n message log error:`, err);
         return res.status(500).json({ error: err.message });
       }
+      
+      // Trigger backup after successful message log (non-blocking)
+      triggerBackup().catch(() => {});
+      
       res.json({ success: true, id: this.lastID, client: client_key.toUpperCase(), source: 'n8n', customer_id: finalCustomerId });
     });
   } catch (error) {
