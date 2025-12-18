@@ -520,12 +520,20 @@ router.post('/log-message-frontend', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Access denied - customer not found or does not belong to you' });
     }
     
-    console.log(`✅ Logging message for customer ${customer_id} (user ${req.user.id})`);
+    // Get user's client_key
+    const { get } = require('../db/connection');
+    const { getClientConfig } = require('../config/insuranceClients');
+    
+    const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
+    const clientConfig = getClientConfig(user.email);
+    const clientKey = clientConfig.key; // 'joban' or 'kmg'
+    
+    console.log(`✅ Logging message for customer ${customer_id} (user ${req.user.id}, client: ${clientKey})`);
     
     db.run(`
-      INSERT INTO message_logs (customer_id, message_type, channel, message_content, status, sent_at, customer_name_fallback)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [customer_id, message_type || 'renewal_reminder', channel || 'whatsapp', message_content || '', status || 'sent', sent_at || new Date().toISOString(), customer_name], function(err) {
+      INSERT INTO message_logs (customer_id, message_type, channel, message_content, status, sent_at, customer_name_fallback, client_key)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [customer_id, message_type || 'renewal_reminder', channel || 'whatsapp', message_content || '', status || 'sent', sent_at || new Date().toISOString(), customer_name, clientKey], function(err) {
       if (err) {
         console.error('Log message error:', err);
         return res.status(500).json({ error: err.message });

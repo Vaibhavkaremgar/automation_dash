@@ -1,11 +1,12 @@
 const express = require('express');
 const { getDatabase } = require('../db/connection');
+const { apiKeyAuth } = require('../middleware/apiKeyAuth');
 const router = express.Router();
 
 const db = getDatabase();
 
 // n8n Webhook with client key differentiation
-router.post('/n8n/log-message', async (req, res) => {
+router.post('/n8n/log-message', apiKeyAuth, async (req, res) => {
   try {
     const { client_key, customer_id, customer_name, customer_mobile, message_type, channel, message_content, status } = req.body;
     
@@ -14,18 +15,49 @@ router.post('/n8n/log-message', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or missing client_key. Use "kmg" or "joban"' });
     }
     
-    // Route to appropriate table based on client_key
-    const tableName = client_key === 'kmg' ? 'kmg_message_logs' : 'joban_message_logs';
+    // Find customer_id if not provided
+    let finalCustomerId = customer_id;
+    if (!finalCustomerId && (customer_name || customer_mobile)) {
+      const { get } = require('../db/connection');
+      
+      let query = 'SELECT id FROM insurance_customers WHERE 1=1';
+      const params = [];
+      
+      if (customer_name) {
+        query += ' AND LOWER(name) = LOWER(?)';
+        params.push(customer_name.trim());
+      }
+      
+      if (customer_mobile) {
+        query += ' AND mobile_number = ?';
+        params.push(customer_mobile.trim());
+      }
+      
+      query += ' LIMIT 1';
+      
+      const customer = await new Promise((resolve, reject) => {
+        db.get(query, params, (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+      
+      if (customer) {
+        finalCustomerId = customer.id;
+        console.log(`✅ Found customer ID ${finalCustomerId} for ${customer_name} (${customer_mobile})`);
+      }
+    }
     
+    // Insert into message_logs table (same as dashboard)
     db.run(`
-      INSERT INTO ${tableName} (customer_id, customer_name, customer_mobile, message_type, channel, message_content, status, source, client_key)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [customer_id, customer_name, customer_mobile, message_type || 'notification', channel || 'whatsapp', message_content, status || 'sent', 'n8n', client_key], function(err) {
+      INSERT INTO message_logs (customer_id, message_type, channel, message_content, status, sent_at, customer_name_fallback, client_key)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [finalCustomerId, message_type || 'notification', channel || 'whatsapp', message_content, status || 'sent', new Date().toISOString(), customer_name, client_key], function(err) {
       if (err) {
         console.error(`${client_key.toUpperCase()} n8n message log error:`, err);
         return res.status(500).json({ error: err.message });
       }
-      res.json({ success: true, id: this.lastID, client: client_key.toUpperCase(), source: 'n8n' });
+      res.json({ success: true, id: this.lastID, client: client_key.toUpperCase(), source: 'n8n', customer_id: finalCustomerId });
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

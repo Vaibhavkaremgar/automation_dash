@@ -113,6 +113,10 @@ async function initializeDatabase() {
     const migration016 = require('../migrations/016-add-source-client-key-to-message-tables');
     await migration016.up();
     
+    // Run message_logs client_key migration
+    const migration017 = require('../migrations/017-add-client-key-to-message-logs');
+    await migration017.up();
+    
     // Seed admin user
     await seedAdminUser();
   } catch (err) {

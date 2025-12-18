@@ -387,7 +387,7 @@ export default function InsuranceDashboard() {
 
   const logWhatsAppMessage = async (customerId: number, customerName: string, message: string) => {
     try {
-      await api.post('/api/insurance/log-message', {
+      await api.post('/api/insurance/log-message-frontend', {
         customer_id: customerId,
         customer_name: customerName,
         message_type: 'renewal_reminder',
@@ -398,6 +398,7 @@ export default function InsuranceDashboard() {
       });
     } catch (error) {
       console.error('Failed to log message:', error);
+      // Don't let logging errors break the WhatsApp flow
     }
   };
 
