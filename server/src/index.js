@@ -35,8 +35,8 @@ const app = express();
 
 app.use(cors({
   origin: config.nodeEnv === 'production' 
-    ? ['http://localhost:5173', config.frontendUrl].filter(Boolean)
-    : ['http://localhost:5173', config.frontendUrl].filter(Boolean),
+    ? ['https://enthusiastic-cat-production-f806.up.railway.app', config.frontendUrl].filter(Boolean)
+    : ['http://localhost:5173', 'https://enthusiastic-cat-production-f806.up.railway.app', config.frontendUrl].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-profile-id'],
