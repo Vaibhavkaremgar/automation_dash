@@ -28,6 +28,9 @@ export default function LoginPage() {
         return
       }
       
+      // HR clients - clear any stale profile data
+      localStorage.removeItem('activeProfile')
+      
       const dest = location.state?.from?.pathname || '/'
       navigate(dest, { replace: true })
     } catch (err: any) {

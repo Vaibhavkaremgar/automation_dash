@@ -62,7 +62,8 @@ function RoleHome() {
     return <Navigate to="/insurance" replace />
   }
   
-  // HR clients go to dashboard
+  // HR clients go to dashboard (clear any stale insurance profile data)
+  localStorage.removeItem('activeProfile')
   return <Navigate to="/dashboard" replace />
 }
 
