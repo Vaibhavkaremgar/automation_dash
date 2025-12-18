@@ -209,14 +209,14 @@ router.get('/message-logs', async (req, res) => {
     
     console.log(`🔑 Client key for user ${req.user.id}: ${clientKey}`);
     
-    // CRITICAL: ONLY show messages for customers that belong to this user AND match client_key
+    // CRITICAL: Use LEFT JOIN to preserve messages even if customer was deleted/recreated during sync
     let query = `
       SELECT ml.*, 
         COALESCE(ic.name, ml.customer_name_fallback, 'Unknown') as customer_name, 
         ic.mobile_number
       FROM message_logs ml
-      INNER JOIN insurance_customers ic ON ml.customer_id = ic.id
-      WHERE ic.user_id = ? AND (ml.client_key = ? OR ml.client_key IS NULL)
+      LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id
+      WHERE (ic.user_id = ? OR ic.user_id IS NULL) AND (ml.client_key = ? OR ml.client_key IS NULL)
     `;
     const params = [req.user.id, clientKey];
     
@@ -553,8 +553,8 @@ router.get('/customers/:id/messages', validateCustomerOwnership, (req, res) => {
     
     db.all(`
       SELECT ml.* FROM message_logs ml
-      INNER JOIN insurance_customers ic ON ml.customer_id = ic.id
-      WHERE ml.customer_id = ? AND ic.user_id = ?
+      LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id
+      WHERE ml.customer_id = ? AND (ic.user_id = ? OR ic.user_id IS NULL)
       ORDER BY ml.sent_at DESC
     `, [req.params.id, req.user.id], (err, messages) => {
       if (err) {

@@ -370,10 +370,22 @@ export default function UpsellCrossSell() {
               if (!noteCustomerId || !note) return;
               try {
                 await api.post(`/api/insurance/customers/${noteCustomerId}/notes`, { note });
+                
+                // Sync to Google Sheets
+                try {
+                  const { data: config } = await api.get('/api/insurance-config/config');
+                  await api.post('/api/insurance/sync/to-sheet', {
+                    tabName: config.tabName
+                  });
+                } catch (syncError) {
+                  console.error('Sync to sheet failed:', syncError);
+                }
+                
                 setShowNoteModal(false);
                 setNote('');
                 setNoteCustomerId(null);
-                alert('Note added successfully');
+                loadCustomers(); // Reload data
+                alert('Note added and synced successfully');
               } catch (error) {
                 console.error('Failed to add note:', error);
                 alert('Failed to add note');
