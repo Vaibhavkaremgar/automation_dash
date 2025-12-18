@@ -24,8 +24,11 @@ export default function AppLayout() {
   }, [user?.mustChangePassword])
 
   const handlePasswordChangeClose = async () => {
-    setShowPasswordModal(false)
     await refreshMe() // Refresh user data to check if password was changed
+    // Only close if password was actually changed
+    if (!user?.mustChangePassword) {
+      setShowPasswordModal(false)
+    }
   }
 
   return (
@@ -50,15 +53,11 @@ export default function AppLayout() {
       
       <NotificationBanner />
       
-      <AnimatePresence>
-        {showPasswordModal && (
-          <PasswordChangeModal 
-            isOpen={showPasswordModal}
-            onClose={handlePasswordChangeClose}
-            isTemporary={user?.mustChangePassword}
-          />
-        )}
-      </AnimatePresence>
+      <PasswordChangeModal 
+        isOpen={showPasswordModal}
+        onClose={handlePasswordChangeClose}
+        isTemporary={user?.mustChangePassword}
+      />
     </div>
   )
 }

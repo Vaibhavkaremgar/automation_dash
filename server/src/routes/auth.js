@@ -139,11 +139,12 @@ router.post('/change-password', authRequired, async (req, res, next) => {
       return res.status(400).json({ error: 'New password must be at least 6 characters' });
     }
 
-    const user = await get('SELECT password_hash, temp_password, can_change_password, role FROM users WHERE id = ?', [req.user.id]);
+    const user = await get('SELECT password_hash, temp_password, must_change_password, can_change_password, role FROM users WHERE id = ?', [req.user.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     
-    // Check if user has permission to change password (admins always can)
-    if (user.role !== 'admin' && user.can_change_password === 0) {
+    // Check if user has permission to change password
+    // Allow if: admin, must_change_password is true, or can_change_password is enabled
+    if (user.role !== 'admin' && user.must_change_password !== 1 && user.can_change_password === 0) {
       return res.status(403).json({ error: 'Password change is disabled for your account. Contact administrator.' });
     }
 

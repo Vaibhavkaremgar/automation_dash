@@ -61,8 +61,8 @@ router.post('/users', async (req, res, next) => {
     const passwordHash = await bcrypt.hash(tempPassword, 10);
     
     const result = await run(
-      'INSERT INTO users (email, password_hash, name, role, temp_password, must_change_password, google_sheet_url, status, client_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [email, passwordHash, name || null, 'client', 1, 1, google_sheet_url || null, 'open', client_type || 'hr']
+      'INSERT INTO users (email, password_hash, name, role, temp_password, must_change_password, can_change_password, google_sheet_url, status, client_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [email, passwordHash, name || null, 'client', 1, 1, 1, google_sheet_url || null, 'open', client_type || 'hr']
     );
     
     const userId = result.lastID;

@@ -45,11 +45,18 @@ export default function PasswordChangeModal({ isOpen, onClose, isTemporary = fal
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={(e) => {
+      if (!isTemporary) e.stopPropagation()
+    }}>
+      <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-medium mb-4">
-          {isTemporary ? 'Set New Password' : 'Change Password'}
+          {isTemporary ? '🔒 Set Your New Password' : 'Change Password'}
         </h3>
+        {isTemporary && (
+          <div className="bg-blue-900/20 border border-blue-700 rounded p-3 mb-4">
+            <p className="text-blue-300 text-sm">You must set a new password before accessing your dashboard.</p>
+          </div>
+        )}
         
         {error && (
           <div className="bg-red-900/20 border border-red-700 rounded p-3 mb-4">
@@ -92,21 +99,12 @@ export default function PasswordChangeModal({ isOpen, onClose, isTemporary = fal
         </div>
 
         <div className="flex gap-3 mt-6">
-          {!isTemporary && (
-            <Button 
-              variant="outline" 
-              onClick={onClose}
-              disabled={changePassword.isPending}
-            >
-              Cancel
-            </Button>
-          )}
           <Button 
             onClick={() => changePassword.mutate()}
-            disabled={changePassword.isPending || !newPassword || (!isTemporary && !currentPassword)}
-            className="flex-1"
+            disabled={changePassword.isPending || !newPassword || !confirmPassword || (!isTemporary && !currentPassword)}
+            className="w-full"
           >
-            {changePassword.isPending ? 'Changing...' : 'Change Password'}
+            {changePassword.isPending ? 'Changing...' : (isTemporary ? 'Set New Password' : 'Change Password')}
           </Button>
         </div>
       </div>
