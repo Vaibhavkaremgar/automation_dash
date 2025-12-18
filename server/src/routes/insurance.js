@@ -433,11 +433,7 @@ router.post('/customers/cleanup-duplicates', (req, res) => {
 // Log message from n8n (requires API key)
 router.post('/log-message', apiKeyAuth, async (req, res) => {
   try {
-    const { customer_id, customer_name, message_type, channel, message_content, status, sent_at, client_key } = req.body;
-    
-    if (!customer_id) {
-      return res.status(400).json({ error: 'customer_id is required' });
-    }
+    const { customer_id, customer_name, customer_mobile, message_type, channel, message_content, status, sent_at, client_key } = req.body;
     
     if (!client_key) {
       return res.status(400).json({ error: 'client_key is required (joban or kmg)' });
@@ -448,17 +444,53 @@ router.post('/log-message', apiKeyAuth, async (req, res) => {
       return res.status(400).json({ error: 'client_key must be either "joban" or "kmg"' });
     }
     
-    console.log(`✅ Logging message for customer ${customer_id} (client: ${client_key})`);
+    let finalCustomerId = customer_id;
+    
+    // If no customer_id provided, try to find it by name and mobile
+    if (!finalCustomerId && (customer_name || customer_mobile)) {
+      const { get } = require('../db/connection');
+      
+      let query = 'SELECT id FROM insurance_customers WHERE 1=1';
+      const params = [];
+      
+      if (customer_name) {
+        query += ' AND LOWER(name) = LOWER(?)';
+        params.push(customer_name.trim());
+      }
+      
+      if (customer_mobile) {
+        query += ' AND mobile_number = ?';
+        params.push(customer_mobile.trim());
+      }
+      
+      query += ' LIMIT 1';
+      
+      const customer = await new Promise((resolve, reject) => {
+        db.get(query, params, (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+      
+      if (customer) {
+        finalCustomerId = customer.id;
+        console.log(`✅ Found customer ID ${finalCustomerId} for ${customer_name} (${customer_mobile})`);
+      } else {
+        console.log(`⚠️ Customer not found: ${customer_name} (${customer_mobile})`);
+      }
+    }
+    
+    console.log(`✅ Logging message for customer ${finalCustomerId || 'unknown'} (client: ${client_key})`);
     
     db.run(`
       INSERT INTO message_logs (customer_id, message_type, channel, message_content, status, sent_at, customer_name_fallback, client_key)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `, [customer_id, message_type || 'renewal_reminder', channel || 'whatsapp', message_content || '', status || 'sent', sent_at || new Date().toISOString(), customer_name, client_key.toLowerCase()], function(err) {
+    `, [finalCustomerId, message_type || 'renewal_reminder', channel || 'whatsapp', message_content || '', status || 'sent', sent_at || new Date().toISOString(), customer_name, client_key.toLowerCase()], function(err) {
       if (err) {
         console.error('Log message error:', err);
         return res.status(500).json({ error: err.message });
       }
-      res.json({ success: true, id: this.lastID });
+      res.json({ success: true, id: this.lastID, customer_id: finalCustomerId });
     });
   } catch (error) {
     console.error('Log message error:', error);
