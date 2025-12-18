@@ -36,7 +36,9 @@ async function syncClaimsFromSheet(userId, spreadsheetId, tabName) {
 
     const headers = rows[0];
     console.log('Headers:', headers);
+    
     let imported = 0;
+    let updated = 0;
     let skipped = 0;
 
     for (let i = 1; i < rows.length; i++) {
@@ -50,13 +52,38 @@ async function syncClaimsFromSheet(userId, spreadsheetId, tabName) {
         continue;
       }
 
+      const claimTypeMap = {
+        'accidental damage': 'own_damage',
+        'own damage accident': 'own_damage',
+        'own damage': 'own_damage',
+        'third party': 'third_party',
+        'theft': 'theft',
+        'total loss': 'total_loss'
+      };
+      
+      const statusMap = {
+        'filed': 'filed',
+        'under process': 'in_progress',
+        'in progress': 'in_progress',
+        'survey done': 'survey_done',
+        'approved': 'approved',
+        'rejected': 'rejected',
+        'settled': 'settled'
+      };
+      
+      const rawClaimType = (row[3] || 'own_damage').trim().toLowerCase();
+      const mappedClaimType = claimTypeMap[rawClaimType] || 'own_damage';
+      
+      const rawStatus = (row[5] || 'filed').trim().toLowerCase();
+      const mappedStatus = statusMap[rawStatus] || 'filed';
+      
       const claimData = {
         customer_name: (row[0] || '').trim(),
         vehicle_number: (row[1] || '').trim(),
         insurance_company: (row[2] || '').trim(),
-        claim_type: (row[3] || 'own_damage').trim().toLowerCase().replace(/\s+/g, '_'),
+        claim_type: mappedClaimType,
         created_at: row[4] || new Date().toISOString(),
-        claim_status: (row[5] || 'filed').trim().toLowerCase().replace(/\s+/g, '_'),
+        claim_status: mappedStatus,
         claim_amount: parseFloat(row[6]) || 0,
       };
 
@@ -121,6 +148,7 @@ async function syncClaimsFromSheet(userId, spreadsheetId, tabName) {
             }
           );
         });
+        updated++;
       } else {
         // Insert new claim
         await new Promise((resolve, reject) => {
@@ -157,8 +185,9 @@ async function syncClaimsFromSheet(userId, spreadsheetId, tabName) {
     console.log(`\n=== Sync Complete ===`);
     console.log(`Total rows processed: ${rows.length - 1}`);
     console.log(`Successfully imported: ${imported}`);
+    console.log(`Successfully updated: ${updated}`);
     console.log(`Skipped: ${skipped}`);
-    return { imported, skipped };
+    return { imported, updated, skipped };
   } catch (error) {
     console.error('Claims sync from sheet error:', error);
     throw error;

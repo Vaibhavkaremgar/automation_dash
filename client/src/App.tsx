@@ -22,6 +22,7 @@ const InsuranceDashboard = retryImport(() => import('./pages/InsuranceDashboard'
 const ClaimsManagement = retryImport(() => import('./pages/ClaimsManagement'))
 const ReportsPage = retryImport(() => import('./pages/ReportsPage'))
 const MessagesHistory = retryImport(() => import('./pages/MessagesHistory'))
+const UpsellCrossSell = retryImport(() => import('./pages/UpsellCrossSell'))
 const JobsPage = retryImport(() => import('./pages/Jobs'))
 const CandidatesPage = retryImport(() => import('./pages/Candidates'))
 const ResumeUploadPage = retryImport(() => import('./pages/ResumeUploadNew'))
@@ -47,13 +48,14 @@ function RoleHome() {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" replace />
   
+  // Admin users go directly to admin dashboard (no profiles)
   if (user.role === 'admin') {
     return <Navigate to="/admin" replace />
   }
   
   // Insurance clients - check if profile is selected
   if (user.client_type === 'insurance') {
-    const hasProfile = localStorage.getItem('selectedProfileId')
+    const hasProfile = localStorage.getItem('activeProfile')
     if (!hasProfile) {
       return <Navigate to="/profiles" replace />
     }
@@ -96,6 +98,7 @@ export default function App() {
               <Route path="/insurance/customers" element={<InsuranceDashboard />} />
               <Route path="/insurance/policies" element={<InsuranceDashboard />} />
               <Route path="/insurance/renewals" element={<InsuranceDashboard />} />
+              <Route path="/insurance/upsell" element={<UpsellCrossSell />} />
               <Route path="/insurance/claims" element={<ClaimsManagement />} />
               <Route path="/insurance/messages" element={<MessagesHistory />} />
               <Route path="/insurance/reports" element={<ReportsPage />} />

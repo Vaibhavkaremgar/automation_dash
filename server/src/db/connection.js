@@ -354,6 +354,15 @@ async function runMigrations() {
       if (!colNames.includes('owner_alert_sent')) {
         await run(`ALTER TABLE insurance_customers ADD COLUMN owner_alert_sent TEXT`);
       }
+      if (!colNames.includes('notes')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN notes TEXT`);
+      }
+      if (!colNames.includes('veh_type')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN veh_type TEXT`);
+      }
+      if (!colNames.includes('modified_expiry_date')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN modified_expiry_date TEXT`);
+      }
     } catch (e) {
       console.log('Column migration check:', e.message);
     }

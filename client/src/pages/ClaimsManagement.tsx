@@ -4,6 +4,7 @@ import { Input } from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { api } from '../lib/api';
+import { generateClaimUpdateMessage } from '../utils/whatsappTemplates';
 
 interface Customer {
   id: number;
@@ -25,6 +26,7 @@ interface Claim {
   claim_status: string;
   claim_amount: number;
   created_at: string;
+  vertical?: string;
 }
 
 export default function ClaimsManagement() {
@@ -42,7 +44,7 @@ export default function ClaimsManagement() {
     policy_number: '',
     insurance_company: '',
     vehicle_number: '',
-    claim_type: 'own_damage',
+    claim_type: '',
     incident_date: '',
     description: '',
     claim_amount: ''
@@ -53,16 +55,36 @@ export default function ClaimsManagement() {
     notes: ''
   });
 
+  const [verticalFilter, setVerticalFilter] = useState(() => {
+    return localStorage.getItem('insuranceVerticalFilter') || 'all'
+  });
+
   useEffect(() => {
     loadData();
+    
+    const handleVerticalChange = (e: any) => {
+      setVerticalFilter(e.detail);
+      localStorage.setItem('insuranceVerticalFilter', e.detail);
+    };
+    
+    window.addEventListener('insuranceVerticalChange', handleVerticalChange);
+    
+    return () => {
+      window.removeEventListener('insuranceVerticalChange', handleVerticalChange);
+    };
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [verticalFilter]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      const verticalParam = verticalFilter !== 'all' ? `?vertical=${verticalFilter}` : '';
       const [claimsRes, customersRes] = await Promise.all([
         api.get('/api/insurance/claims'),
-        api.get('/api/insurance/customers')
+        api.get(`/api/insurance/customers${verticalParam}`)
       ]);
       setClaims(claimsRes.data);
       setCustomers(customersRes.data);
@@ -178,13 +200,25 @@ export default function ClaimsManagement() {
   };
 
   const getClaimTypeLabel = (type: string) => {
-    switch (type) {
-      case 'own_damage': return 'Own Damage';
-      case 'third_party': return 'Third Party';
-      case 'theft': return 'Theft';
-      case 'total_loss': return 'Total Loss';
-      default: return type;
-    }
+    const labels: Record<string, string> = {
+      own_damage: 'Own Damage',
+      third_party: 'Third Party',
+      theft: 'Theft',
+      total_loss: 'Total Loss',
+      hospitalization: 'Hospitalization',
+      surgery: 'Surgery',
+      outpatient: 'Outpatient',
+      maternity: 'Maternity',
+      fire: 'Fire',
+      burglary: 'Burglary',
+      natural_disaster: 'Natural Disaster',
+      property_damage: 'Property Damage',
+      death: 'Death',
+      disability: 'Disability',
+      critical_illness: 'Critical Illness',
+      maturity: 'Maturity'
+    };
+    return labels[type] || type;
   };
 
   const getStatusLabel = (status: string) => {
@@ -196,88 +230,94 @@ export default function ClaimsManagement() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
-          Claims Management
-        </h1>
-        <div className="flex gap-3">
-          <Button onClick={syncFromClaimsSheet} disabled={syncing} variant="outline" title="Sync from Sheet">
-            <span className="md:hidden">{syncing ? '...' : '🔄'}</span>
-            <span className="hidden md:inline">{syncing ? 'Syncing...' : '🔄 Sync from Sheet'}</span>
-          </Button>
-          <Button onClick={syncToClaimsSheet} disabled={syncing} variant="outline" title="Sync to Sheet">
-            <span className="md:hidden">{syncing ? '...' : '📤'}</span>
-            <span className="hidden md:inline">{syncing ? 'Syncing...' : '📤 Sync to Sheet'}</span>
-          </Button>
-          <Button onClick={() => setShowAddModal(true)}>Add Claim</Button>
+    <div className="flex flex-col h-screen">
+      <div className="flex-shrink-0 p-6 pb-0">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
+            Claims Management
+          </h1>
+          <div className="flex gap-3">
+            <Button onClick={syncFromClaimsSheet} disabled={syncing} variant="outline" title="Sync from Sheet">
+              <span className="md:hidden">{syncing ? '...' : '🔄'}</span>
+              <span className="hidden md:inline">{syncing ? 'Syncing...' : '🔄 Sync from Sheet'}</span>
+            </Button>
+            <Button onClick={syncToClaimsSheet} disabled={syncing} variant="outline" title="Sync to Sheet">
+              <span className="md:hidden">{syncing ? '...' : '📤'}</span>
+              <span className="hidden md:inline">{syncing ? 'Syncing...' : '📤 Sync to Sheet'}</span>
+            </Button>
+            <Button onClick={() => setShowAddModal(true)}>Add Claim</Button>
+          </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center">
-          <h4 className="font-medium text-blue-300 mb-2">Filed</h4>
-          <p className="text-2xl font-bold text-white">{claims.filter(c => c.claim_status === 'filed').length}</p>
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <div className="space-y-6">
+          {/* Stats */}
+          <div className="sticky top-0 bg-slate-900 z-10 pb-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+        <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => document.getElementById('claims-table')?.scrollIntoView({ behavior: 'smooth' })}>
+          <h4 className="text-xs font-medium text-blue-300 mb-1">Filed</h4>
+          <p className="text-xl font-bold text-white">{claims.filter(c => c.claim_status === 'filed').length}</p>
         </div>
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center">
-          <h4 className="font-medium text-purple-300 mb-2">Survey Done</h4>
-          <p className="text-2xl font-bold text-white">{claims.filter(c => c.claim_status === 'survey_done').length}</p>
+        <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => document.getElementById('claims-table')?.scrollIntoView({ behavior: 'smooth' })}>
+          <h4 className="text-xs font-medium text-purple-300 mb-1">Survey Done</h4>
+          <p className="text-xl font-bold text-white">{claims.filter(c => c.claim_status === 'survey_done').length}</p>
         </div>
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center">
-          <h4 className="font-medium text-orange-300 mb-2">In Progress</h4>
-          <p className="text-2xl font-bold text-white">{claims.filter(c => c.claim_status === 'in_progress').length}</p>
+        <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => document.getElementById('claims-table')?.scrollIntoView({ behavior: 'smooth' })}>
+          <h4 className="text-xs font-medium text-orange-300 mb-1">In Progress</h4>
+          <p className="text-xl font-bold text-white">{claims.filter(c => c.claim_status === 'in_progress').length}</p>
         </div>
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center">
-          <h4 className="font-medium text-green-300 mb-2">Approved</h4>
-          <p className="text-2xl font-bold text-white">{claims.filter(c => c.claim_status === 'approved').length}</p>
+        <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => document.getElementById('claims-table')?.scrollIntoView({ behavior: 'smooth' })}>
+          <h4 className="text-xs font-medium text-green-300 mb-1">Approved</h4>
+          <p className="text-xl font-bold text-white">{claims.filter(c => c.claim_status === 'approved').length}</p>
         </div>
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center">
-          <h4 className="font-medium text-red-300 mb-2">Rejected</h4>
-          <p className="text-2xl font-bold text-white">{claims.filter(c => c.claim_status === 'rejected').length}</p>
+        <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => document.getElementById('claims-table')?.scrollIntoView({ behavior: 'smooth' })}>
+          <h4 className="text-xs font-medium text-red-300 mb-1">Rejected</h4>
+          <p className="text-xl font-bold text-white">{claims.filter(c => c.claim_status === 'rejected').length}</p>
         </div>
-        <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center">
-          <h4 className="font-medium text-cyan-300 mb-2">Settled</h4>
-          <p className="text-2xl font-bold text-white">{claims.filter(c => c.claim_status === 'settled').length}</p>
+        <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 text-center cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => document.getElementById('claims-table')?.scrollIntoView({ behavior: 'smooth' })}>
+          <h4 className="text-xs font-medium text-cyan-300 mb-1">Settled</h4>
+          <p className="text-xl font-bold text-white">{claims.filter(c => c.claim_status === 'settled').length}</p>
         </div>
       </div>
+          </div>
 
-      {/* Claims Table */}
-      <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl overflow-hidden">
+          {/* Claims Table */}
+          <div id="claims-table" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-700/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Customer</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Vehicle</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Company</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Claim Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Submitted On</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Amount</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase">Actions</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-100 uppercase">Customer</th>
+                {(verticalFilter === 'all' || verticalFilter === 'motor') && <th className="px-4 py-2 text-left text-xs font-medium text-slate-100 uppercase">Vehicle</th>}
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-100 uppercase">Company</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-100 uppercase">Claim Type</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-100 uppercase">Submitted On</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-100 uppercase">Status</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-100 uppercase">Amount</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-slate-100 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700">
               {claims.map((claim) => (
                 <tr key={claim.id} className="hover:bg-slate-700/30">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="text-sm font-medium text-white">{claim.customer_name}</div>
-                    <div className="text-sm text-slate-300">{claim.mobile_number}</div>
+                    <div className="text-xs text-slate-300">{claim.mobile_number}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100">{claim.vehicle_number}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100">{claim.insurance_company}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100">{getClaimTypeLabel(claim.claim_type)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100">
+                  {(verticalFilter === 'all' || verticalFilter === 'motor') && <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-100">{claim.vehicle_number || 'N/A'}</td>}
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-100">{claim.insurance_company}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-100">{getClaimTypeLabel(claim.claim_type)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-100">
                     {new Date(claim.created_at).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getStatusColor(claim.claim_status)}`}>
                       {getStatusLabel(claim.claim_status)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100">₹{claim.claim_amount}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-100">₹{claim.claim_amount}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm space-x-2">
                     <Button
                       size="sm"
                       variant="outline"
@@ -302,7 +342,11 @@ export default function ClaimsManagement() {
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        const message = `Hi ${claim.customer_name}, your claim for ${claim.vehicle_number} (${claim.insurance_company}) is currently ${getStatusLabel(claim.claim_status)}. We will keep you updated.`;
+                        const message = generateClaimUpdateMessage(
+                          claim.customer_name,
+                          claim.vehicle_number || 'your policy',
+                          claim.claim_status
+                        );
                         window.open(`https://wa.me/${claim.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
                       }}
                     >
@@ -320,6 +364,8 @@ export default function ClaimsManagement() {
               ))}
             </tbody>
           </table>
+        </div>
+          </div>
         </div>
       </div>
 
@@ -358,20 +404,79 @@ export default function ClaimsManagement() {
             value={newClaim.insurance_company}
             onChange={(e) => setNewClaim({...newClaim, insurance_company: e.target.value})}
           />
-          <Input
-            placeholder="Vehicle Number"
-            value={newClaim.vehicle_number}
-            onChange={(e) => setNewClaim({...newClaim, vehicle_number: e.target.value})}
-          />
+          {(verticalFilter === 'motor' || verticalFilter === 'all') && (
+            <Input
+              placeholder="Vehicle Number"
+              value={newClaim.vehicle_number}
+              onChange={(e) => setNewClaim({...newClaim, vehicle_number: e.target.value})}
+            />
+          )}
           <select
             className="w-full p-2 border rounded bg-slate-700 text-white"
             value={newClaim.claim_type}
             onChange={(e) => setNewClaim({...newClaim, claim_type: e.target.value})}
           >
-            <option value="own_damage">Own Damage</option>
-            <option value="third_party">Third Party</option>
-            <option value="theft">Theft</option>
-            <option value="total_loss">Total Loss</option>
+            <option value="">Select Claim Type</option>
+            {verticalFilter === 'motor' && (
+              <>
+                <option value="own_damage">Own Damage</option>
+                <option value="third_party">Third Party</option>
+                <option value="theft">Theft</option>
+                <option value="total_loss">Total Loss</option>
+              </>
+            )}
+            {verticalFilter === 'health' && (
+              <>
+                <option value="hospitalization">Hospitalization</option>
+                <option value="surgery">Surgery</option>
+                <option value="outpatient">Outpatient</option>
+                <option value="maternity">Maternity</option>
+              </>
+            )}
+            {verticalFilter === 'non-motor' && (
+              <>
+                <option value="fire">Fire</option>
+                <option value="burglary">Burglary</option>
+                <option value="natural_disaster">Natural Disaster</option>
+                <option value="property_damage">Property Damage</option>
+              </>
+            )}
+            {verticalFilter === 'life' && (
+              <>
+                <option value="death">Death</option>
+                <option value="disability">Disability</option>
+                <option value="critical_illness">Critical Illness</option>
+                <option value="maturity">Maturity</option>
+              </>
+            )}
+            {verticalFilter === 'all' && (
+              <>
+                <optgroup label="Motor">
+                  <option value="own_damage">Own Damage</option>
+                  <option value="third_party">Third Party</option>
+                  <option value="theft">Theft</option>
+                  <option value="total_loss">Total Loss</option>
+                </optgroup>
+                <optgroup label="Health">
+                  <option value="hospitalization">Hospitalization</option>
+                  <option value="surgery">Surgery</option>
+                  <option value="outpatient">Outpatient</option>
+                  <option value="maternity">Maternity</option>
+                </optgroup>
+                <optgroup label="Non-Motor">
+                  <option value="fire">Fire</option>
+                  <option value="burglary">Burglary</option>
+                  <option value="natural_disaster">Natural Disaster</option>
+                  <option value="property_damage">Property Damage</option>
+                </optgroup>
+                <optgroup label="Life">
+                  <option value="death">Death</option>
+                  <option value="disability">Disability</option>
+                  <option value="critical_illness">Critical Illness</option>
+                  <option value="maturity">Maturity</option>
+                </optgroup>
+              </>
+            )}
           </select>
           <Input
             type="date"

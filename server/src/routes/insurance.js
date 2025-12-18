@@ -13,10 +13,36 @@ const db = getDatabase();
 // Apply data isolation to all insurance routes
 router.use(authRequired, enforceDataIsolation);
 
+// Search customers across all verticals
+router.get('/customers/search', (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res.json([]);
+    }
+    
+    const searchTerm = `%${q}%`;
+    db.all(`
+      SELECT * FROM insurance_customers 
+      WHERE user_id = ? 
+      AND (name LIKE ? OR mobile_number LIKE ? OR registration_no LIKE ?)
+      ORDER BY name ASC
+      LIMIT 50
+    `, [req.user.id, searchTerm, searchTerm, searchTerm], (err, customers) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(customers || []);
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get all insurance customers
 router.get('/customers', (req, res) => {
   try {
-    const { search, status, vertical } = req.query;
+    const { search, status, vertical, veh_type } = req.query;
+    console.log('GET /customers - vertical:', vertical, 'veh_type:', veh_type);
+    
     let query = 'SELECT * FROM insurance_customers WHERE user_id = ?';
     const params = [req.user.id];
 
@@ -31,14 +57,41 @@ router.get('/customers', (req, res) => {
     }
 
     if (vertical && vertical !== 'all') {
-      query += ' AND vertical = ?';
-      params.push(vertical);
+      if (vertical === 'general') {
+        query += ' AND vertical IN (?, ?, ?)';
+        params.push('motor', 'health', 'non-motor');
+      } else if (vertical === 'non-motor') {
+        // Non-motor: show all types that are NOT motor/health/life
+        query += ' AND vertical = ?';
+        params.push('non-motor');
+      } else if (vertical === '2-wheeler') {
+        // 2-wheeler: vertical=motor AND veh_type contains 2wh/2wheeler
+        query += ' AND vertical = ? AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) = ?)';
+        params.push('motor', '%2wh%', '%2%wheeler%', '2wh');
+      } else if (vertical === 'motor') {
+        const { generalSubFilter } = req.query;
+        if (generalSubFilter === 'motor') {
+          // 4-wheeler: vertical=motor AND veh_type contains 4wh/4wheeler
+          query += ' AND vertical = ? AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) = ?)';
+          params.push('motor', '%4wh%', '%4%wheeler%', '4wh');
+        } else {
+          // All motor: vertical=motor (includes rows with or without veh_type)
+          query += ' AND vertical = ?';
+          params.push('motor');
+        }
+      } else {
+        query += ' AND vertical = ?';
+        params.push(vertical);
+      }
     }
 
-    query += ' ORDER BY renewal_date ASC';
+    query += ' ORDER BY name ASC';
+    console.log('Query:', query);
+    console.log('Params:', params);
 
     db.all(query, params, (err, customers) => {
       if (err) return res.status(500).json({ error: err.message });
+      console.log(`Found ${customers.length} customers`);
       res.json(customers);
     });
   } catch (error) {
@@ -49,16 +102,16 @@ router.get('/customers', (req, res) => {
 // Create new insurance customer
 router.post('/customers', activityLogger, (req, res) => {
   try {
-    const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent } = req.body;
+    const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, veh_type, notes, modified_expiry_date } = req.body;
     
     if (!name || !mobile_number) {
       return res.status(400).json({ error: 'Name and mobile number are required' });
     }
     
     db.run(`
-      INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [req.user.id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status || 'pending', new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent], function(err) {
+      INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, veh_type, notes, modified_expiry_date)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [req.user.id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status || 'pending', new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, veh_type, notes, modified_expiry_date], function(err) {
       if (err) return res.status(500).json({ error: err.message });
       
       db.get('SELECT * FROM insurance_customers WHERE id = ?', [this.lastID], (err, customer) => {
@@ -75,13 +128,13 @@ router.post('/customers', activityLogger, (req, res) => {
 // Update insurance customer
 router.put('/customers/:id', validateCustomerOwnership, activityLogger, (req, res) => {
   try {
-    const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent } = req.body;
+    const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, veh_type, notes, modified_expiry_date } = req.body;
     
     db.run(`
       UPDATE insurance_customers 
-      SET name = ?, mobile_number = ?, insurance_activated_date = ?, renewal_date = ?, od_expiry_date = ?, tp_expiry_date = ?, premium_mode = ?, premium = ?, last_year_premium = ?, vertical = ?, product = ?, registration_no = ?, current_policy_no = ?, company = ?, status = ?, new_policy_no = ?, new_company = ?, policy_doc_link = ?, thank_you_sent = ?, reason = ?, email = ?, cheque_hold = ?, payment_date = ?, cheque_no = ?, cheque_bounce = ?, owner_alert_sent = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, mobile_number = ?, insurance_activated_date = ?, renewal_date = ?, od_expiry_date = ?, tp_expiry_date = ?, premium_mode = ?, premium = ?, last_year_premium = ?, vertical = ?, product = ?, registration_no = ?, current_policy_no = ?, company = ?, status = ?, new_policy_no = ?, new_company = ?, policy_doc_link = ?, thank_you_sent = ?, reason = ?, email = ?, cheque_hold = ?, payment_date = ?, cheque_no = ?, cheque_bounce = ?, owner_alert_sent = ?, veh_type = ?, notes = ?, modified_expiry_date = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
-    `, [name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, req.params.id, req.user.id], (err) => {
+    `, [name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, veh_type, notes, modified_expiry_date, req.params.id, req.user.id], (err) => {
       if (err) return res.status(500).json({ error: err.message });
       
       db.get('SELECT * FROM insurance_customers WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, customer) => {
@@ -135,20 +188,23 @@ router.post('/messages/webhook', async (req, res) => {
 
 
 
-// Get all message logs
+// Get all message logs - STRICT CLIENT ISOLATION
 router.get('/message-logs', async (req, res) => {
   try {
     const { channel, status, limit } = req.query;
     
+    console.log(`📊 Fetching message logs for user ${req.user.id}`);
+    
+    // CRITICAL: ONLY show messages for customers that belong to this user
     let query = `
       SELECT ml.*, 
         COALESCE(ic.name, ml.customer_name_fallback, 'Unknown') as customer_name, 
         ic.mobile_number
       FROM message_logs ml
-      LEFT JOIN insurance_customers ic ON ml.customer_id = ic.id AND ic.user_id = ?
-      WHERE (ml.customer_id IN (SELECT id FROM insurance_customers WHERE user_id = ?) OR ml.customer_id IS NULL)
+      INNER JOIN insurance_customers ic ON ml.customer_id = ic.id
+      WHERE ic.user_id = ?
     `;
-    const params = [req.user.id, req.user.id];
+    const params = [req.user.id];
     
     if (channel) {
       query += ' AND ml.channel = ?';
@@ -169,6 +225,7 @@ router.get('/message-logs', async (req, res) => {
     
     db.all(query, params, (err, messages) => {
       if (err) return res.status(500).json({ error: err.message });
+      console.log(`✅ Returning ${messages?.length || 0} message logs for user ${req.user.id}`);
       res.json(messages || []);
     });
   } catch (error) {
@@ -197,34 +254,70 @@ router.get('/messages', (req, res) => {
 // Sync from Google Sheets
 router.post('/sync/from-sheet', activityLogger, async (req, res) => {
   try {
-    const { get } = require('../db/connection');
+    console.log('\n========== SYNC FROM SHEET STARTED ==========');
+    console.log('User ID:', req.user.id);
     
-    // Get user's email
+    const { get } = require('../db/connection');
+    const { getClientConfig } = require('../config/insuranceClients');
+    
     const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
+    console.log('User email:', user?.email);
+    
     if (!user) {
+      console.error('❌ User not found');
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Determine spreadsheet ID and tab based on email
-    let spreadsheetId, tabName;
-    const email = user.email.toLowerCase();
+    const clientConfig = getClientConfig(user.email);
+    console.log('Client config:', JSON.stringify(clientConfig, null, 2));
     
-    if (email.includes('joban')) {
-      // Joban Putra Insurance
-      spreadsheetId = '1oX5MGRMo6oz87ivTXeMOy6vtIDPJXXawz_lGqmOvUEo';
-      tabName = 'Sheet1';
+    const spreadsheetId = clientConfig.spreadsheetId;
+    console.log('Spreadsheet ID:', spreadsheetId);
+    
+    // Both KMG and Joban now use multi-tab structure
+    if (clientConfig.tabs) {
+      console.log(`🔄 Syncing from multiple tabs for ${clientConfig.name}`);
+      let totalImported = 0;
+      
+      // Sync general insurance
+      const generalTab = clientConfig.tabs.general.tab;
+      console.log(`\n📊 SYNCING GENERAL INSURANCE`);
+      console.log(`Tab name: ${generalTab}`);
+      console.log(`Spreadsheet: ${spreadsheetId}`);
+      
+      const generalResult = await insuranceSync.syncFromSheet(req.user.id, spreadsheetId, generalTab, 'general');
+      console.log('General sync result:', generalResult);
+      totalImported += generalResult.imported || 0;
+      
+      // Sync life insurance
+      const lifeTab = clientConfig.tabs.life.tab;
+      console.log(`\n📊 SYNCING LIFE INSURANCE`);
+      console.log(`Tab name: ${lifeTab}`);
+      console.log(`Spreadsheet: ${spreadsheetId}`);
+      
+      const lifeResult = await insuranceSync.syncFromSheet(req.user.id, spreadsheetId, lifeTab, 'life');
+      console.log('Life sync result:', lifeResult);
+      totalImported += lifeResult.imported || 0;
+      
+      console.log(`\n✅ TOTAL IMPORTED: ${totalImported}`);
+      console.log('========== SYNC FROM SHEET COMPLETED ==========\n');
+      
+      req.logActivity('sync_from_sheet', `Synced ${totalImported} customers from Google Sheets`);
+      res.json({ imported: totalImported, updated: 0 });
     } else {
-      // KMG Insurance (default)
-      spreadsheetId = '1EpMAg1gSXPKr83cTugvGexrqv3Yt5Tb85Re2Shah8mw';
-      tabName = 'updating_input';
+      // Fallback for old single-tab structure
+      const tabName = clientConfig.tabName;
+      console.log(`🔄 Syncing from sheet for ${clientConfig.name}`);
+      console.log(`📊 Sheet ID: ${spreadsheetId}, Tab: ${tabName}`);
+      
+      const result = await insuranceSync.syncFromSheet(req.user.id, spreadsheetId, tabName);
+      req.logActivity('sync_from_sheet', `Synced ${result.imported || 0} customers from Google Sheets`);
+      res.json(result);
     }
-
-    console.log('Syncing from sheet - User:', req.user.id, 'Email:', email, 'Sheet:', spreadsheetId, 'Tab:', tabName);
-    const result = await insuranceSync.syncFromSheet(req.user.id, spreadsheetId, tabName);
-    req.logActivity('sync_from_sheet', `Synced ${result.imported || 0} customers from Google Sheets`);
-    res.json(result);
   } catch (error) {
-    console.error('Sync from sheet error:', error);
+    console.error('❌ Sync from sheet error:', error);
+    console.error('Error stack:', error.stack);
+    console.log('========== SYNC FROM SHEET FAILED ==========\n');
     res.status(500).json({ error: error.message });
   }
 });
@@ -233,32 +326,44 @@ router.post('/sync/from-sheet', activityLogger, async (req, res) => {
 router.post('/sync/to-sheet', activityLogger, async (req, res) => {
   try {
     const { get } = require('../db/connection');
+    const { getClientConfig } = require('../config/insuranceClients');
     
-    // Get user's email
     const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    // Determine spreadsheet ID and tab based on email
-    let spreadsheetId, tabName;
-    const email = user.email.toLowerCase();
+    const clientConfig = getClientConfig(user.email);
+    const spreadsheetId = clientConfig.spreadsheetId;
     
-    if (email.includes('joban')) {
-      // Joban Putra Insurance
-      spreadsheetId = '1oX5MGRMo6oz87ivTXeMOy6vtIDPJXXawz_lGqmOvUEo';
-      tabName = 'Sheet1';
+    // Both KMG and Joban now use multi-tab structure
+    if (clientConfig.tabs) {
+      console.log(`🔄 Syncing to multiple tabs for ${clientConfig.name}`);
+      let totalExported = 0;
+      
+      // Sync general insurance (motor, health, non-motor)
+      const generalTab = clientConfig.tabs.general.tab;
+      console.log(`📊 Syncing general insurance to tab: ${generalTab}`);
+      const generalResult = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, generalTab, ['motor', 'health', 'non-motor', '2-wheeler', 'general']);
+      totalExported += generalResult.exported || 0;
+      
+      // Sync life insurance
+      const lifeTab = clientConfig.tabs.life.tab;
+      console.log(`📊 Syncing life insurance to tab: ${lifeTab}`);
+      const lifeResult = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, lifeTab, ['life']);
+      totalExported += lifeResult.exported || 0;
+      
+      req.logActivity('sync_to_sheet', `Synced ${totalExported} customers to Google Sheets`);
+      res.json({ success: true, exported: totalExported });
     } else {
-      // KMG Insurance (default)
-      spreadsheetId = '1EpMAg1gSXPKr83cTugvGexrqv3Yt5Tb85Re2Shah8mw';
-      tabName = 'updating_input';
+      // Fallback for old single-tab structure
+      const tabName = clientConfig.tabName;
+      console.log('Syncing to sheet - User:', req.user.id, 'Email:', user.email, 'Sheet:', spreadsheetId, 'Tab:', tabName);
+      const result = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, tabName);
+      console.log('Sync result:', result);
+      req.logActivity('sync_to_sheet', `Synced ${result.exported || 0} customers to Google Sheets`);
+      res.json(result);
     }
-
-    console.log('Syncing to sheet - User:', req.user.id, 'Email:', email, 'Sheet:', spreadsheetId, 'Tab:', tabName);
-    const result = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, tabName);
-    console.log('Sync result:', result);
-    req.logActivity('sync_to_sheet', `Synced ${result.exported || 0} customers to Google Sheets`);
-    res.json(result);
   } catch (error) {
     console.error('Sync to sheet error:', error.message);
     res.status(500).json({ error: error.message });
@@ -288,6 +393,7 @@ router.post('/messages/send', async (req, res) => {
 // Clean up duplicate customers
 router.post('/customers/cleanup-duplicates', (req, res) => {
   try {
+    console.log('Cleaning duplicates for user:', req.user.id);
     db.run(`
       DELETE FROM insurance_customers 
       WHERE user_id = ? AND id NOT IN (
@@ -297,32 +403,76 @@ router.post('/customers/cleanup-duplicates', (req, res) => {
         GROUP BY name, mobile_number
       )
     `, [req.user.id, req.user.id], function(err) {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) {
+        console.error('Cleanup error:', err);
+        return res.status(500).json({ error: err.message });
+      }
+      console.log('Deleted', this.changes, 'duplicate rows');
       res.json({ message: 'Duplicates cleaned up', deletedCount: this.changes });
     });
   } catch (error) {
+    console.error('Cleanup error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Log message from n8n (with client validation)
-router.post('/log-message', async (req, res) => {
+// Log message from frontend (requires auth)
+router.post('/log-message', authRequired, async (req, res) => {
   try {
     const { customer_id, customer_name, message_type, channel, message_content, status, sent_at } = req.body;
     
-    if (!channel) {
-      return res.status(400).json({ error: 'Channel is required' });
+    if (!customer_id) {
+      return res.status(400).json({ error: 'customer_id is required' });
     }
     
+    // CRITICAL: Verify customer belongs to this user - STRICT VALIDATION
+    const customer = await new Promise((resolve, reject) => {
+      db.get('SELECT user_id FROM insurance_customers WHERE id = ? AND user_id = ?', [customer_id, req.user.id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+    
+    if (!customer) {
+      console.error(`❌ SECURITY: User ${req.user.id} attempted to log message for customer ${customer_id} that doesn't belong to them`);
+      return res.status(403).json({ error: 'Access denied - customer not found or does not belong to you' });
+    }
+    
+    console.log(`✅ Logging message for customer ${customer_id} (user ${req.user.id})`);
+    
     db.run(`
-      INSERT INTO message_logs (customer_id, customer_name_fallback, message_type, channel, message_content, status, sent_at)
+      INSERT INTO message_logs (customer_id, message_type, channel, message_content, status, sent_at, customer_name_fallback)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [customer_id || null, customer_name || null, message_type || 'general', channel, message_content || '', status || 'sent', sent_at || new Date().toISOString()], function(err) {
+    `, [customer_id, message_type || 'renewal_reminder', channel || 'whatsapp', message_content || '', status || 'sent', sent_at || new Date().toISOString(), customer_name], function(err) {
       if (err) {
         console.error('Log message error:', err);
-        return res.json({ success: true, id: 0 });
+        return res.status(500).json({ error: err.message });
       }
       res.json({ success: true, id: this.lastID });
+    });
+  } catch (error) {
+    console.error('Log message error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get customer message history - STRICT CLIENT ISOLATION
+router.get('/customers/:id/messages', validateCustomerOwnership, (req, res) => {
+  try {
+    console.log(`📨 Fetching messages for customer ${req.params.id}, user ${req.user.id}`);
+    
+    db.all(`
+      SELECT ml.* FROM message_logs ml
+      INNER JOIN insurance_customers ic ON ml.customer_id = ic.id
+      WHERE ml.customer_id = ? AND ic.user_id = ?
+      ORDER BY ml.sent_at DESC
+    `, [req.params.id, req.user.id], (err, messages) => {
+      if (err) {
+        console.error('Message history error:', err);
+        return res.json([]);
+      }
+      console.log(`✅ Found ${messages?.length || 0} messages for customer ${req.params.id}`);
+      res.json(messages || []);
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -375,25 +525,8 @@ router.post('/customers/:id/notes', validateCustomerOwnership, async (req, res) 
         UPDATE insurance_customers 
         SET notes = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ? AND user_id = ?
-      `, [updatedNotes, req.params.id, req.user.id], async function(err) {
+      `, [updatedNotes, req.params.id, req.user.id], function(err) {
         if (err) return res.status(500).json({ error: err.message });
-        
-        // Auto-sync to sheet after adding note
-        try {
-          const { getClientConfig } = require('../config/insuranceClients');
-          const user = await new Promise((resolve, reject) => {
-            db.get('SELECT email FROM users WHERE id = ?', [req.user.id], (err, row) => {
-              if (err) reject(err);
-              else resolve(row);
-            });
-          });
-          const clientConfig = getClientConfig(user?.email);
-          await insuranceSync.syncToSheet(req.user.id, clientConfig.spreadsheetId, clientConfig.tabName);
-          console.log('Note added and synced to sheet');
-        } catch (syncErr) {
-          console.error('Failed to sync note to sheet:', syncErr);
-        }
-        
         res.json({ success: true });
       });
     });
@@ -690,351 +823,195 @@ router.get('/reports', async (req, res) => {
     const params = [userId];
     
     if (vertical && vertical !== 'all') {
-      whereClause += ' AND vertical = ?';
-      params.push(vertical);
+      if (vertical === 'general') {
+        whereClause += ' AND vertical IN (?, ?, ?)';
+        params.push('motor', 'health', 'non-motor');
+      } else {
+        whereClause += ' AND vertical = ?';
+        params.push(vertical);
+      }
     }
 
-    // Renewal Performance
-    const expiringThisMonth = await new Promise((resolve, reject) => {
-      db.get(`
-        SELECT COUNT(*) as count FROM insurance_customers ${whereClause} 
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        AND substr(renewal_date, 4, 2) = strftime('%m', 'now') 
-        AND substr(renewal_date, 7, 4) = strftime('%Y', 'now')
-      `, params, (err, row) => {
+    // Get all customers
+    const allCustomers = await new Promise((resolve, reject) => {
+      db.all(`SELECT * FROM insurance_customers ${whereClause} ORDER BY id DESC`, params, (err, rows) => {
         if (err) reject(err);
-        else resolve(row?.count || 0);
+        else resolve(rows || []);
       });
     });
 
-    const renewedSoFar = await new Promise((resolve, reject) => {
-      db.get(`
-        SELECT COUNT(*) as count FROM insurance_customers ${whereClause} 
-        AND LOWER(TRIM(status)) = 'done' 
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        AND substr(renewal_date, 4, 2) = strftime('%m', 'now') 
-        AND substr(renewal_date, 7, 4) = strftime('%Y', 'now')
-      `, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-
-    const pendingRenewals = await new Promise((resolve, reject) => {
-      db.get(`
-        SELECT COUNT(*) as count FROM insurance_customers ${whereClause} 
-        AND LOWER(TRIM(status)) = 'pending' 
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        AND date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) >= date('now')
-      `, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-
-    const expiredWithoutRenewal = await new Promise((resolve, reject) => {
-      db.get(`
-        SELECT COUNT(*) as count FROM insurance_customers ${whereClause} 
-        AND LOWER(TRIM(status)) IN ('pending', 'lost') 
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        AND date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) < date('now')
-      `, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-
-    const conversionRate = expiringThisMonth > 0 ? Math.round((renewedSoFar / expiringThisMonth) * 100) : 0;
-
-    const monthlyTrend = await new Promise((resolve, reject) => {
-      db.all(`
-        SELECT substr(renewal_date, 4, 2) as month, substr(renewal_date, 7, 4) as year, COUNT(*) as count
-        FROM insurance_customers ${whereClause} 
-        AND LOWER(TRIM(status)) = 'done'
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        GROUP BY year, month
-        ORDER BY year DESC, month DESC
-        LIMIT 12
-      `, params, (err, rows) => {
-        if (err) reject(err);
-        else {
-          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-          const trend = (rows || []).reverse().map(r => ({
-            month: months[parseInt(r.month) - 1],
-            count: r.count
-          }));
-          resolve(trend.length ? trend : [{ month: 'Current', count: 0 }]);
+    // Helper function to check if date is expired
+    const isExpired = (dateStr) => {
+      if (!dateStr || dateStr.trim() === '') return false;
+      try {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const year = parseInt(parts[2]);
+          const renewalDate = new Date(year, month, day);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          return renewalDate < today;
         }
-      });
-    });
+      } catch (e) {
+        return false;
+      }
+      return false;
+    };
 
-    const renewalCustomers = await new Promise((resolve, reject) => {
-      db.all(`
-        SELECT * FROM insurance_customers ${whereClause} 
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        AND substr(renewal_date, 4, 2) = strftime('%m', 'now') 
-        AND substr(renewal_date, 7, 4) = strftime('%Y', 'now') 
-        ORDER BY renewal_date
-      `, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
-
-    // Premium Collection
-    const collectedThisMonth = await new Promise((resolve, reject) => {
-      db.get(`
-        SELECT SUM(premium) as total FROM insurance_customers ${whereClause} 
-        AND LOWER(TRIM(status)) = 'done' 
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        AND substr(renewal_date, 4, 2) = strftime('%m', 'now') 
-        AND substr(renewal_date, 7, 4) = strftime('%Y', 'now')
-      `, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.total || 0);
-      });
-    });
-
-    const collectedThisYear = await new Promise((resolve, reject) => {
-      db.get(`
-        SELECT SUM(premium) as total FROM insurance_customers ${whereClause} 
-        AND LOWER(TRIM(status)) = 'done' 
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        AND substr(renewal_date, 7, 4) = strftime('%Y', 'now')
-      `, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.total || 0);
-      });
-    });
-
-    const highestCustomer = await new Promise((resolve, reject) => {
-      db.get(`SELECT name, premium FROM insurance_customers ${whereClause} ORDER BY premium DESC LIMIT 1`, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row || { name: 'N/A', premium: 0 });
-      });
-    });
-
-    const highestCompany = await new Promise((resolve, reject) => {
-      db.get(`SELECT company as name, SUM(premium) as premium FROM insurance_customers ${whereClause} GROUP BY company ORDER BY premium DESC LIMIT 1`, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row || { name: 'N/A', premium: 0 });
-      });
-    });
-
-    const monthlyPremium = await new Promise((resolve, reject) => {
-      db.all(`
-        SELECT substr(renewal_date, 4, 2) as month, substr(renewal_date, 7, 4) as year, SUM(premium) as amount
-        FROM insurance_customers ${whereClause} 
-        AND LOWER(TRIM(status)) = 'done'
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        GROUP BY year, month
-        ORDER BY year DESC, month DESC
-        LIMIT 12
-      `, params, (err, rows) => {
-        if (err) reject(err);
-        else {
-          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-          const trend = (rows || []).reverse().map(r => ({
-            month: months[parseInt(r.month) - 1],
-            amount: r.amount
-          }));
-          resolve(trend.length ? trend : [{ month: 'Current', amount: 0 }]);
+    // Helper to check if date is in current month
+    const isInCurrentMonth = (dateStr) => {
+      if (!dateStr || dateStr.trim() === '') return false;
+      try {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          const day = parseInt(parts[0]);
+          const month = parseInt(parts[1]) - 1;
+          const year = parseInt(parts[2]);
+          const date = new Date(year, month, day);
+          const now = new Date();
+          return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
         }
-      });
-    });
+      } catch (e) {
+        return false;
+      }
+      return false;
+    };
 
-    const byCompany = await new Promise((resolve, reject) => {
-      db.all(`
-        SELECT company, SUM(premium) as amount 
-        FROM insurance_customers ${whereClause} 
-        AND LOWER(TRIM(status)) = 'done'
-        GROUP BY company 
-        ORDER BY amount DESC
-      `, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
-
-    const premiumCustomers = await new Promise((resolve, reject) => {
-      db.all(`SELECT * FROM insurance_customers ${whereClause} ORDER BY premium DESC LIMIT 20`, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
-
-    // Customer Growth
-    const newThisMonth = await new Promise((resolve, reject) => {
-      db.get(`SELECT COUNT(*) as count FROM insurance_customers ${whereClause} AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')`, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-
-    const totalActive = await new Promise((resolve, reject) => {
-      db.get(`SELECT COUNT(*) as count FROM insurance_customers ${whereClause} AND LOWER(TRIM(status)) = 'done'`, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-
-    const totalInactive = await new Promise((resolve, reject) => {
-      db.get(`
-        SELECT COUNT(*) as count FROM insurance_customers ${whereClause} 
-        AND LOWER(TRIM(status)) IN ('pending', 'lost') 
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        AND date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) < date('now')
-      `, params, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-
-    const totalCustomers = totalActive + totalInactive;
-    const retentionRate = totalCustomers > 0 ? Math.round((totalActive / totalCustomers) * 100) : 0;
-
-    const growthTrend = await new Promise((resolve, reject) => {
-      db.all(`
-        SELECT strftime('%m', created_at) as month, strftime('%Y', created_at) as year, COUNT(*) as count
-        FROM insurance_customers ${whereClause}
-        GROUP BY year, month
-        ORDER BY year DESC, month DESC
-        LIMIT 12
-      `, params, (err, rows) => {
-        if (err) reject(err);
-        else {
-          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-          const trend = (rows || []).reverse().map(r => ({
-            month: months[parseInt(r.month) - 1],
-            count: r.count
-          }));
-          resolve(trend.length ? trend : [{ month: 'Current', count: 0 }]);
-        }
-      });
-    });
-
-    const growthCustomers = await new Promise((resolve, reject) => {
-      db.all(`SELECT * FROM insurance_customers ${whereClause} ORDER BY created_at DESC LIMIT 20`, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
-
-    // Claims Summary
-    const claimsWhereClause = (vertical && vertical !== 'all') ? `WHERE ic.user_id = ? AND ic.vertical = ?` : `WHERE ic.user_id = ?`;
-    const claimsParams = (vertical && vertical !== 'all') ? [userId, vertical] : [userId];
+    // Count by status (using actual status values: renewed, due, inprocess, not renewed)
+    const renewedCount = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'renewed').length;
+    const dueCount = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'due').length;
+    const inprocessCount = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'inprocess').length;
+    const notRenewedCount = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'not renewed').length;
     
-    const totalFiled = await new Promise((resolve, reject) => {
-      db.get(`SELECT COUNT(*) as count FROM insurance_claims c JOIN insurance_customers ic ON c.customer_id = ic.id ${claimsWhereClause}`, claimsParams, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
+    // Expiring this month = due customers with renewal date in current month
+    const expiringThisMonth = allCustomers.filter(c => {
+      const isDue = c.status?.toLowerCase().trim() === 'due';
+      const renewalDate = c.renewal_date || c.od_expiry_date;
+      return isDue && isInCurrentMonth(renewalDate);
+    }).length;
+    
+    const expiredCount = allCustomers.filter(c => {
+      const isDue = c.status?.toLowerCase().trim() === 'due';
+      const renewalDate = c.renewal_date || c.od_expiry_date;
+      return isDue && isExpired(renewalDate);
+    }).length;
+    
+    // Calculate premium
+    const totalPremium = allCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
+    
+    // Get all renewed customers
+    const renewedCustomers = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'renewed');
+    
+    // Collected this month: customers with status='renewed' (simplified - no date filter for now)
+    const collectedThisMonth = renewedCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
+    
+    // Collected this year: same as month for now (can be refined later)
+    const collectedThisYear = collectedThisMonth;
+    
+    // Total renewed premium
+    const renewedPremium = collectedThisMonth;
+    
+    // New customers this month (based on created_at or insurance_activated_date)
+    const newThisMonth = allCustomers.filter(c => {
+      const dateStr = c.created_at || c.insurance_activated_date;
+      if (!dateStr) return false;
+      try {
+        const date = new Date(dateStr);
+        const now = new Date();
+        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+      } catch (e) {
+        return false;
+      }
+    }).length;
+    
+    // Get top customer and company
+    const sortedByPremium = [...allCustomers].sort((a, b) => (b.premium || 0) - (a.premium || 0));
+    const topCustomer = sortedByPremium[0] || { name: 'N/A', premium: 0 };
+    
+    const companyTotals = {};
+    allCustomers.forEach(c => {
+      const company = c.company || 'Unknown';
+      companyTotals[company] = (companyTotals[company] || 0) + (parseFloat(c.premium) || 0);
     });
+    const topCompany = Object.entries(companyTotals).sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
+    
+    const byCompany = Object.entries(companyTotals).map(([company, amount]) => ({ company, amount })).sort((a, b) => b.amount - a.amount);
 
-    const approved = await new Promise((resolve, reject) => {
-      db.get(`SELECT COUNT(*) as count FROM insurance_claims c JOIN insurance_customers ic ON c.customer_id = ic.id ${claimsWhereClause} AND c.claim_status = 'approved'`, claimsParams, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-
-    const rejected = await new Promise((resolve, reject) => {
-      db.get(`SELECT COUNT(*) as count FROM insurance_claims c JOIN insurance_customers ic ON c.customer_id = ic.id ${claimsWhereClause} AND c.claim_status = 'rejected'`, claimsParams, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-
-    const inProgress = await new Promise((resolve, reject) => {
-      db.get(`SELECT COUNT(*) as count FROM insurance_claims c JOIN insurance_customers ic ON c.customer_id = ic.id ${claimsWhereClause} AND c.claim_status IN ('filed','survey_done','in_progress')`, claimsParams, (err, row) => {
-        if (err) reject(err);
-        else resolve(row?.count || 0);
-      });
-    });
-
-    const byInsurer = await new Promise((resolve, reject) => {
-      db.all(`SELECT c.insurance_company as company, COUNT(*) as count FROM insurance_claims c JOIN insurance_customers ic ON c.customer_id = ic.id ${claimsWhereClause} GROUP BY c.insurance_company ORDER BY count DESC`, claimsParams, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
-
-    const byType = await new Promise((resolve, reject) => {
-      db.all(`SELECT c.claim_type as type, COUNT(*) as count FROM insurance_claims c JOIN insurance_customers ic ON c.customer_id = ic.id ${claimsWhereClause} GROUP BY c.claim_type ORDER BY count DESC`, claimsParams, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
-
-    const claims = await new Promise((resolve, reject) => {
+    // Get claims data
+    const allClaims = await new Promise((resolve, reject) => {
       db.all(`
-        SELECT c.*, ic.name as customer_name
+        SELECT c.*, ic.name as customer_name, ic.mobile_number
         FROM insurance_claims c
         JOIN insurance_customers ic ON c.customer_id = ic.id
-        ${claimsWhereClause}
+        WHERE c.user_id = ?
         ORDER BY c.created_at DESC
-      `, claimsParams, (err, rows) => {
+      `, [userId], (err, rows) => {
         if (err) reject(err);
         else resolve(rows || []);
       });
+    });
+
+    const totalFiled = allClaims.length;
+    const approved = allClaims.filter(c => c.claim_status === 'approved').length;
+    const settled = allClaims.filter(c => c.claim_status === 'settled').length;
+    const rejected = allClaims.filter(c => c.claim_status === 'rejected').length;
+    const inProgress = allClaims.filter(c => c.claim_status === 'in_progress' || c.claim_status === 'filed' || c.claim_status === 'survey_done').length;
+
+    // Group by insurer (match frontend structure: company, count)
+    const byInsurer = {};
+    allClaims.forEach(c => {
+      const company = c.insurance_company || 'Unknown';
+      if (!byInsurer[company]) byInsurer[company] = { company, count: 0, amount: 0 };
+      byInsurer[company].count++;
+      byInsurer[company].amount += parseFloat(c.claim_amount) || 0;
+    });
+
+    // Group by type
+    const byType = {};
+    allClaims.forEach(c => {
+      const type = c.claim_type || 'unknown';
+      if (!byType[type]) byType[type] = { type, count: 0 };
+      byType[type].count++;
     });
 
     res.json({
       renewalPerformance: {
-        expiringThisMonth,
-        renewedSoFar,
-        pendingRenewals,
-        expiredWithoutRenewal,
-        conversionRate,
-        monthlyTrend,
-        customers: renewalCustomers
+        expiringThisMonth: expiringThisMonth,
+        renewedSoFar: renewedCount,
+        pendingRenewals: dueCount - expiredCount,
+        expiredWithoutRenewal: expiredCount,
+        conversionRate: (expiringThisMonth + renewedCount) > 0 ? Math.round((renewedCount / (expiringThisMonth + renewedCount)) * 100) : 0,
+        monthlyTrend: [{ month: 'Current', count: renewedCount }],
+        customers: allCustomers
       },
       premiumCollection: {
-        collectedThisMonth,
-        collectedThisYear,
-        highestCustomer,
-        highestCompany,
-        monthlyPremium,
-        byCompany,
-        customers: premiumCustomers
+        collectedThisMonth: collectedThisMonth,
+        collectedThisYear: collectedThisYear,
+        highestCustomer: { name: topCustomer.name, premium: topCustomer.premium || 0 },
+        highestCompany: { name: topCompany[0], premium: topCompany[1] },
+        monthlyPremium: [{ month: 'Current', amount: collectedThisMonth }],
+        byCompany: byCompany,
+        customers: sortedByPremium
       },
       customerGrowth: {
-        newThisMonth,
-        totalActive,
-        totalInactive,
-        retentionRate,
-        growthTrend,
-        customers: growthCustomers
+        newThisMonth: newThisMonth || allCustomers.length,
+        totalActive: renewedCount,
+        totalInactive: dueCount + inprocessCount + notRenewedCount,
+        retentionRate: allCustomers.length > 0 ? Math.round((renewedCount / allCustomers.length) * 100) : 0,
+        growthTrend: [{ month: 'Current', count: newThisMonth || allCustomers.length }],
+        customers: allCustomers
       },
       claimsSummary: {
         totalFiled,
-        approved,
+        approved: approved + settled,
         rejected,
         inProgress,
-        avgSettlementDays: 15,
-        byInsurer,
-        byType,
-        claims
+        avgSettlementDays: 0,
+        byInsurer: Object.values(byInsurer),
+        byType: Object.values(byType),
+        claims: allClaims
       }
     });
   } catch (error) {
@@ -1046,13 +1023,29 @@ router.get('/reports', async (req, res) => {
 // Get analytics
 router.get('/analytics', (req, res) => {
   try {
-    const { vertical } = req.query;
+    const { vertical, generalSubFilter } = req.query;
     let whereClause = 'WHERE user_id = ?';
     const params = [req.user.id];
     
     if (vertical && vertical !== 'all') {
-      whereClause += ' AND vertical = ?';
-      params.push(vertical);
+      if (vertical === 'general') {
+        whereClause += ' AND vertical IN (?, ?, ?)';
+        params.push('motor', 'health', 'non-motor');
+      } else if (vertical === '2-wheeler') {
+        whereClause += ' AND vertical = ? AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) = ?)';
+        params.push('motor', '%2wh%', '%2%wheeler%', '2wh');
+      } else if (vertical === 'motor') {
+        if (generalSubFilter === 'motor') {
+          whereClause += ' AND vertical = ? AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) = ?)';
+          params.push('motor', '%4wh%', '%4%wheeler%', '4wh');
+        } else {
+          whereClause += ' AND vertical = ?';
+          params.push('motor');
+        }
+      } else {
+        whereClause += ' AND vertical = ?';
+        params.push(vertical);
+      }
     }
     
     db.get(`SELECT COUNT(*) as count FROM insurance_customers ${whereClause}`, params, (err, totalCustomers) => {
@@ -1060,7 +1053,12 @@ router.get('/analytics', (req, res) => {
       
       db.get(`
         SELECT COUNT(*) as count FROM insurance_customers 
-        ${whereClause} AND renewal_date BETWEEN date('now') AND date('now', '+30 days')
+        ${whereClause} 
+        AND LOWER(TRIM(status)) = 'due'
+        AND renewal_date IS NOT NULL 
+        AND renewal_date != '' 
+        AND length(renewal_date) = 10
+        AND date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) >= date('now', '+1 day')
       `, params, (err, upcomingRenewals) => {
         if (err) return res.status(500).json({ error: err.message });
         

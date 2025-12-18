@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { X, LayoutDashboard, Briefcase, Users, Upload, Cpu, Wallet, BarChart3, Mail, Settings, Shield, Receipt } from 'lucide-react'
+import { X, LayoutDashboard, Briefcase, Users, Upload, Cpu, Wallet, BarChart3, Mail, Settings, Shield, Receipt, MessageSquare } from 'lucide-react'
 
 export default function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth()
@@ -36,9 +36,11 @@ export default function MobileSidebar({ open, onClose }: { open: boolean; onClos
           {user?.role === 'client' && isInsuranceClient && (
             <>
               <Item to="/insurance" icon={<Shield className="w-4 h-4"/>} onClose={onClose}>Dashboard</Item>
+              <Item to="/insurance/renewals" icon={<LayoutDashboard className="w-4 h-4"/>} onClose={onClose}>Renewals</Item>
               <Item to="/insurance/customers" icon={<Users className="w-4 h-4"/>} onClose={onClose}>Customers</Item>
               <Item to="/insurance/policies" icon={<Shield className="w-4 h-4"/>} onClose={onClose}>Policies</Item>
-              <Item to="/insurance/renewals" icon={<LayoutDashboard className="w-4 h-4"/>} onClose={onClose}>Renewals</Item>
+              <Item to="/insurance/upsell" icon={<MessageSquare className="w-4 h-4"/>} onClose={onClose}>Upsell & Cross-sell</Item>
+              <Item to="/insurance/messages" icon={<Mail className="w-4 h-4"/>} onClose={onClose}>Messages</Item>
               <Item to="/insurance/claims" icon={<Briefcase className="w-4 h-4"/>} onClose={onClose}>Claims</Item>
               <Item to="/insurance/reports" icon={<BarChart3 className="w-4 h-4"/>} onClose={onClose}>Reports</Item>
               <LockedItem icon={<Wallet className="w-4 h-4"/>}>Wallet 🔒</LockedItem>

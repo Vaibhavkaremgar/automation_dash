@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
     localStorage.removeItem('selectedProfileId')
     localStorage.removeItem('selectedProfileName')
+    localStorage.removeItem('activeProfile')
     try {
       await api.post('/api/auth/logout')
     } catch (err) {

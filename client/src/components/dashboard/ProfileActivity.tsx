@@ -16,20 +16,28 @@ export default function ProfileActivity() {
   useEffect(() => {
     loadActivities();
     
-    // Auto-refresh every 10 seconds
-    const interval = setInterval(loadActivities, 10000);
-    return () => clearInterval(interval);
+    // Auto-refresh disabled to prevent infinite loops
+    // const interval = setInterval(loadActivities, 10000);
+    // return () => clearInterval(interval);
   }, []);
 
   const loadActivities = async () => {
     try {
-      const profileId = localStorage.getItem('selectedProfileId');
+      const activeProfileStr = localStorage.getItem('activeProfile');
+      if (!activeProfileStr) {
+        setLoading(false);
+        return;
+      }
+      
+      const activeProfile = JSON.parse(activeProfileStr);
+      const profileId = activeProfile.id;
+      
       if (!profileId) {
         setLoading(false);
         return;
       }
       
-      const res = await api.get(`/api/profiles/${profileId}/activity?limit=10`);
+      const res = await api.get(`/api/profiles/${profileId}/activity`);
       setActivities(res.data);
     } catch (error) {
       console.error('Failed to load activities:', error);
@@ -60,7 +68,7 @@ export default function ProfileActivity() {
     <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
       <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
       <div className="space-y-3">
-        {activities.map((activity) => {
+        {activities.slice(0, 10).map((activity) => {
           // Convert UTC to IST (add 5 hours 30 minutes)
           const utcDate = new Date(activity.created_at);
           const istDate = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));

@@ -35,7 +35,7 @@ const app = express();
 
 app.use(cors({
   origin: config.nodeEnv === 'production' 
-    ? ['https://enthusiastic-cat-production-f806.up.railway.app', config.frontendUrl].filter(Boolean)
+    ? ['http://localhost:5173', config.frontendUrl].filter(Boolean)
     : ['http://localhost:5173', config.frontendUrl].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -104,6 +104,10 @@ async function initializeDatabase() {
     // Run profiles and activity migration
     const migration014 = require('../migrations/014-create-profiles-and-activity');
     await migration014.up();
+    
+    // Run profile security migration
+    const migration015 = require('../migrations/015-add-profile-security');
+    await migration015.up();
     
     // Seed admin user
     await seedAdminUser();

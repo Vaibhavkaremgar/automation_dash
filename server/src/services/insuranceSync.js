@@ -61,28 +61,29 @@ class InsuranceSyncService {
     }
   }
 
-  async syncFromSheet(userId, spreadsheetId, tabName = 'updating_input') {
+  async syncFromSheet(userId, spreadsheetId, tabName = 'updating_input', tabType = 'general') {
     this.initAuth();
-    console.log(`Syncing insurance customers for user ${userId} from sheet ${spreadsheetId}, tab ${tabName}`);
+    console.log(`🔄 Syncing insurance customers for user ${userId} from sheet ${spreadsheetId}, tab ${tabName}`);
 
     // Get user email to determine client config
     const user = await get('SELECT email FROM users WHERE id = ?', [userId]);
     const clientConfig = getClientConfig(user?.email);
-    console.log(`Using config for client: ${clientConfig.name}`);
+    console.log(`📋 Using config for client: ${clientConfig.name}`);
 
     let rows;
     if (this.sheets) {
       try {
-        console.log('Attempting Google Sheets API read...');
+        console.log('📡 Attempting Google Sheets API read...');
+        const range = tabType === 'life' ? `${tabName}!A:AB` : `${tabName}!A:AD`;
         const response = await this.sheets.spreadsheets.values.get({
           spreadsheetId,
-          range: `${tabName}!A:Y`,
+          range: range,
         });
         rows = response.data.values;
         console.log(`✅ Got ${rows?.length || 0} rows from Google Sheets API`);
       } catch (e) {
         console.error('❌ Google Sheets API failed:', e.message);
-        console.log('Trying CSV fallback...');
+        console.log('🔄 Trying CSV fallback...');
         rows = null;
       }
     } else {
@@ -93,199 +94,249 @@ class InsuranceSyncService {
     if (!rows) {
       try {
         const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
-        console.log('Trying CSV fallback URL:', url);
+        console.log('🔄 Trying CSV fallback URL:', url);
         const resp = await axios.get(url, { timeout: 10000 });
         const csvRows = parseCsv(resp.data);
         rows = csvRows;
         console.log(`✅ Got ${rows?.length || 0} rows from CSV fallback`);
       } catch (e) {
         console.error('❌ CSV fallback failed:', e.message);
-        console.error('Error details:', e.response?.status, e.response?.statusText);
         throw new Error(`Google Sheets not accessible: ${e.message}`);
       }
     }
 
+    // STEP 1: DELETE ALL EXISTING DATA FOR THIS USER (ONLY FOR THIS TAB TYPE)
+    console.log(`🗑️  Deleting existing ${tabType} customers for user ${userId}...`);
+    if (tabType === 'life') {
+      await run('DELETE FROM insurance_customers WHERE user_id = ? AND vertical = ?', [userId, 'life']);
+    } else {
+      await run('DELETE FROM insurance_customers WHERE user_id = ? AND vertical IN (?, ?, ?, ?)', [userId, 'motor', 'health', 'non-motor', '2-wheeler']);
+    }
+    console.log(`✅ Existing ${tabType} data cleared`);
+    
     if (!rows || rows.length <= 1) {
-      console.log('No data in sheet or only header row');
+      console.log('⚠️  No data in sheet or only header row - all data deleted');
       return { imported: 0, updated: 0 };
     }
     
-    console.log(`Processing ${rows.length - 1} data rows (excluding header)`);
-    console.log('First data row sample:', rows[1]?.slice(0, 15));
+    console.log(`📊 Sheet has ${rows.length} total rows (including header)`);
+    console.log(`📊 First row (header):`, rows[0]);
+    console.log(`📊 Second row (first data):`, rows[1]);
+    console.log(`📊 Processing ${rows.length - 1} data rows`);
     
-    const data = rows.slice(1);
+    const data = rows.slice(1); // Skip header
     let imported = 0;
+    let skipped = 0;
     
-    await run('DELETE FROM insurance_customers WHERE user_id = ?', [userId]);
-    console.log(`Deleted existing customers for user ${userId}`);
-    
+    // STEP 2: INSERT ALL ROWS FROM SHEET
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       
+      // Skip completely empty rows
+      if (!row || row.every(cell => !cell || cell.trim() === '')) {
+        skipped++;
+        continue;
+      }
+      
       let customer;
       
-      if (clientConfig.key === 'joban') {
-        // Joban Putra columns (0-based index):
-        // A=0:Name, B=1:Mobile, C=2:Email, D=3:Product, E=4:Vertical, F=5:Policy No, G=6:Company, H=7:REGN no, I=8:Last Year Premium, J=9:Premium Amount, K=10:Premium Mode, L=11:Date of Expiry, M=12:TP Expiry, N=13:Activated Date, O=14:Status, P=15:ThankYouSent, Q=16:Cheque Hold, R=17:Payment Date, S=18:Cheque No, T=19:Cheque Bounce, U=20:New Policy No, V=21:New Policy Company, W=22:Policy doc link, X=23:Owner Alert Sent, Y=24:Notes
-        const sheetVertical = (row[4] || '').toLowerCase().trim();
-        let vertical = 'motor';
-        if (sheetVertical.includes('life')) vertical = 'life';
-        else if (sheetVertical.includes('health')) vertical = 'health';
-        else if (sheetVertical.includes('non') && sheetVertical.includes('motor')) vertical = 'non-motor';
-        else if (sheetVertical.includes('motor')) vertical = 'motor';
+      if (tabType === 'life') {
+        // Life Insurance columns: STATUS, THANKYOU MESSAGE SENT, PAYMENT DATE, DATE OF EXPIRY, POLICY NO, NAME, EMAIL ID, MOBILE NO, PREMIUM, INSURER, AG, POL, PT, PPT, MD, BR, SUMM, PAYMENT TYPE, PHONE CALL, SORT, COM, I MAGIC, TRUE, _PREVSTATUS, _PREVRANK, _FAMEARLIEST, REMARKS
+        let rawStatus = (row[0] || 'due').toLowerCase().trim();
+        // Normalize status: due/renewed/inprocess/not renewed
+        if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
+        else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
+        else if (rawStatus === 'not renewed' || rawStatus === 'lost') rawStatus = 'not renewed';
+        else if (rawStatus === 'inprocess' || rawStatus === 'in process') rawStatus = 'inprocess';
         
         customer = {
-          name: row[0] || '',
-          mobile_number: row[1] || '',
-          email: row[2] || '',
-          product: row[3] || '',
-          vertical: vertical,
-          current_policy_no: row[5] || '',
-          company: row[6] || '',
-          registration_no: row[7] || '',
-          premium: parseFloat(row[9]) || 0,
-          premium_mode: row[10] || '',
-          renewal_date: this.formatDate(row[11]) || '',
-          tp_expiry_date: this.formatDate(row[12]) || '',
-          insurance_activated_date: this.formatDate(row[13]) || '',
-          status: (row[14] || 'pending').toLowerCase(),
-          thank_you_sent: row[15] || '',
-          od_expiry_date: '',
-          new_policy_no: row[20] || '',
-          new_company: row[21] || '',
-          policy_doc_link: row[22] || '',
-          reason: '',
-          notes: row[24] || ''
-        };
-        
-        console.log('Parsed Joban customer:', customer.name, 'Premium:', customer.premium, 'Status:', customer.status, 'Renewal:', customer.renewal_date);
-      } else {
-        // KMG format (original)
-        const sheetVertical = (row[8] || '').toLowerCase().trim();
-        let vertical = 'motor';
-        if (sheetVertical.includes('life')) vertical = 'life';
-        else if (sheetVertical.includes('health')) vertical = 'health';
-        else if (sheetVertical.includes('non') && sheetVertical.includes('motor')) vertical = 'non-motor';
-        else if (sheetVertical.includes('motor')) vertical = 'motor';
-        
-        customer = {
-          name: row[0] || '',
-          mobile_number: row[1] || '',
-          insurance_activated_date: this.formatDate(row[2]) || '',
+          name: row[5] || '',
+          mobile_number: row[7] || '',
+          email: row[6] || '',
+          current_policy_no: row[4] || '',
+          company: row[9] || '',
+          premium: parseFloat(row[8]) || 0,
+          premium_mode: row[14] || '',
           renewal_date: this.formatDate(row[3]) || '',
-          od_expiry_date: this.formatDate(row[4]) || '',
-          tp_expiry_date: this.formatDate(row[5]) || '',
-          premium_mode: row[6] || '',
-          premium: parseFloat(row[7]) || 0,
+          payment_date: this.formatDate(row[2]) || '',
+          status: rawStatus,
+          thank_you_sent: row[1] || '',
+          vertical: 'life',
+          notes: row[26] || '',
+          registration_no: '',
+          od_expiry_date: '',
+          tp_expiry_date: '',
+          insurance_activated_date: '',
+          product: '',
+          new_policy_no: '',
+          new_company: '',
+          policy_doc_link: '',
+          reason: ''
+        };
+      } else {
+        // General Insurance columns: S NO, NAME, POLICY NO, G CODE, LAST YEAR PREMIUM, DATE OF EXPIRY, MODIFIED EXPIRY DATE, COMPANY, TYPE, DEPOSITED/PAYMENT DATE, CHQ NO & DATE, BANK NAME, CUSTOMER ID, AGENT CODE, AMOUNT, NEW POLICY NO, NEW POLICY COMPANY, VEH TYPE, VEH Model, VEH NO, TP Expiry Date, Premium mode, EMAIL ID, MOBILE NO, STATUS, Thankyou message sent, REMARKS, PANCARD, AADHAR CARD, OTHERS
+        let rawStatus = (row[24] || 'due').toLowerCase().trim();
+        // Normalize status: due/renewed/inprocess/not renewed
+        if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
+        else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
+        else if (rawStatus === 'not renewed' || rawStatus === 'lost') rawStatus = 'not renewed';
+        else if (rawStatus === 'inprocess' || rawStatus === 'in process') rawStatus = 'inprocess';
+        
+        const originalType = row[8] || ''; // Store original TYPE value
+        const sheetVertical = originalType.toLowerCase().trim();
+        let vertical = 'non-motor';
+        if (sheetVertical === 'motor') vertical = 'motor';
+        else if (sheetVertical === 'health') vertical = 'health';
+        else if (sheetVertical === 'non-motor') vertical = 'non-motor';
+        else if (sheetVertical.includes('motor') && !sheetVertical.includes('non')) vertical = 'motor';
+        else if (sheetVertical.includes('health')) vertical = 'health';
+        else vertical = 'non-motor';
+        
+        const modifiedExpiry = this.formatDate(row[6]);
+        const dateOfExpiry = this.formatDate(row[5]);
+        const finalRenewalDate = modifiedExpiry && modifiedExpiry.trim() !== '' ? modifiedExpiry : dateOfExpiry;
+        
+        customer = {
+          name: row[1] || '',
+          mobile_number: row[23] || '',
+          email: row[22] || '',
+          current_policy_no: row[2] || '',
+          company: row[7] || '',
+          registration_no: row[19] || '',
+          premium: parseFloat(row[14]) || 0,
+          premium_mode: row[21] || '',
+          last_year_premium: row[4] || '',
+          renewal_date: finalRenewalDate || '',
+          od_expiry_date: dateOfExpiry || '',
+          tp_expiry_date: this.formatDate(row[20]) || '',
+          payment_date: this.formatDate(row[9]) || '',
+          status: rawStatus,
+          thank_you_sent: row[25] || '',
+          new_policy_no: row[15] || '',
+          new_company: row[16] || '',
+          veh_type: row[17] || '',
           vertical: vertical,
-          product: row[9] || '',
-          registration_no: row[10] || '',
-          current_policy_no: row[11] || '',
-          company: row[12] || '',
-          status: (row[13] || 'pending').toLowerCase(),
-          new_policy_no: row[14] || '',
-          new_company: row[15] || '',
-          policy_doc_link: row[16] || '',
-          thank_you_sent: row[17] || '',
-          reason: row[18] || '',
-          email: row[19] || '',
-          notes: row[20] || ''
+          product: originalType, // Store original TYPE in product field
+          notes: row[26] || '',
+          modified_expiry_date: modifiedExpiry || '',
+          insurance_activated_date: '',
+          policy_doc_link: '',
+          reason: ''
         };
       }
       
+      // Skip rows without name or mobile
       if (!customer.name || !customer.mobile_number) {
-        console.log(`Skipping row ${i}: missing name or mobile`);
+        console.log(`⚠️  Skipping row ${i + 2}: missing name or mobile (name='${customer.name}', mobile='${customer.mobile_number}')`);
+        skipped++;
         continue;
       }
       
       try {
         await run(`
-          INSERT OR IGNORE INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, notes)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [userId, customer.name, customer.mobile_number, customer.insurance_activated_date, customer.renewal_date, customer.od_expiry_date, customer.tp_expiry_date, customer.premium_mode, customer.premium, customer.vertical, customer.product, customer.registration_no, customer.current_policy_no, customer.company, customer.status, customer.new_policy_no, customer.new_company, customer.policy_doc_link, customer.thank_you_sent, customer.reason, customer.email, customer.notes || '']);
+          INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, notes, veh_type, modified_expiry_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [userId, customer.name, customer.mobile_number, customer.insurance_activated_date, customer.renewal_date, customer.od_expiry_date, customer.tp_expiry_date, customer.premium_mode, customer.premium, customer.vertical, customer.product, customer.registration_no, customer.current_policy_no, customer.company, customer.status, customer.new_policy_no, customer.new_company, customer.policy_doc_link, customer.thank_you_sent, customer.reason, customer.email, customer.notes || '', customer.veh_type || '', customer.modified_expiry_date || '']);
         imported++;
+        if (imported <= 3) {
+          console.log(`✅ Imported row ${i + 2}: ${customer.name} (${customer.vertical})`);
+        }
       } catch (err) {
-        console.error('Error inserting customer:', err);
+        console.error(`❌ Error inserting customer row ${i + 2}:`, err.message);
+        console.error('Customer data:', customer);
+        skipped++;
       }
     }
     
-    console.log(`Sync completed: ${imported} imported`);
+    console.log(`✅ Sync completed: ${imported} imported, ${skipped} skipped`);
     return { imported, updated: 0 };
   }
 
-  async syncToSheet(userId, spreadsheetId, tabName = 'updating_input') {
+  async syncToSheet(userId, spreadsheetId, tabName = 'updating_input', verticalFilter = null) {
     this.initAuth();
     if (!this.sheets) {
       throw new Error('Google Sheets not configured');
     }
 
     try {
+      console.log(`🔄 Syncing TO sheet - User: ${userId}, Tab: ${tabName}, Filter:`, verticalFilter);
       const user = await get('SELECT email FROM users WHERE id = ?', [userId]);
       const clientConfig = getClientConfig(user?.email);
-      const customers = await all('SELECT * FROM insurance_customers WHERE user_id = ? ORDER BY id', [userId]);
+      console.log(`📋 Client: ${clientConfig.name}`);
+      
+      let query = 'SELECT * FROM insurance_customers WHERE user_id = ?';
+      const params = [userId];
+      
+      if (verticalFilter && verticalFilter.length > 0) {
+        const placeholders = verticalFilter.map(() => '?').join(',');
+        query += ` AND vertical IN (${placeholders})`;
+        params.push(...verticalFilter);
+      }
+      
+      const customers = await all(query + ' ORDER BY id', params);
+      console.log(`📊 Found ${customers.length} customers to sync`);
       
       let values;
-      if (clientConfig.key === 'joban') {
-        // Joban Putra format
+      
+      const isLifeTab = verticalFilter && verticalFilter.includes('life') && !verticalFilter.includes('motor');
+      
+      if (isLifeTab) {
+        // Life Insurance format: STATUS, THANKYOU MESSAGE SENT, PAYMENT DATE, DATE OF EXPIRY, POLICY NO, NAME, EMAIL ID, MOBILE NO, PREMIUM, INSURER, AG, POL, PT, PPT, MD, BR, SUMM, PAYMENT TYPE, PHONE CALL, SORT, COM, I MAGIC, TRUE, _PREVSTATUS, _PREVRANK, _FAMEARLIEST, REMARKS
         values = customers.map(customer => [
-          customer.name || '',
-          customer.mobile_number || '',
-          customer.email || '',
-          customer.product || '',
-          customer.vertical ? customer.vertical.charAt(0).toUpperCase() + customer.vertical.slice(1) : '',
-          customer.current_policy_no || '',
-          customer.company || '',
-          customer.registration_no || '',
-          '', // Last Year Premium
-          customer.premium || '',
-          customer.premium_mode || '',
-          customer.renewal_date || '',
-          customer.tp_expiry_date || '',
-          customer.insurance_activated_date || '',
-          customer.status || '',
+          customer.status || 'due',
           customer.thank_you_sent || '',
-          '', // Cheque Hold
-          '', // Payment Date
-          '', // Cheque No
-          '', // Cheque Bounce
-          customer.new_policy_no || '',
-          customer.new_company || '',
-          customer.policy_doc_link || '',
-          '', // Owner Alert Sent
+          customer.payment_date || '',
+          customer.renewal_date || '',
+          customer.current_policy_no || '',
+          customer.name || '',
+          customer.email || '',
+          customer.mobile_number || '',
+          customer.premium || '',
+          customer.company || '',
+          '', '', '', '', // AG, POL, PT, PPT
+          customer.premium_mode || '',
+          '', '', '', '', '', '', '', '', '', '', '', // BR, SUMM, PAYMENT TYPE, PHONE CALL, SORT, COM, I MAGIC, TRUE, _PREVSTATUS, _PREVRANK, _FAMEARLIEST
           customer.notes || ''
         ]);
       } else {
-        // KMG format
-        values = customers.map(customer => [
+        // General Insurance format: S NO, NAME, POLICY NO, G CODE, LAST YEAR PREMIUM, DATE OF EXPIRY, MODIFIED EXPIRY DATE, COMPANY, TYPE, DEPOSITED/PAYMENT DATE, CHQ NO & DATE, BANK NAME, CUSTOMER ID, AGENT CODE, AMOUNT, NEW POLICY NO, NEW POLICY COMPANY, VEH TYPE, VEH Model, VEH NO, TP Expiry Date, Premium mode, EMAIL ID, MOBILE NO, STATUS, Thankyou message sent, REMARKS
+        values = customers.map((customer, index) => [
+          index + 1, // S NO
           customer.name || '',
-          customer.mobile_number || '',
-          customer.insurance_activated_date || '',
-          customer.renewal_date || '',
-          customer.od_expiry_date || '',
-          customer.tp_expiry_date || '',
-          customer.premium_mode || '',
-          customer.premium || '',
-          customer.vertical ? customer.vertical.charAt(0).toUpperCase() + customer.vertical.slice(1) : '',
-          customer.product || '',
-          customer.registration_no || '',
           customer.current_policy_no || '',
+          '', // G CODE
+          customer.last_year_premium || '',
+          customer.od_expiry_date || '',
+          customer.modified_expiry_date || '',
           customer.company || '',
-          customer.status || '',
+          customer.vertical || '',
+          customer.payment_date || '',
+          '', '', '', '', // CHQ NO & DATE, BANK NAME, CUSTOMER ID, AGENT CODE
+          customer.premium || '',
           customer.new_policy_no || '',
           customer.new_company || '',
-          customer.policy_doc_link || '',
-          customer.thank_you_sent || '',
-          customer.reason || '',
+          customer.veh_type || '',
+          customer.product || customer.vertical || '', // Use product (original TYPE) or fallback to vertical
+          customer.registration_no || '',
+          customer.tp_expiry_date || '',
+          customer.premium_mode || '',
           customer.email || '',
+          customer.mobile_number || '',
+          customer.status || 'due',
+          customer.thank_you_sent || '',
           customer.notes || ''
         ]);
       }
 
       if (values.length > 0) {
+        console.log(`📝 Writing ${values.length} rows to sheet`);
+        const clearRange = isLifeTab ? `${tabName}!A2:AB1000` : `${tabName}!A2:AD1000`;
+        
         await this.sheets.spreadsheets.values.clear({
           spreadsheetId,
-          range: `${tabName}!A2:Y1000`
+          range: clearRange
         });
+        console.log(`✅ Cleared range: ${clearRange}`);
         
         await this.sheets.spreadsheets.values.update({
           spreadsheetId,
@@ -293,6 +344,9 @@ class InsuranceSyncService {
           valueInputOption: 'RAW',
           resource: { values }
         });
+        console.log(`✅ Updated sheet successfully`);
+      } else {
+        console.log('⚠️  No customers to sync');
       }
 
       return { success: true, exported: customers.length };

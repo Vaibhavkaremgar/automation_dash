@@ -25,9 +25,10 @@ export default memo(function Sidebar() {
     if (user?.client_type === 'insurance') {
       return [
         { to: '/insurance', icon: Shield, label: 'Dashboard', emoji: '🏠' },
+        { to: '/insurance/renewals', icon: LayoutDashboard, label: 'Renewals', emoji: '🔄' },
         { to: '/insurance/customers', icon: Users, label: 'Customers', emoji: '👥' },
         { to: '/insurance/policies', icon: Shield, label: 'Policies', emoji: '📋' },
-        { to: '/insurance/renewals', icon: LayoutDashboard, label: 'Renewals', emoji: '🔄' },
+        { to: '/insurance/upsell', icon: MessageSquare, label: 'Upsell & Cross-sell', emoji: '🎯' },
         { to: '/insurance/messages', icon: Mail, label: 'Messages', emoji: '💬' },
         { to: '/insurance/claims', icon: Briefcase, label: 'Claims', emoji: '📝' },
         { to: '/insurance/reports', icon: BarChart3, label: 'Reports', emoji: '📊' },
@@ -61,20 +62,17 @@ export default memo(function Sidebar() {
   return (
     <aside className="hidden md:block w-[var(--sidebar-width)] border-r border-slate-800/50 bg-slate-900/40 backdrop-blur-xl relative z-10">
       <AIBackground />
-      <div className="p-6 border-b border-slate-800/50">
+      <div className="p-4 border-b border-slate-800/50">
         {/* Client Logo at Top */}
         {user?.client_type === 'insurance' && (
-          <div className="mb-4 flex justify-center">
+          <div className="mb-3 flex justify-center">
             <img 
               src={user?.email?.toLowerCase().includes('joban') 
-                ? 'https://drive.google.com/thumbnail?id=1R2CNXhJr0rqnYkML3g4GWKPdaZt8-ffc&sz=w300'
-                : 'https://drive.google.com/thumbnail?id=1FzuJ03-cQ8VA7fAUDcoz1QW-2_We5FiL&sz=w300'
+                ? '/logos/joban_putra.jpg'
+                : '/logos/KMG_enhanced_logo.png'
               }
               alt="Company Logo" 
-              className="h-20 w-auto object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-              }}
+              className="h-16 w-auto object-contain max-w-full"
             />
           </div>
         )}
@@ -94,7 +92,7 @@ export default memo(function Sidebar() {
           {user?.email}
         </div>
       </div>
-      <nav className="p-4 space-y-2">
+      <nav className="p-3 space-y-1">
         {menuItems.map((item) => (
           <div key={item.to}>
             {(item as any).disabled ? (

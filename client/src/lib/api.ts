@@ -169,10 +169,17 @@ api.interceptors.request.use((cfg) => {
   }
   
   // Add profile ID to headers if available
-  const profileId = localStorage.getItem('selectedProfileId')
-  if (profileId) {
-    cfg.headers = cfg.headers || {}
-    cfg.headers['x-profile-id'] = profileId
+  const activeProfileStr = localStorage.getItem('activeProfile')
+  if (activeProfileStr) {
+    try {
+      const activeProfile = JSON.parse(activeProfileStr)
+      if (activeProfile.id) {
+        cfg.headers = cfg.headers || {}
+        cfg.headers['x-profile-id'] = activeProfile.id
+      }
+    } catch (e) {
+      console.error('Failed to parse activeProfile:', e)
+    }
   }
   
   return cfg

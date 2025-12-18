@@ -142,37 +142,53 @@ router.get('/comparisons', authRequired, async (req, res) => {
 // Policy analytics
 router.get('/analytics', authRequired, async (req, res) => {
   try {
-    const { vertical } = req.query;
+    const { vertical, generalSubFilter } = req.query;
     let whereClause = 'WHERE user_id = ?';
     const params = [req.user.id];
     
     if (vertical && vertical !== 'all') {
-      whereClause += ' AND vertical = ?';
-      params.push(vertical);
+      if (vertical === 'general') {
+        whereClause += ' AND vertical IN (?, ?, ?)';
+        params.push('motor', 'health', 'non-motor');
+      } else if (vertical === '2-wheeler') {
+        whereClause += ' AND vertical = ? AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) = ?)';
+        params.push('motor', '%2wh%', '%2%wheeler%', '2wh');
+      } else if (vertical === 'motor') {
+        if (generalSubFilter === 'motor') {
+          whereClause += ' AND vertical = ? AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) = ?)';
+          params.push('motor', '%4wh%', '%4%wheeler%', '4wh');
+        } else {
+          whereClause += ' AND vertical = ?';
+          params.push('motor');
+        }
+      } else {
+        whereClause += ' AND vertical = ?';
+        params.push(vertical);
+      }
     }
     
     const totalPolicies = await db.get(`SELECT COUNT(*) as count FROM insurance_customers ${whereClause}`, params);
-    const activePolicies = await db.get(`SELECT COUNT(*) as count FROM insurance_customers ${whereClause} AND LOWER(TRIM(status)) = 'done'`, params);
-    const lostPolicies = await db.get(`SELECT COUNT(*) as count FROM insurance_customers ${whereClause} AND LOWER(TRIM(status)) = 'lost'`, params);
+    const activePolicies = await db.get(`SELECT COUNT(*) as count FROM insurance_customers ${whereClause} AND LOWER(TRIM(status)) = 'renewed'`, params);
+    const lostPolicies = await db.get(`SELECT COUNT(*) as count FROM insurance_customers ${whereClause} AND LOWER(TRIM(status)) = 'not renewed'`, params);
     const expiredPolicies = await db.get(`
       SELECT COUNT(*) as count FROM insurance_customers 
       ${whereClause} AND 
-      LOWER(TRIM(status)) = 'pending' AND
+      LOWER(TRIM(status)) = 'due' AND
       (date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) < date('now') 
       OR date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) BETWEEN date('now') AND date('now', '+30 days'))
     `, params);
     const expiringPolicies = await db.get(`
       SELECT COUNT(*) as count FROM insurance_customers 
-      ${whereClause} AND LOWER(TRIM(status)) = 'pending' 
+      ${whereClause} AND LOWER(TRIM(status)) = 'due' 
       AND date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) BETWEEN date('now') AND date('now', '+30 days')
     `, params);
     
-    const totalPremium = await db.get(`SELECT SUM(premium) as total FROM insurance_customers ${whereClause} AND LOWER(TRIM(status)) = 'done'`, params);
+    const totalPremium = await db.get(`SELECT SUM(premium) as total FROM insurance_customers ${whereClause} AND LOWER(TRIM(status)) = 'renewed'`, params);
     
     const companyStats = await db.all(`
       SELECT company, COUNT(*) as policy_count, SUM(premium) as total_premium
       FROM insurance_customers 
-      ${whereClause} AND LOWER(TRIM(status)) = 'done'
+      ${whereClause} AND LOWER(TRIM(status)) = 'renewed'
       GROUP BY company
       ORDER BY policy_count DESC
     `, params);

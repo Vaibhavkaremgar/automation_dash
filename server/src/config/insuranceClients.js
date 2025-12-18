@@ -3,61 +3,101 @@ const insuranceClients = {
   kmg: {
     identifier: ['kmg', 'kmginsurance'],
     name: 'KMG Insurance Agency',
-    spreadsheetId: process.env.KMG_INSURANCE_SHEETS_SPREADSHEET_ID || '1EpMAg1gSXPKr83cTugvGexrqv3Yt5Tb85Re2Shah8mw',
-    tabName: process.env.KMG_INSURANCE_SHEETS_TAB || 'updating_input',
-    schema: {
-      name: 'name',
-      mobile_number: 'mobile_number',
-      email: 'email',
-      product: 'product',
-      vertical: 'vertical',
-      current_policy_no: 'current_policy_no',
-      company: 'company',
-      registration_no: 'registration_no',
-      premium: 'premium',
-      premium_mode: 'premium_mode',
-      renewal_date: 'od_expiry_date', // Use OD expiry as renewal date
-      od_expiry_date: 'od_expiry_date',
-      tp_expiry_date: 'tp_expiry_date',
-      insurance_activated_date: 'insurance_activated_date',
-      status: 'status',
-      thank_you_sent: 'thank_you_sent',
-      new_policy_no: 'new_policy_no',
-      new_company: 'new_company',
-      policy_doc_link: 'policy_doc_link',
-      reason: 'reason'
+    spreadsheetId: '1eg0JT8a1SR7PcwS3EnuVQlFUUwTRPdEfQtfLynpJfNg',
+    tabs: {
+      general: {
+        tab: 'kmg_general_ins',
+        tabName: 'kmg_general_ins',
+        schema: {
+          name: 'NAME',
+          mobile_number: 'MOBILE NO',
+          email: 'EMAIL ID',
+          current_policy_no: 'POLICY NO',
+          company: 'COMPANY',
+          registration_no: 'VEH NO',
+          premium: 'AMOUNT',
+          premium_mode: 'Premium mode',
+          last_year_premium: 'LAST YEAR PREMIUM',
+          renewal_date: 'MODIFIED EXPIRY DATE',
+          od_expiry_date: 'DATE OF EXPIRY',
+          tp_expiry_date: 'TP Expiry Date',
+          payment_date: 'DEPOSITED/ PAYMENT DATE',
+          status: 'STATUS',
+          thank_you_sent: 'Thankyou message sent yes/no',
+          new_policy_no: 'NEW POLICY NO',
+          new_company: 'NEW POLICY COMPANY',
+          vertical: 'TYPE',
+          notes: 'REMARKS(notes)'
+        }
+      },
+      life: {
+        tab: 'kmg_Life_ins',
+        tabName: 'kmg_Life_ins',
+        schema: {
+          name: 'NAME',
+          mobile_number: 'MOBILE NO',
+          email: 'EMAIL ID',
+          current_policy_no: 'POLICY NO',
+          company: 'INSURER',
+          premium: 'PREMIUM',
+          premium_mode: 'MD',
+          renewal_date: 'DATE OF EXPIRY',
+          payment_date: 'PAYMENT DATE',
+          status: 'STATUS',
+          thank_you_sent: 'THANKYOU MESSAGE SENT',
+          notes: 'REMARKS'
+        }
+      }
     }
   },
   joban: {
     identifier: ['joban', 'jobanputra', 'joban putra'],
     name: 'Joban Putra Insurance',
-    spreadsheetId: process.env.JOBAN_INSURANCE_SHEETS_SPREADSHEET_ID || '1oX5MGRMo6oz87ivTXeMOy6vtIDPJXXawz_lGqmOvUEo',
-    tabName: process.env.JOBAN_INSURANCE_SHEETS_TAB || 'Sheet1',
-    schema: {
-      name: 'name',
-      mobile_number: 'mobile_number',
-      email: 'email',
-      product: 'product',
-      vertical: 'vertical',
-      current_policy_no: 'policy_no',
-      company: 'company',
-      registration_no: 'registration_no',
-      premium: 'premium_amount',
-      premium_mode: 'premium_mode',
-      last_year_premium: 'last_year_premium',
-      renewal_date: 'date_of_expiry',
-      tp_expiry_date: 'tp_expiry_date',
-      insurance_activated_date: 'activated_date',
-      status: 'status',
-      thank_you_sent: 'thank_you_sent',
-      cheque_hold: 'cheque_hold',
-      payment_date: 'payment_date',
-      cheque_no: 'cheque_no',
-      cheque_bounce: 'cheque_bounce',
-      new_policy_no: 'new_policy_no',
-      new_company: 'new_policy_company',
-      policy_doc_link: 'policy_doc_link',
-      owner_alert_sent: 'owner_alert_sent'
+    spreadsheetId: '1CE5TFC5bFx7WixVLoVOzdiMntwgRISO9YVR_cWZhku4',
+    tabs: {
+      general: {
+        tab: 'general_ins',
+        tabName: 'general_ins',
+        schema: {
+          name: 'NAME',
+          mobile_number: 'MOBILE NO',
+          email: 'EMAIL ID',
+          current_policy_no: 'POLICY NO',
+          company: 'COMPANY',
+          registration_no: 'VEH NO',
+          premium: 'AMOUNT',
+          premium_mode: 'Premium mode',
+          last_year_premium: 'LAST YEAR PREMIUM',
+          renewal_date: 'MODIFIED EXPIRY DATE',
+          od_expiry_date: 'DATE OF EXPIRY',
+          tp_expiry_date: 'TP Expiry Date',
+          payment_date: 'DEPOSITED/ PAYMENT DATE',
+          status: 'STATUS',
+          thank_you_sent: 'Thankyou message sent yes/no',
+          new_policy_no: 'NEW POLICY NO',
+          new_company: 'NEW POLICY COMPANY',
+          vertical: 'TYPE',
+          notes: 'REMARKS(notes)'
+        }
+      },
+      life: {
+        tab: 'Life_ins',
+        tabName: 'Life_ins',
+        schema: {
+          name: 'NAME',
+          mobile_number: 'MOBILE NO',
+          email: 'EMAIL ID',
+          current_policy_no: 'POLICY NO',
+          company: 'INSURER',
+          premium: 'PREMIUM',
+          premium_mode: 'MD',
+          renewal_date: 'DATE OF EXPIRY',
+          payment_date: 'PAYMENT DATE',
+          status: 'STATUS',
+          thank_you_sent: 'THANKYOU MESSAGE SENT',
+          notes: 'REMARKS'
+        }
+      }
     }
   }
 };

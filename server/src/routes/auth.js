@@ -100,7 +100,7 @@ router.post('/login', async (req, res, next) => {
 
 router.get('/me', authRequired, async (req, res, next) => {
   try {
-    const user = await get('SELECT id, email, name, role, status, must_change_password, can_change_password, client_type, google_sheet_url FROM users WHERE id = ?', [req.user.id]);
+    const user = await get('SELECT id, email, name, role, status, must_change_password, can_change_password, client_type, google_sheet_url, admin_password FROM users WHERE id = ?', [req.user.id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const wallet = await walletService.getOrCreateWallet(user.id);
@@ -112,7 +112,8 @@ router.get('/me', authRequired, async (req, res, next) => {
       balance: wallet.balance_cents, 
       isLowBalance: isLow, 
       mustChangePassword: user.must_change_password === 1,
-      canChangePassword: user.role === 'admin' || user.can_change_password === 1
+      canChangePassword: user.role === 'admin' || user.can_change_password === 1,
+      admin_password: user.admin_password ? true : false
     });
   } catch (error) {
     next(error);
