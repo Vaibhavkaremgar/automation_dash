@@ -65,7 +65,7 @@ router.post('/users', async (req, res, next) => {
       [email, passwordHash, name || null, 'client', 1, 1, google_sheet_url || null, 'open', client_type || 'hr']
     );
     
-    const userId = result.id;
+    const userId = result.lastID;
     await walletService.getOrCreateWallet(userId);
     
     let syncResult = null;
