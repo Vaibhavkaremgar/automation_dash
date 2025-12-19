@@ -172,13 +172,24 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
               onClick={() => setShowMainDropdown(!showMainDropdown)}
               className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all md:pointer-events-none"
             >
-              {selectedVertical === 'all' ? '📋 All Types' : 
-               selectedVertical === 'general' ? '🏢 General' : 
-               selectedVertical === 'motor' ? (localStorage.getItem('insuranceGeneralSubFilter') === 'motor' ? '🚗 4-Wheeler' : '🚙 All Motor') : 
-               selectedVertical === '2-wheeler' ? '🏍️ 2-Wheeler' : 
-               selectedVertical === 'health' ? '🏥 Health' : 
-               selectedVertical === 'non-motor' ? '🏠 Non-Motor' : 
-               selectedVertical === 'life' ? '👤 Life' : '📋 All Types'}
+              <span className="md:hidden">
+                {selectedVertical === 'all' ? '📋' : 
+                 selectedVertical === 'general' ? '🏢' : 
+                 selectedVertical === 'motor' ? (localStorage.getItem('insuranceGeneralSubFilter') === 'motor' ? '🚗' : '🚙') : 
+                 selectedVertical === '2-wheeler' ? '🏍️' : 
+                 selectedVertical === 'health' ? '🏥' : 
+                 selectedVertical === 'non-motor' ? '🏠' : 
+                 selectedVertical === 'life' ? '👤' : '📋'}
+              </span>
+              <span className="hidden md:inline">
+                {selectedVertical === 'all' ? '📋 All Types' : 
+                 selectedVertical === 'general' ? '🏢 General' : 
+                 selectedVertical === 'motor' ? (localStorage.getItem('insuranceGeneralSubFilter') === 'motor' ? '🚗 4-Wheeler' : '🚙 All Motor') : 
+                 selectedVertical === '2-wheeler' ? '🏍️ 2-Wheeler' : 
+                 selectedVertical === 'health' ? '🏥 Health' : 
+                 selectedVertical === 'non-motor' ? '🏠 Non-Motor' : 
+                 selectedVertical === 'life' ? '👤 Life' : '📋 All Types'}
+              </span>
             </button>
             {showMainDropdown && (
             <div className="md:hidden absolute top-full right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 min-w-[160px] max-w-[90vw]">
