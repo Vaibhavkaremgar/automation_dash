@@ -67,7 +67,7 @@ router.post('/login', async (req, res, next) => {
     // Generate JWT with jti for session tracking
     const jti = uuidv4();
     const token = jwt.sign(
-      { id: user.id, role: user.role, jti },
+      { id: user.id, email: user.email, role: user.role, jti },
       config.jwtSecret,
       { expiresIn: config.jwtExpiresIn }
     );

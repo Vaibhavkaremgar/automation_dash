@@ -46,7 +46,7 @@ app.use(cors({
 }));
 
 
-app.use(morgan('dev'));
+app.use(morgan('combined'));
 
 // Stripe webhook needs raw body
 app.use('/api/billing/stripe/webhook', express.raw({ type: 'application/json' }));
@@ -118,6 +118,10 @@ async function initializeDatabase() {
     // Run message_logs client_key migration
     const migration017 = require('../migrations/017-add-client-key-to-message-logs');
     await migration017.up();
+    
+    // Run product_type column migration
+    const migration018 = require('../migrations/018-add-product-type-column');
+    await migration018.up();
     
     // Seed admin user
     await seedAdminUser();

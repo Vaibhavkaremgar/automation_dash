@@ -12,44 +12,21 @@ const router = express.Router();
 const db = getDatabase();
 
 // Apply data isolation to all insurance routes
-router.use(authRequired, (req, res, next) => {
-  console.log('\n🔐 AUTH DEBUG:');
-  console.log('- Authenticated user ID:', req.user?.id);
-  console.log('- Authenticated user email:', req.user?.email);
-  console.log('- Request path:', req.path);
-  console.log('- Request method:', req.method);
-  next();
-}, enforceDataIsolation);
+router.use(authRequired, enforceDataIsolation);
 
 // Debug route to check database state
 router.get('/debug/database', (req, res) => {
   try {
-    console.log('\n🔍 DATABASE DEBUG:');
-    console.log('- Current user ID:', req.user.id);
-    console.log('- Current user email:', req.user.email);
-    
-    // Check total customers in database
     db.get('SELECT COUNT(*) as total FROM insurance_customers', [], (err, total) => {
-      if (err) {
-        console.error('Total count error:', err);
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return res.status(500).json({ error: err.message });
       
-      // Check customers by user
       db.all('SELECT user_id, COUNT(*) as count FROM insurance_customers GROUP BY user_id', [], (err, byUser) => {
-        if (err) {
-          console.error('By user error:', err);
-          return res.status(500).json({ error: err.message });
-        }
+        if (err) return res.status(500).json({ error: err.message });
         
-        // Check current user's customers
         db.all('SELECT id, name, mobile_number, vertical, status FROM insurance_customers WHERE user_id = ? LIMIT 5', [req.user.id], (err, userCustomers) => {
-          if (err) {
-            console.error('User customers error:', err);
-            return res.status(500).json({ error: err.message });
-          }
+          if (err) return res.status(500).json({ error: err.message });
           
-          const result = {
+          res.json({
             totalCustomers: total.count,
             customersByUser: byUser,
             currentUserCustomers: {
@@ -60,15 +37,11 @@ router.get('/debug/database', (req, res) => {
               id: req.user.id,
               email: req.user.email
             }
-          };
-          
-          console.log('Database debug result:', JSON.stringify(result, null, 2));
-          res.json(result);
+          });
         });
       });
     });
   } catch (error) {
-    console.error('Debug route error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -101,12 +74,6 @@ router.get('/customers/search', (req, res) => {
 router.get('/customers', (req, res) => {
   try {
     const { search, status, vertical, veh_type } = req.query;
-    console.log('\n🔍 GET /customers DEBUG:');
-    console.log('- User ID:', req.user.id);
-    console.log('- User Email:', req.user.email);
-    console.log('- Vertical filter:', vertical);
-    console.log('- Status filter:', status);
-    console.log('- Search term:', search);
     
     let query = 'SELECT * FROM insurance_customers WHERE user_id = ?';
     const params = [req.user.id];
@@ -144,27 +111,12 @@ router.get('/customers', (req, res) => {
     }
 
     query += ' ORDER BY name ASC';
-    console.log('- Final Query:', query);
-    console.log('- Query Params:', params);
 
     db.all(query, params, (err, customers) => {
-      if (err) {
-        console.error('❌ Database error:', err.message);
-        return res.status(500).json({ error: err.message });
-      }
-      console.log(`✅ Found ${customers.length} customers for user ${req.user.id}`);
-      if (customers.length > 0) {
-        console.log('- Sample customer:', {
-          id: customers[0].id,
-          name: customers[0].name,
-          vertical: customers[0].vertical,
-          status: customers[0].status
-        });
-      }
+      if (err) return res.status(500).json({ error: err.message });
       res.json(customers);
     });
   } catch (error) {
-    console.error('❌ Route error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1183,12 +1135,6 @@ router.get('/reports', async (req, res) => {
 router.get('/analytics', (req, res) => {
   try {
     const { vertical, generalSubFilter } = req.query;
-    console.log('\n📊 GET /analytics DEBUG:');
-    console.log('- User ID:', req.user.id);
-    console.log('- User Email:', req.user.email);
-    console.log('- Vertical filter:', vertical);
-    console.log('- General sub filter:', generalSubFilter);
-    
     let whereClause = 'WHERE user_id = ?';
     const params = [req.user.id];
     
@@ -1208,16 +1154,8 @@ router.get('/analytics', (req, res) => {
       }
     }
     
-    console.log('- Analytics query:', `SELECT COUNT(*) as count FROM insurance_customers ${whereClause}`);
-    console.log('- Analytics params:', params);
-    
     db.get(`SELECT COUNT(*) as count FROM insurance_customers ${whereClause}`, params, (err, totalCustomers) => {
-      if (err) {
-        console.error('❌ Analytics error:', err.message);
-        return res.status(500).json({ error: err.message });
-      }
-      
-      console.log('✅ Total customers found:', totalCustomers.count);
+      if (err) return res.status(500).json({ error: err.message });
       
       db.get(`
         SELECT COUNT(*) as count FROM insurance_customers 
@@ -1228,26 +1166,17 @@ router.get('/analytics', (req, res) => {
         AND length(renewal_date) = 10
         AND date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) >= date('now', '+1 day')
       `, params, (err, upcomingRenewals) => {
-        if (err) {
-          console.error('❌ Upcoming renewals error:', err.message);
-          return res.status(500).json({ error: err.message });
-        }
+        if (err) return res.status(500).json({ error: err.message });
         
-        console.log('✅ Upcoming renewals found:', upcomingRenewals.count);
-        
-        const result = {
+        res.json({
           totalCustomers: totalCustomers.count || 0,
           upcomingRenewals: upcomingRenewals.count || 0,
           messagesSent: 0,
           totalSpent: 0
-        };
-        
-        console.log('✅ Analytics result:', result);
-        res.json(result);
+        });
       });
     });
   } catch (error) {
-    console.error('❌ Analytics route error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
