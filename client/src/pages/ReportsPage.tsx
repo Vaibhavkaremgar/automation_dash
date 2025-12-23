@@ -6,6 +6,28 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { api } from '../lib/api';
 import { getThankYouMessage, getOverdueMessage, getUrgentMessage, get7DayMessage, get30DayMessage, getClaimUpdateMessage, getPolicySummaryMessage } from '../utils/messageTemplates';
 
+const getClaimTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    own_damage: 'Own Damage',
+    third_party: 'Third Party',
+    theft: 'Theft',
+    total_loss: 'Total Loss',
+    hospitalization: 'Hospitalization',
+    surgery: 'Surgery',
+    outpatient: 'Outpatient',
+    maternity: 'Maternity',
+    fire: 'Fire',
+    burglary: 'Burglary',
+    natural_disaster: 'Natural Disaster',
+    property_damage: 'Property Damage',
+    death: 'Death',
+    disability: 'Disability',
+    critical_illness: 'Critical Illness',
+    maturity: 'Maturity'
+  };
+  return labels[type] || type;
+};
+
 interface ReportData {
   renewalPerformance: {
     expiringThisMonth: number;
@@ -398,7 +420,7 @@ export default function ReportsPage() {
                     {item.insurance_company && <p className="text-sm text-slate-400">Company: {item.insurance_company}</p>}
                     {item.premium && <p className="text-sm text-slate-400">Premium: ₹{item.premium}</p>}
                     {item.renewal_date && <p className="text-sm text-slate-400">Renewal: {item.renewal_date}</p>}
-                    {item.claim_type && <p className="text-sm text-slate-400">Type: {item.claim_type}</p>}
+                    {item.claim_type && <p className="text-sm text-slate-400">Type: {getClaimTypeLabel(item.claim_type)}</p>}
                     {item.claim_status && <span className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${
                       item.claim_status === 'approved' ? 'bg-green-500/20 text-green-300' : 
                       item.claim_status === 'rejected' ? 'bg-red-500/20 text-red-300' : 
@@ -473,7 +495,7 @@ export default function ReportsPage() {
                 {reportData.claimsSummary.byType.map((item, idx) => (
                   <div key={idx}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-slate-300">{item.type}</span>
+                      <span className="text-slate-300">{getClaimTypeLabel(item.type)}</span>
                       <span className="text-white font-medium">{item.count}</span>
                     </div>
                     <div className="w-full bg-slate-700 rounded-full h-2">
@@ -504,7 +526,7 @@ export default function ReportsPage() {
                     <td className="px-6 py-4 text-sm text-white">{claim.customer_name}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{claim.vehicle_number}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{claim.insurance_company}</td>
-                    <td className="px-6 py-4 text-sm text-slate-100">{claim.claim_type}</td>
+                    <td className="px-6 py-4 text-sm text-slate-100">{getClaimTypeLabel(claim.claim_type)}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{claim.claim_status}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{claim.created_at ? new Date(claim.created_at).toLocaleDateString() : 'N/A'}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{claim.updated_at ? new Date(claim.updated_at).toLocaleDateString() : 'N/A'}</td>
