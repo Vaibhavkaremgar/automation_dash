@@ -5,7 +5,7 @@ function logActivity(userId, profileId, activityType, description, metadata = nu
   
   // If profileId is provided, validate it exists
   if (profileId) {
-    db.get('SELECT id FROM user_profiles WHERE id = ? AND user_id = ?', [profileId, userId], (err, profile) => {
+    db.get('SELECT id FROM client_profiles WHERE id = ? AND user_id = ?', [profileId, userId], (err, profile) => {
       if (err || !profile) {
         // Profile doesn't exist, log without profile_id
         db.run(
