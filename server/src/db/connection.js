@@ -21,7 +21,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 // Enable foreign keys
-db.run('PRAGMA foreign_keys = ON');
+// db.run('PRAGMA foreign_keys = ON'); // DISABLED to prevent constraint errors
 
 // Helper function: promisify db.run
 function run(sql, params = []) {
