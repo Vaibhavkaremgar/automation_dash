@@ -197,7 +197,8 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
               <span className="md:hidden">
                 {selectedVertical === 'all' ? '📋' : 
                  selectedVertical === 'general' ? '🏢' : 
-                 selectedVertical === 'motor' ? (localStorage.getItem('insuranceGeneralSubFilter') === 'motor' ? '🚗' : '🚙') : 
+                 selectedVertical === '4-wheeler' ? '🚗' :
+                 selectedVertical === 'motor' ? '🚙' : 
                  selectedVertical === '2-wheeler' ? '🏍️' : 
                  selectedVertical === 'health' ? '🏥' : 
                  selectedVertical === 'non-motor' ? '🏠' : 
@@ -206,7 +207,8 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
               <span className="hidden md:inline">
                 {selectedVertical === 'all' ? '📋 All Types' : 
                  selectedVertical === 'general' ? '🏢 General' : 
-                 selectedVertical === 'motor' ? (localStorage.getItem('insuranceGeneralSubFilter') === 'motor' ? '🚗 4-Wheeler' : '🚙 All Motor') : 
+                 selectedVertical === '4-wheeler' ? '🚗 4-Wheeler' :
+                 selectedVertical === 'motor' ? '🚙 All Motor' : 
                  selectedVertical === '2-wheeler' ? '🏍️ 2-Wheeler' : 
                  selectedVertical === 'health' ? '🏥 Health' : 
                  selectedVertical === 'non-motor' ? '🏠 Non-Motor' : 
@@ -262,11 +264,11 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
                       <button
                         className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
                         onClick={() => {
-                          setSelectedVertical('motor');
-                          localStorage.setItem('insuranceVerticalFilter', 'motor');
-                          localStorage.setItem('insuranceGeneralSubFilter', 'motor');
-                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'motor' }));
-                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'motor' }));
+                          setSelectedVertical('4-wheeler');
+                          localStorage.setItem('insuranceVerticalFilter', '4-wheeler');
+                          localStorage.setItem('insuranceGeneralSubFilter', '4-wheeler');
+                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: '4-wheeler' }));
+                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: '4-wheeler' }));
                           setShowMainDropdown(false);
                           setShowGeneralDropdown(false);
                           setShowMotorDropdown(false);
@@ -294,9 +296,9 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
                         onClick={() => {
                           setSelectedVertical('motor');
                           localStorage.setItem('insuranceVerticalFilter', 'motor');
-                          localStorage.setItem('insuranceGeneralSubFilter', 'all');
+                          localStorage.setItem('insuranceGeneralSubFilter', 'motor');
                           window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'motor' }));
-                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'all' }));
+                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'motor' }));
                           setShowMainDropdown(false);
                           setShowGeneralDropdown(false);
                           setShowMotorDropdown(false);
@@ -385,11 +387,11 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
                       <button
                         className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
                         onClick={() => {
-                          setSelectedVertical('motor');
-                          localStorage.setItem('insuranceVerticalFilter', 'motor');
-                          localStorage.setItem('insuranceGeneralSubFilter', 'motor');
-                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'motor' }));
-                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'motor' }));
+                          setSelectedVertical('4-wheeler');
+                          localStorage.setItem('insuranceVerticalFilter', '4-wheeler');
+                          localStorage.setItem('insuranceGeneralSubFilter', '4-wheeler');
+                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: '4-wheeler' }));
+                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: '4-wheeler' }));
                         }}
                       >
                         🚗 4-Wheeler
@@ -411,9 +413,9 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
                         onClick={() => {
                           setSelectedVertical('motor');
                           localStorage.setItem('insuranceVerticalFilter', 'motor');
-                          localStorage.setItem('insuranceGeneralSubFilter', 'all');
+                          localStorage.setItem('insuranceGeneralSubFilter', 'motor');
                           window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'motor' }));
-                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'all' }));
+                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'motor' }));
                         }}
                       >
                         🚙 All Motor
