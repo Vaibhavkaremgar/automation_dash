@@ -72,14 +72,20 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     
     if (policies.length > 0) {
       policies.forEach((p: any, i: number) => {
+        const isMotor = p.vertical === 'motor' || p.vertical === '2-wheeler'
         summary += `${i + 1}. ${p.product || 'Policy'} - ${p.company}\n`
-        summary += `   Registration: ${p.registration_no}\n`
+        if (isMotor && p.registration_no) {
+          summary += `   Registration: ${p.registration_no}\n`
+        }
         summary += `   Premium: ₹${p.premium}\n`
         summary += `   Renewal: ${p.renewal_date}\n`
         summary += `   Status: ${p.status}\n\n`
       })
     } else {
-      summary += `Registration: ${customer.registration_no}\n`
+      const isMotor = customer.vertical === 'motor' || customer.vertical === '2-wheeler'
+      if (isMotor && customer.registration_no) {
+        summary += `Registration: ${customer.registration_no}\n`
+      }
       summary += `Company: ${customer.company}\n`
       summary += `Premium: ₹${customer.premium}\n`
       summary += `Renewal: ${customer.renewal_date}\n`
@@ -118,9 +124,12 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     let summary = ''
     
     searchResults.forEach((customer, i) => {
+      const isMotor = customer.vertical === 'motor' || customer.vertical === '2-wheeler'
       summary += `${i + 1}. ${customer.name}\n`
       summary += `   Mobile: ${customer.mobile_number}\n`
-      summary += `   Vehicle: ${customer.registration_no}\n`
+      if (isMotor && customer.registration_no) {
+        summary += `   Vehicle: ${customer.registration_no}\n`
+      }
       summary += `   Company: ${customer.company}\n`
       summary += `   Premium: ₹${customer.premium?.toLocaleString()}\n`
       summary += `   Renewal: ${customer.renewal_date}\n`

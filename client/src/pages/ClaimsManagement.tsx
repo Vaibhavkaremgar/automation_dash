@@ -361,11 +361,13 @@ export default function ClaimsManagement() {
                       size="sm"
                       variant="outline"
                       onClick={() => {
+                        const isMotor = claim.vertical === 'motor' || claim.vertical === '2-wheeler';
                         const message = generateClaimUpdateMessage(
                           claim.customer_name,
                           claim.vehicle_number || 'your policy',
                           claim.claim_status,
-                          clientKey
+                          clientKey,
+                          isMotor
                         );
                         logWhatsAppMessage(claim.customer_id, claim.customer_name, message);
                         window.open(`https://wa.me/${claim.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');

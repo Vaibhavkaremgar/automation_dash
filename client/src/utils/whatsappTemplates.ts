@@ -143,13 +143,15 @@ export const generatePolicyDetailsMessage = (params: MessageParams): string => {
     premiumAmount,
   } = params;
 
+  const isMotor = policyType?.toLowerCase().includes('motor') || policyType === '2-wheeler';
+
   return `Dear ${customerName},
 
 Thank you for reaching out to us.
 
 As requested, please find your insurance policy details below:
 
-${policyNumber ? `Policy No: ${policyNumber}\n` : ''}${policyType ? `Policy Type: ${policyType}\n` : ''}${vehicleNumber ? `Vehicle No: ${vehicleNumber}\n` : ''}${companyName ? `Insurer: ${companyName}\n` : ''}${renewalDate ? `Renewal Date: ${renewalDate}\n` : ''}${premiumAmount ? `Premium Amount: ₹${premiumAmount}\n` : ''}
+${policyNumber ? `Policy No: ${policyNumber}\n` : ''}${policyType ? `Policy Type: ${policyType}\n` : ''}${isMotor && vehicleNumber ? `Vehicle No: ${vehicleNumber}\n` : ''}${companyName ? `Insurer: ${companyName}\n` : ''}${renewalDate ? `Renewal Date: ${renewalDate}\n` : ''}${premiumAmount ? `Premium Amount: ₹${premiumAmount}\n` : ''}
 If you need any clarification or further assistance, please feel free to contact us.
 
 Thank you for choosing our services.
@@ -162,13 +164,16 @@ ${getSignature(params.clientKey)}`;
  */
 export const generateClaimUpdateMessage = (
   customerName: string,
-  vehicleNumber: string,
+  vehicleOrPolicy: string,
   status: string,
   clientKey?: string,
+  isMotor: boolean = true,
 ): string => {
+  const referenceText = isMotor ? `vehicle ${vehicleOrPolicy}` : vehicleOrPolicy;
+  
   return `Dear ${customerName},
 
-We would like to provide you with an update regarding your insurance claim for the vehicle ${vehicleNumber}.
+We would like to provide you with an update regarding your insurance claim for the ${referenceText}.
 
 Current Claim Status: ${status.replace(/_/g, ' ').toUpperCase()}
 
