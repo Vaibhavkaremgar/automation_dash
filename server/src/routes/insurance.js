@@ -67,7 +67,7 @@ router.get('/customers', (req, res) => {
         query += ' AND vertical = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%2wh%');
       } else if (vertical === '4-wheeler') {
-        query += ' AND vertical = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ?)';
+        query += ' AND vertical = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ? AND LOWER(TRIM(COALESCE(product_type, ""))) NOT LIKE "%all%motor%")';
         params.push('motor', '%4wh%');
       } else if (vertical === 'motor') {
         query += ' AND vertical = ?';
@@ -1114,7 +1114,7 @@ router.get('/analytics', (req, res) => {
         whereClause += ' AND vertical = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%2wh%');
       } else if (vertical === '4-wheeler') {
-        whereClause += ' AND vertical = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ?)';
+        whereClause += ' AND vertical = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ? AND LOWER(TRIM(COALESCE(product_type, ""))) NOT LIKE "%all%motor%")';
         params.push('motor', '%4wh%');
       } else {
         whereClause += ' AND vertical = ?';

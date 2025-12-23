@@ -17,8 +17,9 @@ function activityLogger(req, res, next) {
   const userId = req.user?.id;
   
   req.logActivity = (type, description, metadata) => {
-    if (userId && profileId) {
-      logActivity(userId, profileId, type, description, metadata);
+    if (userId) {
+      // Only log if we have a valid userId, profileId is optional
+      logActivity(userId, profileId || null, type, description, metadata);
     }
   };
   
