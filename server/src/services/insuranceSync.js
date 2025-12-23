@@ -372,7 +372,19 @@ class InsuranceSyncService {
 
       if (values.length > 0) {
         console.log(`📝 Writing ${values.length} rows to sheet`);
-        const clearRange = `${tabName}!A2:${String.fromCharCode(65 + headers.length - 1)}1000`;
+        
+        // Calculate last column letter (handles A-Z and AA-ZZ)
+        const getColumnLetter = (index) => {
+          let letter = '';
+          while (index >= 0) {
+            letter = String.fromCharCode(65 + (index % 26)) + letter;
+            index = Math.floor(index / 26) - 1;
+          }
+          return letter;
+        };
+        
+        const lastCol = getColumnLetter(headers.length - 1);
+        const clearRange = `${tabName}!A2:${lastCol}1000`;
         
         await this.sheets.spreadsheets.values.clear({
           spreadsheetId,
