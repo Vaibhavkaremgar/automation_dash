@@ -64,11 +64,14 @@ router.get('/customers', (req, res) => {
         query += ' AND vertical = ?';
         params.push('non-motor');
       } else if (vertical === '2-wheeler') {
-        query += ' AND vertical = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ?)';
+        query += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%2wh%');
       } else if (vertical === '4-wheeler') {
-        query += ' AND vertical = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ? AND LOWER(TRIM(COALESCE(product_type, ""))) NOT LIKE "%all%" AND LOWER(TRIM(COALESCE(product_type, ""))) NOT LIKE "%motor%")';
+        query += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%4wh%');
+      } else if (vertical === 'all-motor') {
+        query += ' AND LOWER(vertical) = ?';
+        params.push('motor');
       } else if (vertical === 'motor') {
         query += ' AND vertical = ?';
         params.push('motor');
@@ -1111,11 +1114,14 @@ router.get('/analytics', (req, res) => {
         whereClause += ' AND vertical IN (?, ?, ?)';
         params.push('motor', 'health', 'non-motor');
       } else if (vertical === '2-wheeler') {
-        whereClause += ' AND vertical = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ?)';
+        whereClause += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%2wh%');
       } else if (vertical === '4-wheeler') {
-        whereClause += ' AND vertical = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ? AND LOWER(TRIM(COALESCE(product_type, ""))) NOT LIKE "%all%" AND LOWER(TRIM(COALESCE(product_type, ""))) NOT LIKE "%motor%")';
+        whereClause += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%4wh%');
+      } else if (vertical === 'all-motor') {
+        whereClause += ' AND LOWER(vertical) = ?';
+        params.push('motor');
       } else {
         whereClause += ' AND vertical = ?';
         params.push(vertical);
