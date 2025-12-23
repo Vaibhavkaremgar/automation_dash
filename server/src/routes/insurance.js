@@ -66,15 +66,15 @@ router.get('/customers', (req, res) => {
         query += ' AND vertical = ?';
         params.push('non-motor');
       } else if (vertical === '2-wheeler') {
-        // 2-wheeler: vertical=motor AND veh_type contains 2wh/2wheeler
-        query += ' AND vertical = ? AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) = ?)';
-        params.push('motor', '%2wh%', '%2%wheeler%', '2wh');
+        // 2-wheeler: type=motor AND veh_type contains 2wh/2wheeler
+        query += ' AND (LOWER(TRIM(type)) LIKE ? OR LOWER(TRIM(type)) = ?) AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR vertical = ?)';
+        params.push('%motor%', 'motor', '%2wh%', '%2%wh%', '%2%wheeler%', '2-wheeler');
       } else if (vertical === 'motor') {
         const { generalSubFilter } = req.query;
         if (generalSubFilter === 'motor') {
-          // 4-wheeler: vertical=motor AND veh_type contains 4wh/4wheeler
-          query += ' AND vertical = ? AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) = ?)';
-          params.push('motor', '%4wh%', '%4%wheeler%', '4wh');
+          // 4-wheeler: type=motor AND veh_type contains 4wh/4wheeler OR (type=motor AND veh_type is empty)
+          query += ' AND (LOWER(TRIM(type)) LIKE ? OR LOWER(TRIM(type)) = ?) AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR veh_type IS NULL OR TRIM(veh_type) = \'\')';
+          params.push('%motor%', 'motor', '%4wh%', '%4%wh%', '%4%wheeler%');
         } else {
           // All motor: vertical=motor (includes rows with or without veh_type)
           query += ' AND vertical = ?';
