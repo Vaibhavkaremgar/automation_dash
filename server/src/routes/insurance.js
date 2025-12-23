@@ -72,9 +72,6 @@ router.get('/customers', (req, res) => {
       } else if (vertical === 'motor') {
         query += ' AND LOWER(vertical) = ?';
         params.push('motor');
-      } else if (vertical === 'motor') {
-        query += ' AND vertical = ?';
-        params.push('motor');
       } else {
         query += ' AND vertical = ?';
         params.push(vertical);
