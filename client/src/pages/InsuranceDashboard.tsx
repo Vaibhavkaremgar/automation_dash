@@ -771,11 +771,15 @@ export default function InsuranceDashboard() {
         tabName: SHEET_TAB_NAME
       });
       console.log('Sync result:', result.data);
-      alert(`✅ Sync from sheet completed! Imported: ${result.data.imported} customers`);
+      if (!silent) {
+        alert(`✅ Sync from sheet completed! Imported: ${result.data.imported} customers`);
+      }
       await loadData();
     } catch (error) {
       console.error('Failed to sync from sheets:', error);
-      alert(`❌ Sync from sheet failed: ${error.response?.data?.error || error.message}`);
+      if (!silent) {
+        alert(`❌ Sync from sheet failed: ${error.response?.data?.error || error.message}`);
+      }
     } finally {
       setSyncing(false);
     }
