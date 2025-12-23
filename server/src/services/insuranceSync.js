@@ -70,6 +70,12 @@ class InsuranceSyncService {
     const clientConfig = getClientConfig(user?.email);
     console.log(`📋 Using config for client: ${clientConfig.name}`);
 
+    // Get schema for this tab type
+    const schema = clientConfig.tabs[tabType]?.schema;
+    if (!schema) {
+      throw new Error(`No schema found for tab type: ${tabType}`);
+    }
+
     let rows;
     if (this.sheets) {
       try {
@@ -124,6 +130,22 @@ class InsuranceSyncService {
     console.log(`📊 Second row (first data):`, rows[1]);
     console.log(`📊 Processing ${rows.length - 1} data rows`);
     
+    // Build column index map from header row
+    const headerRow = rows[0];
+    const columnMap = {};
+    headerRow.forEach((colName, index) => {
+      columnMap[colName] = index;
+    });
+    console.log('📋 Column mapping:', columnMap);
+    
+    // Helper function to get value by column name
+    const getCell = (row, fieldName) => {
+      const colName = schema[fieldName];
+      if (!colName) return '';
+      const colIndex = columnMap[colName];
+      return colIndex !== undefined ? (row[colIndex] || '') : '';
+    };
+    
     const data = rows.slice(1); // Skip header
     let imported = 0;
     let skipped = 0;
@@ -141,28 +163,26 @@ class InsuranceSyncService {
       let customer;
       
       if (tabType === 'life') {
-        // Life Insurance columns: STATUS, THANKYOU MESSAGE SENT, PAYMENT DATE, DATE OF EXPIRY, POLICY NO, NAME, EMAIL ID, MOBILE NO, PREMIUM, INSURER, AG, POL, PT, PPT, MD, BR, SUMM, PAYMENT TYPE, PHONE CALL, SORT, COM, I MAGIC, TRUE, _PREVSTATUS, _PREVRANK, _FAMEARLIEST, REMARKS
-        let rawStatus = (row[0] || 'due').toLowerCase().trim();
-        // Normalize status: due/renewed/inprocess/not renewed
+        let rawStatus = (getCell(row, 'status') || 'due').toLowerCase().trim();
         if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
         else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
         else if (rawStatus === 'not renewed' || rawStatus === 'lost') rawStatus = 'not renewed';
         else if (rawStatus === 'inprocess' || rawStatus === 'in process') rawStatus = 'inprocess';
         
         customer = {
-          name: row[5] || '',
-          mobile_number: row[7] || '',
-          email: row[6] || '',
-          current_policy_no: row[4] || '',
-          company: row[9] || '',
-          premium: parseFloat(row[8]) || 0,
-          premium_mode: row[14] || '',
-          renewal_date: this.formatDate(row[3]) || '',
-          payment_date: this.formatDate(row[2]) || '',
+          name: getCell(row, 'name'),
+          mobile_number: getCell(row, 'mobile_number'),
+          email: getCell(row, 'email'),
+          current_policy_no: getCell(row, 'current_policy_no'),
+          company: getCell(row, 'company'),
+          premium: parseFloat(getCell(row, 'premium')) || 0,
+          premium_mode: getCell(row, 'premium_mode'),
+          renewal_date: this.formatDate(getCell(row, 'renewal_date')),
+          payment_date: this.formatDate(getCell(row, 'payment_date')),
           status: rawStatus,
-          thank_you_sent: row[1] || '',
+          thank_you_sent: getCell(row, 'thank_you_sent'),
           vertical: 'life',
-          notes: row[26] || '',
+          notes: getCell(row, 'notes'),
           registration_no: '',
           od_expiry_date: '',
           tp_expiry_date: '',
@@ -174,15 +194,13 @@ class InsuranceSyncService {
           reason: ''
         };
       } else {
-        // General Insurance columns: S NO, NAME, POLICY NO, G CODE, LAST YEAR PREMIUM, DATE OF EXPIRY, MODIFIED EXPIRY DATE, COMPANY, TYPE, DEPOSITED/PAYMENT DATE, CHQ NO & DATE, BANK NAME, CUSTOMER ID, AGENT CODE, AMOUNT, NEW POLICY NO, NEW POLICY COMPANY, VEH TYPE, VEH Model, VEH NO, TP Expiry Date, Premium mode, EMAIL ID, MOBILE NO, STATUS, Thankyou message sent, REMARKS, PANCARD, AADHAR CARD, OTHERS
-        let rawStatus = (row[24] || 'due').toLowerCase().trim();
-        // Normalize status: due/renewed/inprocess/not renewed
+        let rawStatus = (getCell(row, 'status') || 'due').toLowerCase().trim();
         if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
         else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
         else if (rawStatus === 'not renewed' || rawStatus === 'lost') rawStatus = 'not renewed';
         else if (rawStatus === 'inprocess' || rawStatus === 'in process') rawStatus = 'inprocess';
         
-        const originalType = row[8] || ''; // Store original TYPE value
+        const originalType = getCell(row, 'vertical');
         const sheetVertical = originalType.toLowerCase().trim();
         let vertical = 'non-motor';
         if (sheetVertical === 'motor') vertical = 'motor';
@@ -192,33 +210,33 @@ class InsuranceSyncService {
         else if (sheetVertical.includes('health')) vertical = 'health';
         else vertical = 'non-motor';
         
-        const modifiedExpiry = this.formatDate(row[6]);
-        const dateOfExpiry = this.formatDate(row[5]);
+        const modifiedExpiry = this.formatDate(getCell(row, 'renewal_date'));
+        const dateOfExpiry = this.formatDate(getCell(row, 'od_expiry_date'));
         const finalRenewalDate = modifiedExpiry && modifiedExpiry.trim() !== '' ? modifiedExpiry : dateOfExpiry;
         
         customer = {
-          name: row[1] || '',
-          mobile_number: row[23] || '',
-          email: row[22] || '',
-          current_policy_no: row[2] || '',
-          company: row[7] || '',
-          registration_no: row[19] || '',
-          premium: parseFloat(row[14]) || 0,
-          premium_mode: row[21] || '',
-          last_year_premium: row[4] || '',
-          renewal_date: finalRenewalDate || '',
-          od_expiry_date: dateOfExpiry || '',
-          tp_expiry_date: this.formatDate(row[20]) || '',
-          payment_date: this.formatDate(row[9]) || '',
+          name: getCell(row, 'name'),
+          mobile_number: getCell(row, 'mobile_number'),
+          email: getCell(row, 'email'),
+          current_policy_no: getCell(row, 'current_policy_no'),
+          company: getCell(row, 'company'),
+          registration_no: getCell(row, 'registration_no'),
+          premium: parseFloat(getCell(row, 'premium')) || 0,
+          premium_mode: getCell(row, 'premium_mode'),
+          last_year_premium: getCell(row, 'last_year_premium'),
+          renewal_date: finalRenewalDate,
+          od_expiry_date: dateOfExpiry,
+          tp_expiry_date: this.formatDate(getCell(row, 'tp_expiry_date')),
+          payment_date: this.formatDate(getCell(row, 'payment_date')),
           status: rawStatus,
-          thank_you_sent: row[25] || '',
-          new_policy_no: row[15] || '',
-          new_company: row[16] || '',
-          veh_type: row[17] || '',
+          thank_you_sent: getCell(row, 'thank_you_sent'),
+          new_policy_no: getCell(row, 'new_policy_no'),
+          new_company: getCell(row, 'new_company'),
+          veh_type: '',
           vertical: vertical,
-          product: originalType, // Store original TYPE in product field
-          notes: row[26] || '',
-          modified_expiry_date: modifiedExpiry || '',
+          product: originalType,
+          notes: getCell(row, 'notes'),
+          modified_expiry_date: modifiedExpiry,
           insurance_activated_date: '',
           policy_doc_link: '',
           reason: ''
