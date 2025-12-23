@@ -10,6 +10,7 @@ import { api } from '../../lib/api'
 
 export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const { user, logout } = useAuth()
+  const clientKey = user?.email?.toLowerCase().includes('joban') ? 'joban' : 'kmg'
   const navigate = useNavigate()
   const isInsuranceClient = user?.client_type === 'insurance'
   const [selectedVertical, setSelectedVertical] = useState(() => {
@@ -85,7 +86,13 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       summary += `Status: ${customer.status}\n\n`
     }
     
-    summary += `For any queries, feel free to contact us.\n\nThank you!`
+    summary += `For any queries, feel free to contact us.\n\nThank you!\n\n`
+    
+    if (clientKey === 'joban') {
+      summary += `Warm regards,\nJobanputra's Insurance Shoppe\nYour Trusted Insurance Partner`
+    } else {
+      summary += `Warm regards,\nKrishna Mohan Gupta\nCertified Insurance & Mutual Funds Advisor`
+    }
     
     // Log message
     try {
@@ -121,7 +128,13 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     })
     
     summary += `Total Premium: ₹${searchResults.reduce((sum, c) => sum + (c.premium || 0), 0).toLocaleString()}\n\n`
-    summary += `For any queries, feel free to contact us.\n\nThank you!`
+    summary += `For any queries, feel free to contact us.\n\nThank you!\n\n`
+    
+    if (clientKey === 'joban') {
+      summary += `Warm regards,\nJobanputra's Insurance Shoppe\nYour Trusted Insurance Partner`
+    } else {
+      summary += `Warm regards,\nKrishna Mohan Gupta\nCertified Insurance & Mutual Funds Advisor`
+    }
     
     if (searchResults.length > 0) {
       const firstCustomer = searchResults[0]

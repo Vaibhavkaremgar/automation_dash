@@ -11,7 +11,17 @@ interface MessageParams {
   policyType?: string;
   premiumAmount?: string;
   supportContact?: string;
+  clientKey?: string;
 }
+
+const getSignature = (clientKey?: string): string => {
+  if (clientKey === 'joban') {
+    return `Warm regards,\nJobanputra's Insurance Shoppe\nYour Trusted Insurance Partner`;
+  } else if (clientKey === 'kmg') {
+    return `Warm regards,\nKrishna Mohan Gupta\nCertified Insurance & Mutual Funds Advisor`;
+  }
+  return `Warm regards,\nInsurance Services Team`;
+};
 
 /**
  * INSURANCE RENEWAL REMINDER
@@ -44,8 +54,7 @@ Our team will be happy to assist you with the renewal process and address any qu
 ${supportContact ? `For assistance, please contact us at ${supportContact}.\n` : ''}
 Thank you for your continued trust in our services.
 
-Warm regards,
-Insurance Services Team`;
+${getSignature(params.clientKey)}`;
   }
 
   if (daysRemaining === 0 || daysRemaining === 1) {
@@ -61,8 +70,7 @@ Please let us know if you would like our assistance in completing the renewal pr
 ${supportContact ? `You may reach us at ${supportContact} for immediate support.\n` : ''}
 Thank you for your prompt attention.
 
-Warm regards,
-Insurance Services Team`;
+${getSignature(params.clientKey)}`;
   }
 
   if (daysRemaining && daysRemaining <= 7) {
@@ -78,8 +86,7 @@ We recommend planning the renewal in advance to ensure continuous protection wit
 ${supportContact ? `For any assistance, please contact us at ${supportContact}.\n` : ''}
 Thank you for choosing our services.
 
-Warm regards,
-Insurance Services Team`;
+${getSignature(params.clientKey)}`;
   }
 
   return `Dear ${customerName},
@@ -94,8 +101,7 @@ Our team is available to assist you with the renewal process whenever convenient
 ${supportContact ? `Please feel free to reach us at ${supportContact} for support.\n` : ''}
 Thank you for your continued association with us.
 
-Warm regards,
-Insurance Services Team`;
+${getSignature(params.clientKey)}`;
 };
 
 /**
@@ -120,8 +126,7 @@ Your policy documents will be shared with you shortly for your records.
 
 We sincerely appreciate your trust and look forward to serving you in the future.
 
-Warm regards,
-Insurance Services Team`;
+${getSignature(params.clientKey)}`;
 };
 
 /**
@@ -149,8 +154,7 @@ If you need any clarification or further assistance, please feel free to contact
 
 Thank you for choosing our services.
 
-Warm regards,
-Insurance Services Team`;
+${getSignature(params.clientKey)}`;
 };
 
 /**
@@ -160,6 +164,7 @@ export const generateClaimUpdateMessage = (
   customerName: string,
   vehicleNumber: string,
   status: string,
+  clientKey?: string,
 ): string => {
   return `Dear ${customerName},
 
@@ -173,6 +178,5 @@ Should you require any additional information or assistance, please do not hesit
 
 Thank you for your patience and cooperation.
 
-Warm regards,
-Insurance Claims Team`;
+${getSignature(clientKey)}`;
 };

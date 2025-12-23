@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
@@ -38,6 +39,8 @@ export default function ClaimsManagement() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const { user } = useAuth();
+  const clientKey = user?.email?.toLowerCase().includes('joban') ? 'joban' : 'kmg';
 
   const [newClaim, setNewClaim] = useState({
     customer_id: '',
@@ -361,7 +364,8 @@ export default function ClaimsManagement() {
                         const message = generateClaimUpdateMessage(
                           claim.customer_name,
                           claim.vehicle_number || 'your policy',
-                          claim.claim_status
+                          claim.claim_status,
+                          clientKey
                         );
                         logWhatsAppMessage(claim.customer_id, claim.customer_name, message);
                         window.open(`https://wa.me/${claim.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');

@@ -28,6 +28,7 @@ const ALL_POLICY_TYPES = [
 
 export default function UpsellCrossSell() {
   const { user } = useAuth();
+  const clientKey = user?.email?.toLowerCase().includes('joban') ? 'joban' : 'kmg';
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -159,8 +160,12 @@ export default function UpsellCrossSell() {
     }
     
     message += `Feel free to reply to this message or call me directly. I'm here to help! 🙏\n\n`;
-    message += `Warm regards,\n`;
-    message += `Your Insurance Advisor`;
+    
+    if (clientKey === 'joban') {
+      message += `Warm regards,\nJobanputra's Insurance Shoppe\nYour Trusted Insurance Partner`;
+    } else {
+      message += `Warm regards,\nKrishna Mohan Gupta\nCertified Insurance & Mutual Funds Advisor`;
+    }
     
     logWhatsAppMessage(selectedCustomer.id, selectedCustomer.name, message);
     window.open(`https://wa.me/${selectedCustomer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');

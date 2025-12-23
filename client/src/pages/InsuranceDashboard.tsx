@@ -55,6 +55,7 @@ export default function InsuranceDashboard() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const clientKey = user?.email?.toLowerCase().includes('joban') ? 'joban' : 'kmg';
   const [clientConfig, setClientConfig] = useState<any>(null);
   const [sheetFields, setSheetFields] = useState<string[]>([]);
   const isJoban = user?.email?.toLowerCase().includes('joban') || false;
@@ -464,7 +465,8 @@ export default function InsuranceDashboard() {
                   renewalDate: displayDate,
                   policyNumber: customer.current_policy_no,
                   companyName: customer.company,
-                  premiumAmount: customer.premium?.toString()
+                  premiumAmount: customer.premium?.toString(),
+                  clientKey
                 });
               } else {
                 message = generateRenewalReminder({ 
@@ -473,7 +475,8 @@ export default function InsuranceDashboard() {
                   daysRemaining: days,
                   policyNumber: customer.current_policy_no,
                   companyName: customer.company,
-                  premiumAmount: customer.premium?.toString()
+                  premiumAmount: customer.premium?.toString(),
+                  clientKey
                 });
               }
               logWhatsAppMessage(customer.id, customer.name, message);
@@ -536,7 +539,8 @@ export default function InsuranceDashboard() {
                 renewalDate: displayDate,
                 policyNumber: customer.current_policy_no,
                 companyName: customer.company,
-                premiumAmount: customer.premium?.toString()
+                premiumAmount: customer.premium?.toString(),
+                clientKey
               });
             } else {
               message = generateRenewalReminder({ 
@@ -545,7 +549,8 @@ export default function InsuranceDashboard() {
                 daysRemaining: days,
                 policyNumber: customer.current_policy_no,
                 companyName: customer.company,
-                premiumAmount: customer.premium?.toString()
+                premiumAmount: customer.premium?.toString(),
+                clientKey
               });
             }
             logWhatsAppMessage(customer.id, customer.name, message);
@@ -914,7 +919,8 @@ export default function InsuranceDashboard() {
                                 renewalDate: displayDate,
                                 policyNumber: customer.current_policy_no,
                                 companyName: customer.company,
-                                premiumAmount: customer.premium?.toString()
+                                premiumAmount: customer.premium?.toString(),
+                                clientKey
                               });
                             } else {
                               message = generateRenewalReminder({ 
@@ -923,7 +929,8 @@ export default function InsuranceDashboard() {
                                 daysRemaining: days,
                                 policyNumber: customer.current_policy_no,
                                 companyName: customer.company,
-                                premiumAmount: customer.premium?.toString()
+                                premiumAmount: customer.premium?.toString(),
+                                clientKey
                               });
                             }
                             logWhatsAppMessage(customer.id, customer.name, message);
@@ -1688,7 +1695,8 @@ export default function InsuranceDashboard() {
                         renewalDate: getDisplayDate(customer),
                         policyNumber: customer.current_policy_no,
                         policyType: customer.vertical,
-                        premiumAmount: customer.premium?.toString()
+                        premiumAmount: customer.premium?.toString(),
+                        clientKey
                       });
                       logWhatsAppMessage(customer.id, customer.name, message);
                       window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
