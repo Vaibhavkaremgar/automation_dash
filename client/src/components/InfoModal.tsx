@@ -12,7 +12,6 @@ export default function InfoModal({ open, onClose }: InfoModalProps) {
   const navigate = useNavigate();
 
   const handleOk = () => {
-    localStorage.setItem('infoModalShown', 'true');
     onClose();
     navigate('/profiles');
   };

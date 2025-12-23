@@ -307,67 +307,72 @@ class InsuranceSyncService {
       const customers = await all(query + ' ORDER BY id', params);
       console.log(`📊 Found ${customers.length} customers to sync`);
       
-      let values;
-      
       const isLifeTab = verticalFilter && verticalFilter.includes('life') && !verticalFilter.includes('motor');
+      const schema = isLifeTab ? clientConfig.tabs.life.schema : clientConfig.tabs.general.schema;
       
-      if (isLifeTab) {
-        // Life Insurance format: STATUS, THANKYOU MESSAGE SENT, PAYMENT DATE, DATE OF EXPIRY, POLICY NO, NAME, EMAIL ID, MOBILE NO, PREMIUM, INSURER, AG, POL, PT, PPT, MD, BR, SUMM, PAYMENT TYPE, PHONE CALL, SORT, COM, I MAGIC, TRUE, _PREVSTATUS, _PREVRANK, _FAMEARLIEST, REMARKS
-        values = customers.map(customer => [
-          customer.status || 'due',
-          customer.thank_you_sent || '',
-          customer.payment_date || '',
-          customer.renewal_date || '',
-          customer.current_policy_no || '',
-          customer.name || '',
-          customer.email || '',
-          customer.mobile_number || '',
-          customer.premium || '',
-          customer.company || '',
-          '', '', '', '', // AG, POL, PT, PPT
-          customer.premium_mode || '',
-          '', '', '', '', '', '', '', '', '', '', '', // BR, SUMM, PAYMENT TYPE, PHONE CALL, SORT, COM, I MAGIC, TRUE, _PREVSTATUS, _PREVRANK, _FAMEARLIEST
-          customer.notes || ''
-        ]);
-      } else {
-        // General Insurance format: S NO, NAME, MOBILE NO, EMAIL ID, DATE OF EXPIRY, TP Expiry Date, Premium mode, POLICY NO, COMPANY, TYPE, AMOUNT, Product Model, Product Type, VEH NO, STATUS, CHQ NO & DATE, BANK NAME, NEW POLICY NO, NEW POLICY COMPANY, Thankyou message sent yes/no, LAST YEAR PREMIUM, DEPOSITED/ PAYMENT DATE, REMARKS, CUSTOMER ID, AGENT CODE, PANCARD, AADHAR CARD, OTHERS - VI/DL/PP, G CODE, MODIFIED EXPIRY DATE
-        values = customers.map((customer, index) => [
-          index + 1, // S NO
-          customer.name || '',
-          customer.mobile_number || '',
-          customer.email || '',
-          customer.od_expiry_date || '',
-          customer.tp_expiry_date || '',
-          customer.premium_mode || '',
-          customer.current_policy_no || '',
-          customer.company || '',
-          customer.vertical || '',
-          customer.premium || '',
-          customer.product_model || '',
-          customer.product_type || '',
-          customer.registration_no || '',
-          customer.status || 'due',
-          customer.cheque_no || '',
-          customer.bank_name || '',
-          customer.new_policy_no || '',
-          customer.new_company || '',
-          customer.thank_you_sent || '',
-          customer.last_year_premium || '',
-          customer.payment_date || '',
-          customer.notes || '',
-          customer.customer_id || '',
-          customer.agent_code || '',
-          customer.pancard || '',
-          customer.aadhar_card || '',
-          customer.others_doc || '',
-          customer.g_code || '',
-          customer.modified_expiry_date || ''
-        ]);
-      }
+      // Read current sheet headers to get column order
+      const headerResponse = await this.sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `${tabName}!1:1`
+      });
+      const headers = headerResponse.data.values?.[0] || [];
+      console.log(`📋 Sheet headers:`, headers);
+      
+      // Create reverse mapping: column name -> field name
+      const reverseSchema = {};
+      Object.entries(schema).forEach(([field, colName]) => {
+        reverseSchema[colName] = field;
+      });
+      
+      // Build rows in the exact order of sheet columns
+      const values = customers.map((customer, index) => {
+        return headers.map(header => {
+          // Special handling for S NO
+          if (header === 'S NO') return index + 1;
+          
+          const fieldName = reverseSchema[header];
+          if (!fieldName) return ''; // Column not in schema
+          
+          // Map field to customer data
+          const fieldMap = {
+            name: customer.name || '',
+            mobile_number: customer.mobile_number || '',
+            email: customer.email || '',
+            current_policy_no: customer.current_policy_no || '',
+            company: customer.company || '',
+            registration_no: customer.registration_no || '',
+            premium: customer.premium || '',
+            premium_mode: customer.premium_mode || '',
+            last_year_premium: customer.last_year_premium || '',
+            renewal_date: customer.modified_expiry_date || '',
+            od_expiry_date: customer.od_expiry_date || '',
+            tp_expiry_date: customer.tp_expiry_date || '',
+            payment_date: customer.payment_date || '',
+            status: customer.status || 'due',
+            thank_you_sent: customer.thank_you_sent || '',
+            new_policy_no: customer.new_policy_no || '',
+            new_company: customer.new_company || '',
+            product_type: customer.product_type || '',
+            product_model: customer.product_model || '',
+            vertical: customer.vertical || '',
+            notes: customer.notes || '',
+            cheque_no: customer.cheque_no || '',
+            bank_name: customer.bank_name || '',
+            customer_id: customer.customer_id || '',
+            agent_code: customer.agent_code || '',
+            pancard: customer.pancard || '',
+            aadhar_card: customer.aadhar_card || '',
+            others_doc: customer.others_doc || '',
+            g_code: customer.g_code || ''
+          };
+          
+          return fieldMap[fieldName] || '';
+        });
+      });
 
       if (values.length > 0) {
         console.log(`📝 Writing ${values.length} rows to sheet`);
-        const clearRange = isLifeTab ? `${tabName}!A2:AB1000` : `${tabName}!A2:AD1000`;
+        const clearRange = `${tabName}!A2:${String.fromCharCode(65 + headers.length - 1)}1000`;
         
         await this.sheets.spreadsheets.values.clear({
           spreadsheetId,

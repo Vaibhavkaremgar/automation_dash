@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import InfoModal from '../components/InfoModal'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [showWarning, setShowWarning] = useState(false)
   const [warningMessage, setWarningMessage] = useState('')
+  const [showInfoModal, setShowInfoModal] = useState(false)
   const navigate = useNavigate()
   const location = useLocation() as any
 
@@ -22,9 +24,9 @@ export default function LoginPage() {
     try {
       const userData = await login(email, password, forceLogin)
       
-      // Insurance clients must select profile first
+      // Insurance clients must see info modal first, then go to profiles
       if (userData?.client_type === 'insurance') {
-        navigate('/profiles', { replace: true })
+        setShowInfoModal(true)
         return
       }
       
@@ -86,6 +88,11 @@ export default function LoginPage() {
         </Button>
         <p className="text-xs text-slate-400 text-center">Use your admin or client credentials</p>
       </form>
+      
+      <InfoModal 
+        open={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+      />
     </div>
   )
 }
