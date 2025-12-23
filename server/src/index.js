@@ -235,7 +235,6 @@ app.use('/api/applications', applicationsRoutes);
 app.use('/api/resume-parser', resumeParserRoutes);
 app.use('/api/debug-sheets', require('./routes/debugSheets'));
 app.use('/api/debug-sheet', require('./routes/debug-sheet'));
-app.use('/api/debug', require('./routes/debug'));
 app.use('/api/insurance', insuranceRoutes);
 app.use('/api/insurance-config', insuranceConfigRoutes);
 app.use('/api/policies', require('./routes/policies'));
