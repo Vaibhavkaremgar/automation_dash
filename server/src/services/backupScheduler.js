@@ -21,38 +21,9 @@ async function triggerBackup() {
 
 // Initialize backup scheduler
 function initBackupScheduler() {
-  // Check if DB exists on startup
-  const dbPath = process.env.DB_PATH;
-  if (dbPath) {
-    const resolvedPath = path.resolve(__dirname, '../../', dbPath);
-    if (!fs.existsSync(resolvedPath)) {
-      console.warn('⚠️ WARNING: Database file not found at', resolvedPath);
-      console.warn('⚠️ Database will be created on first use');
-    }
-  }
-
-  // Dynamically import backup function
-  import('../utils/driveDbBackup.js')
-    .then(module => {
-      backupFunction = module.backupSqliteToDrive;
-      console.log('✅ Backup system initialized');
-      
-      // Schedule backup every 6 hours (21600000 ms)
-      backupInterval = setInterval(() => {
-        console.log('🔄 Running scheduled backup...');
-        triggerBackup();
-      }, 6 * 60 * 60 * 1000);
-      
-      // Run initial backup after 5 minutes
-      setTimeout(() => {
-        console.log('🔄 Running initial backup...');
-        triggerBackup();
-      }, 5 * 60 * 1000);
-    })
-    .catch(error => {
-      console.error('❌ Failed to initialize backup system:', error.message);
-      // Continue without backup - don't crash
-    });
+  console.log('⚠️ Backup scheduler disabled - service account storage limitations');
+  // Backup disabled due to Google service account storage quota limitations
+  return;
 }
 
 // Manual trigger for testing
