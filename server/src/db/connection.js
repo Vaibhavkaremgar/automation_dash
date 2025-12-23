@@ -363,6 +363,33 @@ async function runMigrations() {
       if (!colNames.includes('modified_expiry_date')) {
         await run(`ALTER TABLE insurance_customers ADD COLUMN modified_expiry_date TEXT`);
       }
+      if (!colNames.includes('product_type')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN product_type TEXT`);
+      }
+      if (!colNames.includes('product_model')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN product_model TEXT`);
+      }
+      if (!colNames.includes('bank_name')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN bank_name TEXT`);
+      }
+      if (!colNames.includes('customer_id')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN customer_id TEXT`);
+      }
+      if (!colNames.includes('agent_code')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN agent_code TEXT`);
+      }
+      if (!colNames.includes('pancard')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN pancard TEXT`);
+      }
+      if (!colNames.includes('aadhar_card')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN aadhar_card TEXT`);
+      }
+      if (!colNames.includes('others_doc')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN others_doc TEXT`);
+      }
+      if (!colNames.includes('g_code')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN g_code TEXT`);
+      }
     } catch (e) {
       console.log('Column migration check:', e.message);
     }

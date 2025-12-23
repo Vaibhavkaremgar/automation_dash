@@ -119,10 +119,6 @@ async function initializeDatabase() {
     const migration017 = require('../migrations/017-add-client-key-to-message-logs');
     await migration017.up();
     
-    // Run product_type column migration
-    const migration018 = require('../migrations/018-add-product-type-column');
-    await migration018.up();
-    
     // Seed admin user
     await seedAdminUser();
   } catch (err) {
@@ -150,7 +146,7 @@ async function seedAdminUser() {
       name: 'KMG Insurance',
       role: 'client',
       client_type: 'insurance',
-      google_sheet_url: 'https://docs.google.com/spreadsheets/d/1EpMAg1gSXPKr83cTugvGexrqv3Yt5Tb85Re2Shah8mw/edit'
+      google_sheet_url: 'https://docs.google.com/spreadsheets/d/1eg0JT8a1SR7PcwS3EnuVQlFUUwTRPdEfQtfLynpJfNg/edit'
     },
     {
       email: 'jobanputra@gmail.com',
@@ -158,7 +154,7 @@ async function seedAdminUser() {
       name: 'Joban Putra Insurance Shoppe',
       role: 'client',
       client_type: 'insurance',
-      google_sheet_url: 'https://docs.google.com/spreadsheets/d/1oX5MGRMo6oz87ivTXeMOy6vtIDPJXXawz_lGqmOvUEo/edit'
+      google_sheet_url: 'https://docs.google.com/spreadsheets/d/1CE5TFC5bFx7WixVLoVOzdiMntwgRISO9YVR_cWZhku4/edit'
     }
   ];
   
@@ -167,7 +163,15 @@ async function seedAdminUser() {
       const existing = await get('SELECT * FROM users WHERE email = ?', [user.email]);
       
       if (existing) {
-        console.log(`✅ ${user.name} exists`);
+        console.log(`✅ ${user.name} exists (ID: ${existing.id})`);
+        // Update password if needed
+        const isValid = await bcrypt.compare(user.password, existing.password_hash);
+        if (!isValid) {
+          const passwordHash = await bcrypt.hash(user.password, 10);
+          await run('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, existing.id]);
+          console.log(`✅ Updated password for ${user.name}`);
+        }
+        
         const wallet = await get('SELECT * FROM wallets WHERE user_id = ?', [existing.id]);
         if (!wallet) {
           await run('INSERT INTO wallets (user_id, balance_cents) VALUES (?, ?)', [existing.id, 1000000]);
@@ -184,9 +188,9 @@ async function seedAdminUser() {
       );
       
       await run('INSERT INTO wallets (user_id, balance_cents) VALUES (?, ?)', [result.lastID, 1000000]);
-      console.log(`✅ ${user.name} created`);
+      console.log(`✅ ${user.name} created (ID: ${result.lastID})`);
     } catch (err) {
-      console.log(`⚠️ Skipping ${user.name}: ${err.message}`);
+      console.log(`⚠️ Error with ${user.name}: ${err.message}`);
     }
   }
 }

@@ -17,14 +17,20 @@ router.post('/login', async (req, res, next) => {
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
     const user = await get('SELECT * FROM users WHERE email = ?', [email]);
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user) {
+      console.log(`❌ Login failed: User not found for email: ${email}`);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
     
     if (user.status === 'suspended') {
       return res.status(403).json({ error: 'Account suspended. Contact administrator.' });
     }
 
     const isValid = await bcrypt.compare(password, user.password_hash);
-    if (!isValid) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!isValid) {
+      console.log(`❌ Login failed: Invalid password for email: ${email}`);
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
     
     // Check IP restrictions BEFORE creating session
     const clientIp = getClientIp(req);

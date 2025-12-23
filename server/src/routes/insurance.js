@@ -14,38 +14,6 @@ const db = getDatabase();
 // Apply data isolation to all insurance routes
 router.use(authRequired, enforceDataIsolation);
 
-// Debug route to check database state
-router.get('/debug/database', (req, res) => {
-  try {
-    db.get('SELECT COUNT(*) as total FROM insurance_customers', [], (err, total) => {
-      if (err) return res.status(500).json({ error: err.message });
-      
-      db.all('SELECT user_id, COUNT(*) as count FROM insurance_customers GROUP BY user_id', [], (err, byUser) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        db.all('SELECT id, name, mobile_number, vertical, status FROM insurance_customers WHERE user_id = ? LIMIT 5', [req.user.id], (err, userCustomers) => {
-          if (err) return res.status(500).json({ error: err.message });
-          
-          res.json({
-            totalCustomers: total.count,
-            customersByUser: byUser,
-            currentUserCustomers: {
-              count: userCustomers.length,
-              samples: userCustomers
-            },
-            currentUser: {
-              id: req.user.id,
-              email: req.user.email
-            }
-          });
-        });
-      });
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 // Search customers across all verticals
 router.get('/customers/search', (req, res) => {
   try {
