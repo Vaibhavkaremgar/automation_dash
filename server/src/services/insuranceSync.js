@@ -232,11 +232,20 @@ class InsuranceSyncService {
           thank_you_sent: getCell(row, 'thank_you_sent'),
           new_policy_no: getCell(row, 'new_policy_no'),
           new_company: getCell(row, 'new_company'),
-          veh_type: getCell(row, 'veh_type'),
+          product_type: getCell(row, 'product_type'),
+          product_model: getCell(row, 'product_model'),
           vertical: vertical,
           product: originalType,
           notes: getCell(row, 'notes'),
           modified_expiry_date: modifiedExpiry,
+          cheque_no: getCell(row, 'cheque_no'),
+          bank_name: getCell(row, 'bank_name'),
+          customer_id: getCell(row, 'customer_id'),
+          agent_code: getCell(row, 'agent_code'),
+          pancard: getCell(row, 'pancard'),
+          aadhar_card: getCell(row, 'aadhar_card'),
+          others_doc: getCell(row, 'others_doc'),
+          g_code: getCell(row, 'g_code'),
           insurance_activated_date: '',
           policy_doc_link: '',
           reason: ''
@@ -252,9 +261,9 @@ class InsuranceSyncService {
       
       try {
         await run(`
-          INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, notes, veh_type, modified_expiry_date)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [userId, customer.name, customer.mobile_number, customer.insurance_activated_date, customer.renewal_date, customer.od_expiry_date, customer.tp_expiry_date, customer.premium_mode, customer.premium, customer.vertical, customer.product, customer.registration_no, customer.current_policy_no, customer.company, customer.status, customer.new_policy_no, customer.new_company, customer.policy_doc_link, customer.thank_you_sent, customer.reason, customer.email, customer.notes || '', customer.veh_type || '', customer.modified_expiry_date || '']);
+          INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, notes, product_type, product_model, modified_expiry_date, cheque_no, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, last_year_premium, payment_date)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [userId, customer.name, customer.mobile_number, customer.insurance_activated_date, customer.renewal_date, customer.od_expiry_date, customer.tp_expiry_date, customer.premium_mode, customer.premium, customer.vertical, customer.product, customer.registration_no, customer.current_policy_no, customer.company, customer.status, customer.new_policy_no, customer.new_company, customer.policy_doc_link, customer.thank_you_sent, customer.reason, customer.email, customer.notes || '', customer.product_type || '', customer.product_model || '', customer.modified_expiry_date || '', customer.cheque_no || '', customer.bank_name || '', customer.customer_id || '', customer.agent_code || '', customer.pancard || '', customer.aadhar_card || '', customer.others_doc || '', customer.g_code || '', customer.last_year_premium || '', customer.payment_date || '']);
         imported++;
         if (imported <= 3) {
           console.log(`✅ Imported row ${i + 2}: ${customer.name} (${customer.vertical})`);
@@ -321,32 +330,38 @@ class InsuranceSyncService {
           customer.notes || ''
         ]);
       } else {
-        // General Insurance format: S NO, NAME, POLICY NO, G CODE, LAST YEAR PREMIUM, DATE OF EXPIRY, MODIFIED EXPIRY DATE, COMPANY, TYPE, DEPOSITED/PAYMENT DATE, CHQ NO & DATE, BANK NAME, CUSTOMER ID, AGENT CODE, AMOUNT, NEW POLICY NO, NEW POLICY COMPANY, VEH TYPE, VEH Model, VEH NO, TP Expiry Date, Premium mode, EMAIL ID, MOBILE NO, STATUS, Thankyou message sent, REMARKS
+        // General Insurance format: S NO, NAME, MOBILE NO, EMAIL ID, DATE OF EXPIRY, TP Expiry Date, Premium mode, POLICY NO, COMPANY, TYPE, AMOUNT, Product Model, Product Type, VEH NO, STATUS, CHQ NO & DATE, BANK NAME, NEW POLICY NO, NEW POLICY COMPANY, Thankyou message sent yes/no, LAST YEAR PREMIUM, DEPOSITED/ PAYMENT DATE, REMARKS, CUSTOMER ID, AGENT CODE, PANCARD, AADHAR CARD, OTHERS - VI/DL/PP, G CODE, MODIFIED EXPIRY DATE
         values = customers.map((customer, index) => [
           index + 1, // S NO
           customer.name || '',
-          customer.current_policy_no || '',
-          '', // G CODE
-          customer.last_year_premium || '',
+          customer.mobile_number || '',
+          customer.email || '',
           customer.od_expiry_date || '',
-          customer.modified_expiry_date || '',
-          customer.company || '',
-          customer.vertical || '',
-          customer.payment_date || '',
-          '', '', '', '', // CHQ NO & DATE, BANK NAME, CUSTOMER ID, AGENT CODE
-          customer.premium || '',
-          customer.new_policy_no || '',
-          customer.new_company || '',
-          customer.veh_type || '',
-          customer.product || customer.vertical || '', // Use product (original TYPE) or fallback to vertical
-          customer.registration_no || '',
           customer.tp_expiry_date || '',
           customer.premium_mode || '',
-          customer.email || '',
-          customer.mobile_number || '',
+          customer.current_policy_no || '',
+          customer.company || '',
+          customer.vertical || '',
+          customer.premium || '',
+          customer.product_model || '',
+          customer.product_type || '',
+          customer.registration_no || '',
           customer.status || 'due',
+          customer.cheque_no || '',
+          customer.bank_name || '',
+          customer.new_policy_no || '',
+          customer.new_company || '',
           customer.thank_you_sent || '',
-          customer.notes || ''
+          customer.last_year_premium || '',
+          customer.payment_date || '',
+          customer.notes || '',
+          customer.customer_id || '',
+          customer.agent_code || '',
+          customer.pancard || '',
+          customer.aadhar_card || '',
+          customer.others_doc || '',
+          customer.g_code || '',
+          customer.modified_expiry_date || ''
         ]);
       }
 

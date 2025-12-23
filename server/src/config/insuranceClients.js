@@ -26,9 +26,18 @@ const insuranceClients = {
           thank_you_sent: 'Thankyou message sent yes/no',
           new_policy_no: 'NEW POLICY NO',
           new_company: 'NEW POLICY COMPANY',
-          veh_type: 'VEH TYPE',
+          product_type: 'Product Type',
+          product_model: 'Product Model',
           vertical: 'TYPE',
-          notes: 'REMARKS(notes)'
+          notes: 'REMARKS',
+          cheque_no: 'CHQ NO & DATE',
+          bank_name: 'BANK NAME',
+          customer_id: 'CUSTOMER ID',
+          agent_code: 'AGENT CODE',
+          pancard: 'PANCARD',
+          aadhar_card: 'AADHAR CARD',
+          others_doc: 'OTHERS - VI/DL/PP',
+          g_code: 'G CODE'
         }
       },
       life: {
@@ -77,9 +86,18 @@ const insuranceClients = {
           thank_you_sent: 'Thankyou message sent yes/no',
           new_policy_no: 'NEW POLICY NO',
           new_company: 'NEW POLICY COMPANY',
-          veh_type: 'VEH TYPE',
+          product_type: 'Product Type',
+          product_model: 'Product Model',
           vertical: 'TYPE',
-          notes: 'REMARKS(notes)'
+          notes: 'REMARKS',
+          cheque_no: 'CHQ NO & DATE',
+          bank_name: 'BANK NAME',
+          customer_id: 'CUSTOMER ID',
+          agent_code: 'AGENT CODE',
+          pancard: 'PANCARD',
+          aadhar_card: 'AADHAR CARD',
+          others_doc: 'OTHERS - VI/DL/PP',
+          g_code: 'G CODE'
         }
       },
       life: {

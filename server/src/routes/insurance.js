@@ -62,24 +62,17 @@ router.get('/customers', (req, res) => {
         query += ' AND vertical IN (?, ?, ?)';
         params.push('motor', 'health', 'non-motor');
       } else if (vertical === 'non-motor') {
-        // Non-motor: show all types that are NOT motor/health/life
         query += ' AND vertical = ?';
         params.push('non-motor');
       } else if (vertical === '2-wheeler') {
-        // 2-wheeler: Check if type column exists, if yes use it with veh_type, else just veh_type
-        query += ' AND vertical = ? AND (LOWER(TRIM(COALESCE(veh_type, ""))) LIKE ? OR LOWER(TRIM(COALESCE(veh_type, ""))) LIKE ? OR LOWER(TRIM(COALESCE(veh_type, ""))) LIKE ?)';
+        query += ' AND vertical = ? AND (LOWER(TRIM(COALESCE(product_type, ""))) LIKE ? OR LOWER(TRIM(COALESCE(product_type, ""))) LIKE ? OR LOWER(TRIM(COALESCE(product_type, ""))) LIKE ?)';
         params.push('motor', '%2wh%', '%2 wh%', '%2 wheeler%');
+      } else if (vertical === '4-wheeler') {
+        query += ' AND vertical = ? AND (LOWER(TRIM(COALESCE(product_type, ""))) LIKE ? OR LOWER(TRIM(COALESCE(product_type, ""))) LIKE ? OR LOWER(TRIM(COALESCE(product_type, ""))) LIKE ?)';
+        params.push('motor', '%4wh%', '%4 wh%', '%4 wheeler%');
       } else if (vertical === 'motor') {
-        const { generalSubFilter } = req.query;
-        if (generalSubFilter === 'motor') {
-          // 4-wheeler: vertical=motor AND (veh_type contains 4wh OR veh_type is empty)
-          query += ' AND vertical = ? AND (LOWER(TRIM(COALESCE(veh_type, ""))) LIKE ? OR LOWER(TRIM(COALESCE(veh_type, ""))) LIKE ? OR LOWER(TRIM(COALESCE(veh_type, ""))) LIKE ? OR TRIM(COALESCE(veh_type, "")) = "")';
-          params.push('motor', '%4wh%', '%4 wh%', '%4 wheeler%');
-        } else {
-          // All motor: vertical=motor (includes rows with or without veh_type)
-          query += ' AND vertical = ?';
-          params.push('motor');
-        }
+        query += ' AND vertical = ?';
+        params.push('motor');
       } else {
         query += ' AND vertical = ?';
         params.push(vertical);
@@ -103,16 +96,16 @@ router.get('/customers', (req, res) => {
 // Create new insurance customer
 router.post('/customers', activityLogger, (req, res) => {
   try {
-    const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, veh_type, notes, modified_expiry_date } = req.body;
+    const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code } = req.body;
     
     if (!name || !mobile_number) {
       return res.status(400).json({ error: 'Name and mobile number are required' });
     }
     
     db.run(`
-      INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, veh_type, notes, modified_expiry_date)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [req.user.id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status || 'pending', new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, veh_type, notes, modified_expiry_date], function(err) {
+      INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [req.user.id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status || 'pending', new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code], function(err) {
       if (err) return res.status(500).json({ error: err.message });
       
       db.get('SELECT * FROM insurance_customers WHERE id = ?', [this.lastID], (err, customer) => {
@@ -129,13 +122,13 @@ router.post('/customers', activityLogger, (req, res) => {
 // Update insurance customer
 router.put('/customers/:id', validateCustomerOwnership, activityLogger, (req, res) => {
   try {
-    const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, veh_type, notes, modified_expiry_date } = req.body;
+    const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code } = req.body;
     
     db.run(`
       UPDATE insurance_customers 
-      SET name = ?, mobile_number = ?, insurance_activated_date = ?, renewal_date = ?, od_expiry_date = ?, tp_expiry_date = ?, premium_mode = ?, premium = ?, last_year_premium = ?, vertical = ?, product = ?, registration_no = ?, current_policy_no = ?, company = ?, status = ?, new_policy_no = ?, new_company = ?, policy_doc_link = ?, thank_you_sent = ?, reason = ?, email = ?, cheque_hold = ?, payment_date = ?, cheque_no = ?, cheque_bounce = ?, owner_alert_sent = ?, veh_type = ?, notes = ?, modified_expiry_date = ?, updated_at = CURRENT_TIMESTAMP
+      SET name = ?, mobile_number = ?, insurance_activated_date = ?, renewal_date = ?, od_expiry_date = ?, tp_expiry_date = ?, premium_mode = ?, premium = ?, last_year_premium = ?, vertical = ?, product = ?, registration_no = ?, current_policy_no = ?, company = ?, status = ?, new_policy_no = ?, new_company = ?, policy_doc_link = ?, thank_you_sent = ?, reason = ?, email = ?, cheque_hold = ?, payment_date = ?, cheque_no = ?, cheque_bounce = ?, owner_alert_sent = ?, product_type = ?, product_model = ?, notes = ?, modified_expiry_date = ?, bank_name = ?, customer_id = ?, agent_code = ?, pancard = ?, aadhar_card = ?, others_doc = ?, g_code = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
-    `, [name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, veh_type, notes, modified_expiry_date, req.params.id, req.user.id], (err) => {
+    `, [name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, req.params.id, req.user.id], (err) => {
       if (err) return res.status(500).json({ error: err.message });
       
       db.get('SELECT * FROM insurance_customers WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, customer) => {
@@ -1122,16 +1115,11 @@ router.get('/analytics', (req, res) => {
         whereClause += ' AND vertical IN (?, ?, ?)';
         params.push('motor', 'health', 'non-motor');
       } else if (vertical === '2-wheeler') {
-        whereClause += ' AND vertical = ? AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) = ?)';
+        whereClause += ' AND vertical = ? AND (LOWER(TRIM(product_type)) LIKE ? OR LOWER(TRIM(product_type)) LIKE ? OR LOWER(TRIM(product_type)) = ?)';
         params.push('motor', '%2wh%', '%2%wheeler%', '2wh');
-      } else if (vertical === 'motor') {
-        if (generalSubFilter === 'motor') {
-          whereClause += ' AND vertical = ? AND (LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) LIKE ? OR LOWER(TRIM(veh_type)) = ?)';
-          params.push('motor', '%4wh%', '%4%wheeler%', '4wh');
-        } else {
-          whereClause += ' AND vertical = ?';
-          params.push('motor');
-        }
+      } else if (vertical === '4-wheeler') {
+        whereClause += ' AND vertical = ? AND (LOWER(TRIM(product_type)) LIKE ? OR LOWER(TRIM(product_type)) LIKE ? OR LOWER(TRIM(product_type)) = ?)';
+        params.push('motor', '%4wh%', '%4%wheeler%', '4wh');
       } else {
         whereClause += ' AND vertical = ?';
         params.push(vertical);
