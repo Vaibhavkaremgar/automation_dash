@@ -26,6 +26,7 @@ const insuranceClients = {
           thank_you_sent: 'Thankyou message sent yes/no',
           new_policy_no: 'NEW POLICY NO',
           new_company: 'NEW POLICY COMPANY',
+          veh_type: 'VEH TYPE',
           vertical: 'TYPE',
           notes: 'REMARKS(notes)'
         }
@@ -76,6 +77,7 @@ const insuranceClients = {
           thank_you_sent: 'Thankyou message sent yes/no',
           new_policy_no: 'NEW POLICY NO',
           new_company: 'NEW POLICY COMPANY',
+          veh_type: 'VEH TYPE',
           vertical: 'TYPE',
           notes: 'REMARKS(notes)'
         }

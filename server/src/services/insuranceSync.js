@@ -232,7 +232,7 @@ class InsuranceSyncService {
           thank_you_sent: getCell(row, 'thank_you_sent'),
           new_policy_no: getCell(row, 'new_policy_no'),
           new_company: getCell(row, 'new_company'),
-          veh_type: '',
+          veh_type: getCell(row, 'veh_type'),
           vertical: vertical,
           product: originalType,
           notes: getCell(row, 'notes'),
