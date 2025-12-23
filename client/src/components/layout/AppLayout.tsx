@@ -6,6 +6,7 @@ import Topbar from './Topbar'
 import MobileSidebar from './MobileSidebar'
 import LowBalanceBanner from './LowBalanceBanner'
 import PasswordChangeModal from '../PasswordChangeModal'
+import InfoModal from '../InfoModal'
 import AnimatedBackground from '../ui/AnimatedBackground'
 import AIBackground from '../ui/AIBackground'
 import NotificationBanner from '../ui/NotificationBanner'
@@ -15,6 +16,7 @@ import { useAuth } from '../../context/AuthContext'
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showInfoModal, setShowInfoModal] = useState(false)
   const { user, refreshMe } = useAuth()
 
   useEffect(() => {
@@ -22,6 +24,13 @@ export default function AppLayout() {
       setShowPasswordModal(true)
     }
   }, [user?.mustChangePassword])
+
+  useEffect(() => {
+    // Show info modal for insurance clients who haven't seen it yet
+    if (user?.client_type === 'insurance' && !localStorage.getItem('infoModalShown')) {
+      setShowInfoModal(true)
+    }
+  }, [user])
 
   const handlePasswordChangeClose = async () => {
     await refreshMe() // Refresh user data to check if password was changed
@@ -57,6 +66,11 @@ export default function AppLayout() {
         isOpen={showPasswordModal}
         onClose={handlePasswordChangeClose}
         isTemporary={user?.mustChangePassword}
+      />
+      
+      <InfoModal 
+        open={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
       />
     </div>
   )

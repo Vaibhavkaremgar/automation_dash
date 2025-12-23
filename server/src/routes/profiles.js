@@ -230,13 +230,84 @@ router.get('/:id/activity', authRequired, (req, res) => {
   });
 });
 
+// Update profile
+router.put('/:id', authRequired, async (req, res) => {
+  try {
+    const { profile_name, password } = req.body;
+    
+    if (!profile_name || !password) {
+      return res.status(400).json({ error: 'Profile name and password required' });
+    }
+
+    // Get profile
+    const profile = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM client_profiles WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!profile) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Verify password
+    const passwordMatch = await bcrypt.compare(password, profile.profile_password);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+
+    // Update profile name
+    db.run('UPDATE client_profiles SET profile_name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?', 
+      [profile_name, req.params.id, req.user.id], function(err) {
+      if (err) {
+        if (err.message.includes('UNIQUE')) {
+          return res.status(400).json({ error: 'Profile name already exists' });
+        }
+        return res.status(500).json({ error: err.message });
+      }
+      res.json({ success: true, message: 'Profile updated successfully' });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Delete profile
-router.delete('/:id', authRequired, (req, res) => {
-  db.run('DELETE FROM client_profiles WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    if (this.changes === 0) return res.status(404).json({ error: 'Profile not found' });
-    res.json({ success: true, message: 'Profile deleted' });
-  });
+router.delete('/:id', authRequired, async (req, res) => {
+  try {
+    const { admin_password } = req.body;
+    
+    if (!admin_password) {
+      return res.status(400).json({ error: 'Admin password required' });
+    }
+
+    // Verify admin profile password
+    const adminProfile = await new Promise((resolve, reject) => {
+      db.get('SELECT profile_password FROM client_profiles WHERE user_id = ? AND role = ?', [req.user.id, 'admin'], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+
+    if (!adminProfile || !adminProfile.profile_password) {
+      return res.status(403).json({ error: 'Admin profile not found' });
+    }
+
+    const adminMatch = await bcrypt.compare(admin_password, adminProfile.profile_password);
+    if (!adminMatch) {
+      return res.status(401).json({ error: 'Invalid admin password' });
+    }
+
+    // Delete profile
+    db.run('DELETE FROM client_profiles WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], function(err) {
+      if (err) return res.status(500).json({ error: err.message });
+      if (this.changes === 0) return res.status(404).json({ error: 'Profile not found' });
+      res.json({ success: true, message: 'Profile deleted successfully' });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;
