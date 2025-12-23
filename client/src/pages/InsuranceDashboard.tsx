@@ -39,6 +39,7 @@ interface Analytics {
   activePolicies?: number;
   expiredPolicies?: number;
   expiringPolicies?: number;
+  pendingPolicies?: number;
   totalPremium?: number;
 }
 
@@ -1132,7 +1133,7 @@ export default function InsuranceDashboard() {
           className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-red-300 border border-slate-700 rounded"
           onClick={() => { const pendingPolicies = customers.filter(c => { const daysLeft = getDaysUntilExpiry(c); return (daysLeft < 0 || daysLeft <= 30) && c.status.trim().toLowerCase() === 'due'; }); setDetailsModalTitle('Pending Policies'); setDetailsModalCustomers(pendingPolicies); setShowDetailsModal(true); }}
         >
-          Pending ({analytics?.expiredPolicies || 0})
+          Pending ({analytics?.pendingPolicies || 0})
         </button>
         <button
           className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-cyan-300 border border-slate-700 rounded"

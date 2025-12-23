@@ -245,7 +245,7 @@ class InsuranceSyncService {
       
       // Skip rows without name or mobile
       if (!customer.name || !customer.mobile_number) {
-        console.log(`⚠️  Skipping row ${i + 2}: missing name or mobile (name='${customer.name}', mobile='${customer.mobile_number}')`);
+        console.log(`⚠️  Skipping row ${i + 2}: missing ${!customer.name ? 'NAME' : ''} ${!customer.name && !customer.mobile_number ? 'and' : ''} ${!customer.mobile_number ? 'MOBILE NO' : ''} (name='${customer.name}', mobile='${customer.mobile_number}')`);
         skipped++;
         continue;
       }
@@ -267,6 +267,10 @@ class InsuranceSyncService {
     }
     
     console.log(`✅ Sync completed: ${imported} imported, ${skipped} skipped`);
+    console.log(`📊 Summary: Total rows in sheet: ${rows.length - 1}, Imported: ${imported}, Skipped: ${skipped}`);
+    if (skipped > 0) {
+      console.log(`⚠️  ${skipped} rows were skipped due to missing NAME or MOBILE NO fields`);
+    }
     return { imported, updated: 0 };
   }
 

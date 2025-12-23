@@ -174,13 +174,18 @@ router.get('/analytics', authRequired, async (req, res) => {
       SELECT COUNT(*) as count FROM insurance_customers 
       ${whereClause} AND 
       LOWER(TRIM(status)) = 'due' AND
-      (date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) < date('now') 
-      OR date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) BETWEEN date('now') AND date('now', '+30 days'))
+      date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) < date('now')
     `, params);
     const expiringPolicies = await db.get(`
       SELECT COUNT(*) as count FROM insurance_customers 
       ${whereClause} AND LOWER(TRIM(status)) = 'due' 
       AND date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) BETWEEN date('now') AND date('now', '+30 days')
+    `, params);
+    const pendingPolicies = await db.get(`
+      SELECT COUNT(*) as count FROM insurance_customers 
+      ${whereClause} AND LOWER(TRIM(status)) = 'due' 
+      AND (date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) < date('now')
+      OR date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) BETWEEN date('now') AND date('now', '+30 days'))
     `, params);
     
     const totalPremium = await db.get(`SELECT SUM(premium) as total FROM insurance_customers ${whereClause} AND LOWER(TRIM(status)) = 'renewed'`, params);
@@ -199,6 +204,7 @@ router.get('/analytics', authRequired, async (req, res) => {
       lostPolicies: lostPolicies.count,
       expiredPolicies: expiredPolicies.count,
       expiringPolicies: expiringPolicies.count,
+      pendingPolicies: pendingPolicies.count,
       totalPremium: totalPremium.total || 0,
       companyStats
     });
