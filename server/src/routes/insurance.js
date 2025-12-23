@@ -69,7 +69,7 @@ router.get('/customers', (req, res) => {
       } else if (vertical === '4-wheeler') {
         query += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%4wh%');
-      } else if (vertical === 'all-motor') {
+      } else if (vertical === 'motor') {
         query += ' AND LOWER(vertical) = ?';
         params.push('motor');
       } else if (vertical === 'motor') {
@@ -1119,7 +1119,7 @@ router.get('/analytics', (req, res) => {
       } else if (vertical === '4-wheeler') {
         whereClause += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%4wh%');
-      } else if (vertical === 'all-motor') {
+      } else if (vertical === 'motor') {
         whereClause += ' AND LOWER(vertical) = ?';
         params.push('motor');
       } else {
