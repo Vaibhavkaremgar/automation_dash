@@ -2,13 +2,40 @@ const { getDatabase } = require('../db/connection');
 
 function logActivity(userId, profileId, activityType, description, metadata = null) {
   const db = getDatabase();
-  db.run(
-    'INSERT INTO activity_logs (user_id, profile_id, activity_type, activity_description, metadata) VALUES (?, ?, ?, ?, ?)',
-    [userId, profileId, activityType, description, metadata ? JSON.stringify(metadata) : null],
-    (err) => {
-      if (err) console.error('Activity log error:', err.message);
-    }
-  );
+  
+  // If profileId is provided, validate it exists
+  if (profileId) {
+    db.get('SELECT id FROM user_profiles WHERE id = ? AND user_id = ?', [profileId, userId], (err, profile) => {
+      if (err || !profile) {
+        // Profile doesn't exist, log without profile_id
+        db.run(
+          'INSERT INTO activity_logs (user_id, activity_type, activity_description, metadata) VALUES (?, ?, ?, ?)',
+          [userId, activityType, description, metadata ? JSON.stringify(metadata) : null],
+          (err) => {
+            if (err) console.error('Activity log error:', err.message);
+          }
+        );
+      } else {
+        // Profile exists, log with profile_id
+        db.run(
+          'INSERT INTO activity_logs (user_id, profile_id, activity_type, activity_description, metadata) VALUES (?, ?, ?, ?, ?)',
+          [userId, profileId, activityType, description, metadata ? JSON.stringify(metadata) : null],
+          (err) => {
+            if (err) console.error('Activity log error:', err.message);
+          }
+        );
+      }
+    });
+  } else {
+    // No profile_id provided, log without it
+    db.run(
+      'INSERT INTO activity_logs (user_id, activity_type, activity_description, metadata) VALUES (?, ?, ?, ?)',
+      [userId, activityType, description, metadata ? JSON.stringify(metadata) : null],
+      (err) => {
+        if (err) console.error('Activity log error:', err.message);
+      }
+    );
+  }
 }
 
 function activityLogger(req, res, next) {
@@ -18,8 +45,7 @@ function activityLogger(req, res, next) {
   
   req.logActivity = (type, description, metadata) => {
     if (userId) {
-      // Only log if we have a valid userId, profileId is optional
-      logActivity(userId, profileId || null, type, description, metadata);
+      logActivity(userId, profileId, type, description, metadata);
     }
   };
   

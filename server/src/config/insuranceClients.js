@@ -86,7 +86,7 @@ const insuranceClients = {
           thank_you_sent: 'Thankyou message sent yes/no',
           new_policy_no: 'NEW POLICY NO',
           new_company: 'NEW POLICY COMPANY',
-          product_type: 'Product TYPE',
+          product_type: 'Product Type',
           product_model: 'Product Model',
           vertical: 'TYPE',
           notes: 'REMARKS',
