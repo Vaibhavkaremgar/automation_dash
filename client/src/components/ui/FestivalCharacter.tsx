@@ -16,24 +16,24 @@ export default function FestivalCharacter() {
       case 'Christmas':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/2913/2913133.png" 
-            alt="Santa Sleigh" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f385.svg" 
+            alt="Santa" 
             className="h-20 w-auto"
           />
         );
       case 'Diwali':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/2917/2917995.png" 
-            alt="Diwali Diya" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1fa94.svg" 
+            alt="Diya" 
             className="h-16 w-auto"
           />
         );
       case 'Holi':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/3242/3242257.png" 
-            alt="Holi Colors" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f3a8.svg" 
+            alt="Holi" 
             className="h-20 w-auto"
           />
         );
@@ -41,72 +41,70 @@ export default function FestivalCharacter() {
       case 'Eid ul-Adha':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/3242/3242452.png" 
-            alt="Eid Mosque" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f54c.svg" 
+            alt="Mosque" 
             className="h-20 w-auto"
           />
         );
       case 'Ganesh Chaturthi':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/2917/2917777.png" 
-            alt="Ganesha" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f418.svg" 
+            alt="Elephant" 
             className="h-20 w-auto"
           />
         );
       case 'Navratri':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/3242/3242310.png" 
-            alt="Navratri Dancer" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f483.svg" 
+            alt="Dancer" 
             className="h-20 w-auto"
           />
         );
       case 'Easter':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/2913/2913145.png" 
-            alt="Easter Bunny" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f430.svg" 
+            alt="Bunny" 
             className="h-18 w-auto"
           />
         );
       case 'New Year':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/3242/3242082.png" 
-            alt="New Year Celebration" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f389.svg" 
+            alt="Party" 
             className="h-20 w-auto"
           />
         );
       case 'Raksha Bandhan':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/3242/3242336.png" 
-            alt="Rakhi" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f380.svg" 
+            alt="Ribbon" 
             className="h-16 w-auto"
           />
         );
       case 'Janmashtami':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/2917/2917826.png" 
-            alt="Krishna" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f99a.svg" 
+            alt="Peacock" 
             className="h-20 w-auto"
           />
         );
       case 'Dussehra':
         return (
           <img 
-            src="https://cdn-icons-png.flaticon.com/512/3242/3242289.png" 
-            alt="Dussehra" 
+            src="https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f3f9.svg" 
+            alt="Bow" 
             className="h-20 w-auto"
           />
         );
       default:
         return (
-          <div className="flex items-center gap-2">
-            <span className="text-5xl">{festival.theme.emoji}</span>
-          </div>
+          <div className="text-5xl">{festival.theme.emoji}</div>
         );
     }
   };
