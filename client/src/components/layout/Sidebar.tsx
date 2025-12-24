@@ -79,7 +79,7 @@ export default memo(function Sidebar() {
         <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-600 to-transparent mb-4"></div>
         
         {sidebarTitle && (
-          <div className="text-lg font-semibold text-white text-center festival-logo-cap">
+          <div className="text-lg font-semibold text-white text-center">
             {sidebarTitle.replace(/🏢\s*/, '')}
           </div>
         )}

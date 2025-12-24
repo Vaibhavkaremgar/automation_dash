@@ -1,117 +1,26 @@
-/* Festival Theme - Proper Visual Elements */
+/* Festival Theme - Floating Particles */
 
-/* Christmas/Festival decorations with images */
-.festival-fireworks,
-.festival-flowers,
-.festival-lights,
-.festival-stars {
-  position: relative;
-}
-
-/* Confetti falling animation */
-.festival-fireworks::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background-image: 
-    linear-gradient(transparent 0%, transparent 50%, rgba(255, 215, 0, 0.3) 50%, rgba(255, 215, 0, 0.3) 100%),
-    linear-gradient(90deg, transparent 0%, transparent 50%, rgba(255, 69, 0, 0.3) 50%, rgba(255, 69, 0, 0.3) 100%);
-  background-size: 20px 20px, 20px 20px;
-  animation: confettiFall 10s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes confettiFall {
-  0% { background-position: 0 0, 0 0; }
-  100% { background-position: 0 100vh, 100vw 100vh; }
-}
-
-/* Snowflakes for Christmas */
-.festival-stars::before,
-.festival-stars::after {
-  content: '❄';
-  position: absolute;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 2rem;
-  animation: snowfall 8s linear infinite;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-}
-
-.festival-stars::before {
-  left: 20%;
-  animation-delay: 0s;
-}
-
-.festival-stars::after {
-  left: 70%;
-  animation-delay: 4s;
-}
-
-@keyframes snowfall {
-  0% { top: -10%; opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { top: 100%; opacity: 0; }
+@keyframes floatParticle {
+  0%, 100% {
+    transform: translateY(0) translateX(0) rotate(0deg);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translateY(-20px) translateX(10px) rotate(90deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-40px) translateX(-10px) rotate(180deg);
+    opacity: 0.8;
+  }
+  75% {
+    transform: translateY(-20px) translateX(10px) rotate(270deg);
+    opacity: 0.6;
+  }
 }
 
 /* Gradient animation */
 @keyframes gradientShift {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
-}
-
-/* Christmas cap on logo */
-.festival-logo-cap {
-  position: relative;
-  display: inline-block;
-}
-
-.festival-logo-cap::before {
-  content: '';
-  position: absolute;
-  top: -15px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 35px;
-  background: 
-    linear-gradient(135deg, #dc143c 0%, #dc143c 60%, transparent 60%),
-    linear-gradient(225deg, #dc143c 0%, #dc143c 60%, transparent 60%);
-  background-size: 50% 100%;
-  background-position: left, right;
-  background-repeat: no-repeat;
-  border-radius: 20px 20px 0 0;
-  z-index: 10;
-}
-
-.festival-logo-cap::after {
-  content: '';
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 12px;
-  height: 12px;
-  background: white;
-  border-radius: 50%;
-  z-index: 11;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
-}
-
-/* Mobile Responsive */
-@media (max-width: 768px) {
-  .festival-logo-cap::before {
-    width: 30px;
-    height: 25px;
-    top: -12px;
-  }
-  
-  .festival-logo-cap::after {
-    width: 8px;
-    height: 8px;
-    top: -14px;
-  }
 }

@@ -28,33 +28,23 @@ export default function FestivalDecorations() {
         background: `linear-gradient(135deg, ${festival.theme.colors.primary}08 0%, ${festival.theme.colors.secondary}08 50%, ${festival.theme.colors.accent}08 100%)`
       }}
     >
-      {/* Santa GIF - Top Right */}
-      {festival.name === 'Christmas' && (
-        <img 
-          src="https://media.giphy.com/media/3o6ZsZdNs3yE5l6hWM/giphy.gif" 
-          alt="Santa" 
-          className="absolute top-4 right-4 w-32 h-32 opacity-80"
-          style={{ mixBlendMode: 'screen' }}
-        />
-      )}
-      
-      {/* Diwali Diya GIF */}
-      {festival.name === 'Diwali' && (
-        <img 
-          src="https://media.giphy.com/media/l0HlDtKDqfGMZHHKo/giphy.gif" 
-          alt="Diya" 
-          className="absolute top-4 right-4 w-32 h-32 opacity-80"
-        />
-      )}
-      
-      {/* Holi Colors GIF */}
-      {festival.name === 'Holi' && (
-        <img 
-          src="https://media.giphy.com/media/26BRuo6sLetdllPAQ/giphy.gif" 
-          alt="Holi" 
-          className="absolute top-4 right-4 w-32 h-32 opacity-80"
-        />
-      )}
+      {/* Floating festival particles */}
+      <div className="absolute inset-0">
+        {[...Array(15)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute text-2xl opacity-60"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `floatParticle ${5 + Math.random() * 5}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 5}s`
+            }}
+          >
+            {festival.theme.emoji}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
