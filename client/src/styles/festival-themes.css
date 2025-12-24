@@ -1,219 +1,60 @@
-/* Festival Theme Animations - Pure CSS, No Emojis */
+/* Festival Theme - Proper Visual Elements */
 
-/* Fireworks Animation */
-.festival-fireworks {
-  position: relative;
-}
-
-.festival-fireworks::before,
-.festival-fireworks::after {
-  content: '';
-  position: absolute;
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 215, 0, 0.8) 0%, rgba(255, 69, 0, 0.4) 50%, transparent 70%);
-  animation: explode 2s infinite;
-}
-
-.festival-fireworks::before {
-  top: 10%;
-  left: 15%;
-  box-shadow: 
-    0 0 20px rgba(255, 215, 0, 0.8),
-    0 0 40px rgba(255, 69, 0, 0.6),
-    0 0 60px rgba(255, 215, 0, 0.4);
-}
-
-.festival-fireworks::after {
-  top: 15%;
-  right: 15%;
-  animation-delay: 1s;
-  box-shadow: 
-    0 0 20px rgba(255, 20, 147, 0.8),
-    0 0 40px rgba(138, 43, 226, 0.6),
-    0 0 60px rgba(255, 20, 147, 0.4);
-}
-
-@keyframes explode {
-  0% { transform: scale(0); opacity: 0; }
-  50% { transform: scale(1.5); opacity: 1; }
-  100% { transform: scale(2); opacity: 0; }
-}
-
-/* Flowers Animation */
-.festival-flowers {
-  position: relative;
-}
-
-.festival-flowers::before,
-.festival-flowers::after {
-  content: '';
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  background: 
-    radial-gradient(circle at 30% 30%, rgba(255, 105, 180, 0.9) 0%, transparent 50%),
-    radial-gradient(circle at 70% 30%, rgba(255, 20, 147, 0.9) 0%, transparent 50%),
-    radial-gradient(circle at 50% 70%, rgba(255, 182, 193, 0.9) 0%, transparent 50%);
-  border-radius: 50%;
-  animation: bloom 3s infinite ease-in-out;
-  filter: blur(1px);
-}
-
-.festival-flowers::before {
-  top: 5%;
-  left: 10%;
-  box-shadow: 0 0 30px rgba(255, 105, 180, 0.6);
-}
-
-.festival-flowers::after {
-  top: 8%;
-  right: 10%;
-  animation-delay: 1.5s;
-  box-shadow: 0 0 30px rgba(255, 20, 147, 0.6);
-}
-
-@keyframes bloom {
-  0%, 100% { transform: scale(0.8) rotate(0deg); opacity: 0.7; }
-  50% { transform: scale(1.2) rotate(180deg); opacity: 1; }
-}
-
-/* Lights Animation (Diwali) */
-.festival-lights {
-  position: relative;
-}
-
-.festival-lights::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: 
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 215, 0, 0.8) 0px,
-      rgba(255, 165, 0, 0.8) 40px,
-      rgba(255, 69, 0, 0.8) 80px,
-      rgba(255, 20, 147, 0.8) 120px,
-      rgba(138, 43, 226, 0.8) 160px,
-      rgba(255, 215, 0, 0.8) 200px
-    );
-  mask: radial-gradient(circle, black 30%, transparent 70%);
-  mask-size: 40px 40px;
-  animation: lightString 2s linear infinite;
-  filter: blur(2px);
-}
-
-.festival-lights::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: 
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 69, 0, 0.8) 0px,
-      rgba(255, 215, 0, 0.8) 40px,
-      rgba(138, 43, 226, 0.8) 80px,
-      rgba(255, 20, 147, 0.8) 120px,
-      rgba(255, 165, 0, 0.8) 160px,
-      rgba(255, 69, 0, 0.8) 200px
-    );
-  mask: radial-gradient(circle, black 30%, transparent 70%);
-  mask-size: 40px 40px;
-  animation: lightString 2s linear infinite reverse;
-  filter: blur(2px);
-}
-
-@keyframes lightString {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
-}
-
-/* Stars Animation */
+/* Christmas/Festival decorations with images */
+.festival-fireworks,
+.festival-flowers,
+.festival-lights,
 .festival-stars {
   position: relative;
 }
 
-.festival-stars::before,
-.festival-stars::after {
+/* Confetti falling animation */
+.festival-fireworks::before {
   content: '';
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-left: 25px solid transparent;
-  border-right: 25px solid transparent;
-  border-bottom: 40px solid rgba(255, 215, 0, 0.9);
-  animation: starTwinkle 2s infinite;
-  filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.8));
-}
-
-.festival-stars::before {
-  top: 10%;
-  left: 20%;
-}
-
-.festival-stars::after {
-  top: 12%;
-  right: 20%;
-  animation-delay: 1s;
-  border-bottom-color: rgba(255, 255, 255, 0.9);
-  filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
-}
-
-@keyframes starTwinkle {
-  0%, 100% { transform: scale(0.8) rotate(0deg); opacity: 0.6; }
-  50% { transform: scale(1.3) rotate(180deg); opacity: 1; }
-}
-
-/* Decoration Overlay */
-.festival-decoration-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  height: 100%;
+  background-image: 
+    linear-gradient(transparent 0%, transparent 50%, rgba(255, 215, 0, 0.3) 50%, rgba(255, 215, 0, 0.3) 100%),
+    linear-gradient(90deg, transparent 0%, transparent 50%, rgba(255, 69, 0, 0.3) 50%, rgba(255, 69, 0, 0.3) 100%);
+  background-size: 20px 20px, 20px 20px;
+  animation: confettiFall 10s linear infinite;
   pointer-events: none;
-  background: 
-    radial-gradient(circle at 15% 25%, rgba(255, 215, 0, 0.15) 1px, transparent 1px),
-    radial-gradient(circle at 85% 35%, rgba(255, 105, 180, 0.15) 1px, transparent 1px),
-    radial-gradient(circle at 45% 55%, rgba(0, 255, 255, 0.15) 1px, transparent 1px),
-    radial-gradient(circle at 25% 75%, rgba(255, 69, 0, 0.15) 1px, transparent 1px),
-    radial-gradient(circle at 75% 85%, rgba(138, 43, 226, 0.15) 1px, transparent 1px);
-  background-size: 100px 100px;
-  animation: particleFloat 8s linear infinite;
 }
 
-@keyframes particleFloat {
-  0% { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
-  100% { background-position: 100px 100px, -100px 100px, 50px -100px, -50px 100px, 100px -100px; }
+@keyframes confettiFall {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 0 100vh, 100vw 100vh; }
 }
 
-/* Pulsing glow */
-.festival-fireworks .festival-decoration-overlay::before,
-.festival-flowers .festival-decoration-overlay::before,
-.festival-lights .festival-decoration-overlay::before,
-.festival-stars .festival-decoration-overlay::before {
-  content: '';
+/* Snowflakes for Christmas */
+.festival-stars::before,
+.festival-stars::after {
+  content: '❄';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(255, 215, 0, 0.15) 0%, transparent 70%);
-  animation: glowPulse 4s infinite;
-  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 2rem;
+  animation: snowfall 8s linear infinite;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
 }
 
-@keyframes glowPulse {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
-  50% { transform: translate(-50%, -50%) scale(1.8); opacity: 0.6; }
+.festival-stars::before {
+  left: 20%;
+  animation-delay: 0s;
+}
+
+.festival-stars::after {
+  left: 70%;
+  animation-delay: 4s;
+}
+
+@keyframes snowfall {
+  0% { top: -10%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
 }
 
 /* Gradient animation */
@@ -222,29 +63,55 @@
   100% { background-position: 200% 50%; }
 }
 
+/* Christmas cap on logo */
+.festival-logo-cap {
+  position: relative;
+  display: inline-block;
+}
+
+.festival-logo-cap::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 35px;
+  background: 
+    linear-gradient(135deg, #dc143c 0%, #dc143c 60%, transparent 60%),
+    linear-gradient(225deg, #dc143c 0%, #dc143c 60%, transparent 60%);
+  background-size: 50% 100%;
+  background-position: left, right;
+  background-repeat: no-repeat;
+  border-radius: 20px 20px 0 0;
+  z-index: 10;
+}
+
+.festival-logo-cap::after {
+  content: '';
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  z-index: 11;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
-  .festival-fireworks::before,
-  .festival-fireworks::after {
-    width: 50px;
-    height: 50px;
+  .festival-logo-cap::before {
+    width: 30px;
+    height: 25px;
+    top: -12px;
   }
   
-  .festival-flowers::before,
-  .festival-flowers::after {
-    width: 40px;
-    height: 40px;
-  }
-  
-  .festival-lights::before,
-  .festival-lights::after {
-    height: 30px;
-  }
-  
-  .festival-stars::before,
-  .festival-stars::after {
-    border-left-width: 15px;
-    border-right-width: 15px;
-    border-bottom-width: 25px;
+  .festival-logo-cap::after {
+    width: 8px;
+    height: 8px;
+    top: -14px;
   }
 }
