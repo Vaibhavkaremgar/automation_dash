@@ -25,7 +25,8 @@ export default function FestivalDecorations() {
     <div 
       className={`fixed inset-0 pointer-events-none z-0 ${getDecorationClass()}`}
       style={{
-        background: `linear-gradient(135deg, ${festival.theme.colors.primary}05 0%, ${festival.theme.colors.secondary}05 50%, ${festival.theme.colors.accent}05 100%)`
+        background: `linear-gradient(135deg, ${festival.theme.colors.primary}12 0%, ${festival.theme.colors.secondary}12 50%, ${festival.theme.colors.accent}12 100%)`,
+        backdropFilter: 'blur(0.5px)'
       }}
     >
       <div className="festival-decoration-overlay" />

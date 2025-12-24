@@ -27,32 +27,53 @@ export default function FestivalBanner() {
 
   return (
     <div 
-      className="relative overflow-hidden border-b border-slate-700/50"
+      className="relative overflow-hidden border-b-2"
       style={{
-        background: `linear-gradient(135deg, ${festival.theme.colors.primary}15 0%, ${festival.theme.colors.secondary}15 50%, ${festival.theme.colors.accent}15 100%)`
+        background: `linear-gradient(135deg, ${festival.theme.colors.primary}25 0%, ${festival.theme.colors.secondary}25 50%, ${festival.theme.colors.accent}25 100%)`,
+        borderColor: festival.theme.colors.primary,
+        boxShadow: `0 4px 12px ${festival.theme.colors.primary}40`
       }}
     >
-      <div className="relative z-10 flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3 flex-1">
-          <span className="text-3xl animate-bounce">{festival.theme.emoji}</span>
+      <div className="relative z-10 flex items-center justify-between px-4 py-4">
+        <div className="flex items-center gap-4 flex-1">
+          <div 
+            className="w-12 h-12 rounded-full animate-pulse"
+            style={{
+              background: `radial-gradient(circle, ${festival.theme.colors.primary}, ${festival.theme.colors.secondary})`,
+              boxShadow: `0 0 20px ${festival.theme.colors.primary}80`
+            }}
+          />
           <div>
             <h3 
-              className="font-semibold text-lg"
-              style={{ color: festival.theme.colors.primary }}
+              className="font-bold text-2xl"
+              style={{ 
+                color: festival.theme.colors.primary,
+                textShadow: `0 0 10px ${festival.theme.colors.primary}80`
+              }}
             >
               {festival.name}
             </h3>
-            <p className="text-sm text-slate-300">{festival.theme.greeting}</p>
+            <p className="text-base text-white font-medium mt-1">{festival.theme.greeting}</p>
           </div>
         </div>
         <button
           onClick={handleDismiss}
-          className="p-1 hover:bg-slate-700/50 rounded transition-colors"
+          className="p-2 hover:bg-slate-700/70 rounded-lg transition-colors border border-slate-600"
           aria-label="Dismiss"
         >
-          <X className="w-5 h-5 text-slate-400" />
+          <X className="w-6 h-6 text-slate-300" />
         </button>
       </div>
+      
+      {/* Animated border */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-1"
+        style={{
+          background: `linear-gradient(90deg, ${festival.theme.colors.primary}, ${festival.theme.colors.secondary}, ${festival.theme.colors.accent}, ${festival.theme.colors.primary})`,
+          backgroundSize: '200% 100%',
+          animation: 'gradientShift 3s linear infinite'
+        }}
+      />
     </div>
   );
 }
