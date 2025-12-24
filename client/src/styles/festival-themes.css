@@ -19,6 +19,16 @@
   }
 }
 
+/* Festival character sliding animation */
+@keyframes slideCharacter {
+  0% {
+    left: -100px;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
 /* Gradient animation */
 @keyframes gradientShift {
   0% { background-position: 0% 50%; }

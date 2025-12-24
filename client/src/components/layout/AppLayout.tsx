@@ -12,6 +12,7 @@ import NotificationBanner from '../ui/NotificationBanner'
 import SyncIndicator from '../ui/SyncIndicator'
 import FestivalBanner from '../ui/FestivalBanner'
 import FestivalDecorations from '../ui/FestivalDecorations'
+import FestivalCharacter from '../ui/FestivalCharacter'
 import { useAuth } from '../../context/AuthContext'
 import '../../styles/festival-themes.css'
 
@@ -42,6 +43,9 @@ export default function AppLayout() {
       
       {/* Festival Decorations - Shows 2 days before + festival + 2 days after */}
       <FestivalDecorations />
+      
+      {/* Festival Character - Moving across bottom */}
+      <FestivalCharacter />
       
       <Sidebar />
       
