@@ -1,0 +1,167 @@
+/* Festival Theme Animations */
+
+/* Fireworks Animation */
+.festival-fireworks {
+  position: relative;
+}
+
+.festival-fireworks::before {
+  content: '✨';
+  position: absolute;
+  top: 10%;
+  left: 20%;
+  font-size: 1.5rem;
+  animation: firework1 3s infinite;
+}
+
+.festival-fireworks::after {
+  content: '🎆';
+  position: absolute;
+  top: 20%;
+  right: 15%;
+  font-size: 1.5rem;
+  animation: firework2 3s infinite 1s;
+}
+
+@keyframes firework1 {
+  0%, 100% { opacity: 0; transform: scale(0) translateY(0); }
+  50% { opacity: 1; transform: scale(1.5) translateY(-20px); }
+}
+
+@keyframes firework2 {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.5) rotate(180deg); }
+}
+
+/* Flowers Animation */
+.festival-flowers {
+  position: relative;
+}
+
+.festival-flowers::before {
+  content: '🌸';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  font-size: 1.5rem;
+  animation: float1 4s infinite ease-in-out;
+}
+
+.festival-flowers::after {
+  content: '🌺';
+  position: absolute;
+  top: 0;
+  right: 10%;
+  font-size: 1.5rem;
+  animation: float2 4s infinite ease-in-out 1s;
+}
+
+@keyframes float1 {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(10px) rotate(10deg); }
+}
+
+@keyframes float2 {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(-10deg); }
+}
+
+/* Lights Animation (Diwali) */
+.festival-lights {
+  position: relative;
+}
+
+.festival-lights::before {
+  content: '💡';
+  position: absolute;
+  top: 5px;
+  left: 15%;
+  font-size: 1.2rem;
+  animation: blink1 1.5s infinite;
+}
+
+.festival-lights::after {
+  content: '🪔';
+  position: absolute;
+  top: 5px;
+  right: 15%;
+  font-size: 1.2rem;
+  animation: blink2 1.5s infinite 0.5s;
+}
+
+@keyframes blink1 {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes blink2 {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Stars Animation */
+.festival-stars {
+  position: relative;
+}
+
+.festival-stars::before {
+  content: '⭐';
+  position: absolute;
+  top: 10%;
+  left: 25%;
+  font-size: 1.2rem;
+  animation: twinkle1 2s infinite;
+}
+
+.festival-stars::after {
+  content: '✨';
+  position: absolute;
+  top: 15%;
+  right: 25%;
+  font-size: 1.2rem;
+  animation: twinkle2 2s infinite 0.7s;
+}
+
+@keyframes twinkle1 {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes twinkle2 {
+  0%, 100% { opacity: 0.4; transform: scale(0.9) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.1) rotate(180deg); }
+}
+
+/* Decoration Overlay */
+.festival-decoration-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.1;
+  background: radial-gradient(circle at 20% 50%, currentColor 1px, transparent 1px),
+              radial-gradient(circle at 80% 50%, currentColor 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.05; }
+  50% { opacity: 0.15; }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .festival-fireworks::before,
+  .festival-fireworks::after,
+  .festival-flowers::before,
+  .festival-flowers::after,
+  .festival-lights::before,
+  .festival-lights::after,
+  .festival-stars::before,
+  .festival-stars::after {
+    font-size: 1rem;
+  }
+}
