@@ -10,12 +10,17 @@ router.get('/config', authRequired, async (req, res) => {
     const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
     const config = getClientConfig(user.email);
     
-    // Try to get sheet headers for general tab
+    // Get vertical from query param, default to 'general'
+    const vertical = req.query.vertical || 'general';
+    const tabConfig = config.tabs?.[vertical] || config.tabs?.general;
+    
+    // Try to get sheet headers for the requested vertical
     let sheetHeaders = [];
     try {
       const { getSheetHeaders } = require('../services/sheetFieldsService');
-      const generalTab = config.tabs?.general?.tab || 'general_ins';
-      sheetHeaders = await getSheetHeaders(config.spreadsheetId, generalTab);
+      const tabName = tabConfig?.tab || 'general_ins';
+      sheetHeaders = await getSheetHeaders(config.spreadsheetId, tabName);
+      console.log(`📋 Loaded ${sheetHeaders.length} headers for ${vertical} from tab: ${tabName}`);
     } catch (err) {
       console.error('Failed to fetch sheet headers:', err.message);
     }
@@ -24,9 +29,10 @@ router.get('/config', authRequired, async (req, res) => {
       clientKey: config.key,
       name: config.name,
       spreadsheetId: config.spreadsheetId,
-      tabName: config.tabs?.general?.tab || 'general_ins',
+      tabName: tabConfig?.tab || 'general_ins',
       tabs: config.tabs,
-      sheetHeaders: sheetHeaders
+      sheetHeaders: sheetHeaders,
+      vertical: vertical
     });
   } catch (error) {
     console.error('Insurance config error:', error);

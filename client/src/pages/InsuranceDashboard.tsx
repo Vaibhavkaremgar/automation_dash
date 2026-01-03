@@ -95,6 +95,7 @@ export default function InsuranceDashboard() {
   const [showAll30Days, setShowAll30Days] = useState(false);
   const [showAllRenewed, setShowAllRenewed] = useState(false);
   const [showAllCustomers, setShowAllCustomers] = useState(false);
+  const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
 
   const getCurrentTab = () => {
     const path = location.pathname;
@@ -181,6 +182,11 @@ export default function InsuranceDashboard() {
     };
   }, []);
 
+  // Reload config when vertical filter changes
+  useEffect(() => {
+    loadClientConfig();
+  }, [verticalFilter]);
+
   useEffect(() => {
     if (currentTab === 'renewals') {
       loadRenewalStats();
@@ -211,10 +217,12 @@ export default function InsuranceDashboard() {
   };
 
   const getDisplayDate = (customer: Customer) => {
-    if (customer.vertical === 'motor') {
-      return customer.od_expiry_date || customer.renewal_date;
-    }
-    return customer.renewal_date;
+    // Always prioritize renewal_date (MODIFIED EXPIRY DATE) first
+    // Fall back to od_expiry_date (DATE OF EXPIRY) if renewal_date is empty
+    const modifiedDate = customer.renewal_date?.trim();
+    const originalDate = customer.od_expiry_date?.trim();
+    
+    return modifiedDate || originalDate || '';
   };
 
   const getDaysUntilExpiry = (customer: Customer) => {
@@ -269,55 +277,41 @@ export default function InsuranceDashboard() {
       });
     }
     
-    const overdue = filtered.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due');
-    const expiringToday = filtered.filter(c => getDaysUntilExpiry(c) === 0 && c.status.trim().toLowerCase() === 'due');
-    const expiring1Day = filtered.filter(c => getDaysUntilExpiry(c) === 1 && c.status.trim().toLowerCase() === 'due');
+    const sortByExpiry = (a: Customer, b: Customer) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b);
+    
+    const expiringToday = filtered.filter(c => getDaysUntilExpiry(c) === 0 && c.status.trim().toLowerCase() === 'due').sort(sortByExpiry);
+    const expiring1Day = filtered.filter(c => getDaysUntilExpiry(c) === 1 && c.status.trim().toLowerCase() === 'due').sort(sortByExpiry);
+    const expiring3 = filtered.filter(c => {
+      const days = getDaysUntilExpiry(c);
+      return days >= 2 && days <= 3 && c.status.trim().toLowerCase() === 'due';
+    }).sort(sortByExpiry);
     const expiring7 = filtered.filter(c => {
       const days = getDaysUntilExpiry(c);
-      return days >= 2 && days <= 7 && c.status.trim().toLowerCase() === 'due';
-    });
+      return days >= 4 && days <= 7 && c.status.trim().toLowerCase() === 'due';
+    }).sort(sortByExpiry);
     const expiring15 = filtered.filter(c => {
       const days = getDaysUntilExpiry(c);
       return days > 7 && days <= 15 && c.status.trim().toLowerCase() === 'due';
-    });
+    }).sort(sortByExpiry);
     const expiring30 = filtered.filter(c => {
       const days = getDaysUntilExpiry(c);
       return days > 15 && days <= 30 && c.status.trim().toLowerCase() === 'due';
-    });
-    const renewed = filtered.filter(c => c.status.trim().toLowerCase() === 'renewed');
+    }).sort(sortByExpiry);
+    const overdue = filtered.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').sort(sortByExpiry);
+    const renewed = filtered.filter(c => c.status.trim().toLowerCase() === 'renewed').sort(sortByExpiry);
     
-    return { overdue, expiringToday, expiring1Day, expiring7, expiring15, expiring30, renewed };
+    return { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed };
   };
 
-  const handleBulkStatusToggle = async () => {
+  const handleBulkStatusUpdate = async (newStatus: string) => {
     if (selectedCustomers.length === 0) {
       alert('Please select customers');
       return;
     }
     
-    // Check if all selected customers have the same status
     const selectedCustomerData = customers.filter(c => selectedCustomers.includes(c.id));
-    const allPending = selectedCustomerData.every(c => c.status.trim().toLowerCase() === 'due');
-    const allDone = selectedCustomerData.every(c => c.status.trim().toLowerCase() === 'renewed');
-    
-    let newStatus = '';
-    let action = '';
-    
-    if (allPending) {
-      newStatus = 'renewed';
-      action = 'renewed';
-    } else if (allDone) {
-      newStatus = 'due';
-      action = 'marked as due';
-    } else {
-      // Mixed statuses - ask user
-      const confirmAction = confirm('Selected customers have mixed statuses. Mark all as Renewed?');
-      newStatus = confirmAction ? 'renewed' : 'due';
-      action = confirmAction ? 'renewed' : 'marked as due';
-    }
     
     try {
-      // Update each customer
       for (const customerId of selectedCustomers) {
         await api.put(`/api/insurance/customers/${customerId}`, {
           ...customers.find(c => c.id === customerId),
@@ -329,7 +323,6 @@ export default function InsuranceDashboard() {
         tabName: SHEET_TAB_NAME
       });
       
-      // Send thank you messages if marked as renewed
       if (newStatus === 'renewed' && confirm('Send Thank You messages via WhatsApp to renewed customers?')) {
         selectedCustomerData.forEach(customer => {
           const message = generateThankYouMessage({ 
@@ -337,7 +330,10 @@ export default function InsuranceDashboard() {
             renewalDate: getDisplayDate(customer),
             policyNumber: customer.current_policy_no,
             companyName: customer.company,
-            premiumAmount: customer.premium?.toString()
+            premiumAmount: customer.premium?.toString(),
+            clientKey,
+            vehicleNumber: customer.registration_no,
+            productModel: customer.product
           });
           window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
         });
@@ -345,7 +341,7 @@ export default function InsuranceDashboard() {
       
       setSelectedCustomers([]);
       loadData();
-      alert(`${selectedCustomers.length} customers ${action}`);
+      alert(`${selectedCustomers.length} customers marked as ${newStatus}`);
     } catch (error) {
       console.error('Failed to update status:', error);
       alert('Failed to update customer status');
@@ -423,18 +419,20 @@ export default function InsuranceDashboard() {
   };
 
   const renderRenewalCard = (customer: Customer, daysLabel: string, colorClass: string, isRenewed: boolean = false) => (
-    <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass}`}>
+    <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
       <div className="flex items-start gap-3">
         <input
           type="checkbox"
           checked={selectedCustomers.includes(customer.id)}
-          onChange={() => toggleCustomerSelection(customer.id)}
+          onChange={(e) => { e.stopPropagation(); toggleCustomerSelection(customer.id); }}
+          onClick={(e) => e.stopPropagation()}
           className="w-4 h-4 flex-shrink-0 mt-1"
         />
         <div className="flex-1 min-w-0">
           <h4 className="font-medium text-white text-sm">{customer.name}</h4>
           <p className="text-xs text-slate-300">{customer.registration_no} - {customer.company}</p>
-          <p className="text-xs font-medium mt-1 text-slate-400">{daysLabel}</p>
+          {customer.g_code && <p className="text-xs text-cyan-400 font-medium">G Code: {customer.g_code}</p>}
+          <p className="text-xs font-medium mt-1 text-orange-400">Renewal: {getDisplayDate(customer)}</p>
           <p className="font-bold text-white text-base mt-1">₹{customer.premium?.toLocaleString()}</p>
         </div>
         <div className="hidden md:flex gap-2 flex-shrink-0">
@@ -466,7 +464,9 @@ export default function InsuranceDashboard() {
                   policyNumber: customer.current_policy_no,
                   companyName: customer.company,
                   premiumAmount: customer.premium?.toString(),
-                  clientKey
+                  clientKey,
+                  vehicleNumber: customer.registration_no,
+                  productModel: customer.product
                 });
               } else {
                 message = generateRenewalReminder({ 
@@ -476,7 +476,9 @@ export default function InsuranceDashboard() {
                   policyNumber: customer.current_policy_no,
                   companyName: customer.company,
                   premiumAmount: customer.premium?.toString(),
-                  clientKey
+                  clientKey,
+                  vehicleNumber: customer.registration_no,
+                  productModel: customer.product
                 });
               }
               logWhatsAppMessage(customer.id, customer.name, message);
@@ -540,7 +542,9 @@ export default function InsuranceDashboard() {
                 policyNumber: customer.current_policy_no,
                 companyName: customer.company,
                 premiumAmount: customer.premium?.toString(),
-                clientKey
+                clientKey,
+                vehicleNumber: customer.registration_no,
+                productModel: customer.product
               });
             } else {
               message = generateRenewalReminder({ 
@@ -550,7 +554,9 @@ export default function InsuranceDashboard() {
                 policyNumber: customer.current_policy_no,
                 companyName: customer.company,
                 premiumAmount: customer.premium?.toString(),
-                clientKey
+                clientKey,
+                vehicleNumber: customer.registration_no,
+                productModel: customer.product
               });
             }
             logWhatsAppMessage(customer.id, customer.name, message);
@@ -589,12 +595,20 @@ export default function InsuranceDashboard() {
 
   const loadClientConfig = async () => {
     try {
-      const res = await api.get('/api/insurance-config/config');
+      const vertical = verticalFilter === 'life' ? 'life' : 'general';
+      const res = await api.get(`/api/insurance-config/config?vertical=${vertical}`);
       console.log('🔍 CLIENT CONFIG:', res.data);
       console.log('📋 SHEET FIELDS:', res.data.sheetHeaders);
       setClientConfig(res.data);
       setSheetFields(res.data.sheetHeaders || []);
       SHEET_TAB_NAME = res.data.tabName;
+      
+      // Log for debugging
+      if (!res.data.sheetHeaders || res.data.sheetHeaders.length === 0) {
+        console.error('⚠️ WARNING: No sheet headers loaded!');
+      } else {
+        console.log(`✅ Loaded ${res.data.sheetHeaders.length} sheet fields for ${vertical}`);
+      }
     } catch (error) {
       console.error('Failed to load client config:', error);
     }
@@ -629,7 +643,7 @@ export default function InsuranceDashboard() {
   };
 
   const handleAddCustomer = async () => {
-    if (!newCustomer.name || !newCustomer.mobile_number) {
+    if (!dynamicFormData.name || !dynamicFormData.mobile_number) {
       alert('Name and Mobile Number are required!');
       return;
     }
@@ -644,58 +658,25 @@ export default function InsuranceDashboard() {
         return date;
       };
       
-      const finalVertical = newCustomer.vertical === 'general' ? 'motor' : newCustomer.vertical;
-      
-      // renewal_date = modified_expiry_date if exists, else od_expiry_date (DATE OF EXPIRY)
-      const finalRenewalDate = newCustomer.modified_expiry_date 
-        ? convertDate(newCustomer.modified_expiry_date) 
-        : convertDate(newCustomer.renewal_date);
-      
-      await api.post('/api/insurance/customers', {
-        ...newCustomer,
-        vertical: finalVertical,
-        insurance_activated_date: convertDate(newCustomer.insurance_activated_date),
-        renewal_date: finalRenewalDate,
-        od_expiry_date: convertDate(newCustomer.renewal_date),
-        modified_expiry_date: convertDate(newCustomer.modified_expiry_date),
-        tp_expiry_date: convertDate(newCustomer.tp_expiry_date),
-        premium: parseFloat(newCustomer.premium) || 0,
-        veh_type: newCustomer.veh_type || '',
-        notes: newCustomer.notes || ''
+      const payload: any = {};
+      sheetFields.forEach(field => {
+        const key = field.toLowerCase().replace(/\s+/g, '_');
+        if (dynamicFormData[key] !== undefined) {
+          if (key.includes('date') || key.includes('expiry')) {
+            payload[key] = convertDate(dynamicFormData[key]);
+          } else if (key === 'premium' || key.includes('amount')) {
+            payload[key] = parseFloat(dynamicFormData[key]) || 0;
+          } else {
+            payload[key] = dynamicFormData[key];
+          }
+        }
       });
-      console.log('Customer added, syncing to sheet...');
-      try {
-        await api.post('/api/insurance/sync/to-sheet', {
-          tabName: SHEET_TAB_NAME
-        });
-        console.log('Sync to sheet successful');
-      } catch (syncError) {
-        console.error('Sync to sheet failed:', syncError);
-        alert('Customer added but sync to sheet failed. Check console.');
-      }
+      
+      await api.post('/api/insurance/customers', payload);
+      await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+      
       setShowAddModal(false);
-      setNewCustomer({
-        name: '',
-        mobile_number: '',
-        email: '',
-        current_policy_no: '',
-        company: '',
-        premium: '',
-        premium_mode: '',
-        renewal_date: '',
-        payment_date: '',
-        status: 'pending',
-        thank_you_sent: '',
-        vertical: 'motor',
-        registration_no: '',
-        last_year_premium: '',
-        od_expiry_date: '',
-        tp_expiry_date: '',
-        new_policy_no: '',
-        new_company: '',
-        product: '',
-        notes: ''
-      });
+      setDynamicFormData({});
       loadData();
     } catch (error) {
       console.error('Failed to add customer:', error);
@@ -716,31 +697,15 @@ export default function InsuranceDashboard() {
         return date;
       };
       
-      const finalVertical = editingCustomer.vertical === 'general' ? 'motor' : editingCustomer.vertical;
-      
-      console.log('Updating customer:', editingCustomer.id);
-      await api.put(`/api/insurance/customers/${editingCustomer.id}`, {
-        ...editingCustomer,
-        vertical: finalVertical,
-        insurance_activated_date: convertDate(editingCustomer.insurance_activated_date),
-        renewal_date: convertDate(editingCustomer.renewal_date),
-        od_expiry_date: convertDate(editingCustomer.od_expiry_date),
-        modified_expiry_date: convertDate(editingCustomer.modified_expiry_date),
-        tp_expiry_date: convertDate(editingCustomer.tp_expiry_date),
-        veh_type: editingCustomer.veh_type || '',
-        notes: editingCustomer.notes || ''
+      const payload: any = { ...editingCustomer };
+      Object.keys(payload).forEach(key => {
+        if (key.includes('date') || key.includes('expiry')) {
+          payload[key] = convertDate(payload[key]);
+        }
       });
-      console.log('Customer updated, syncing to sheet...');
       
-      try {
-        await api.post('/api/insurance/sync/to-sheet', {
-          tabName: SHEET_TAB_NAME
-        });
-        console.log('Sync successful');
-      } catch (syncError) {
-        console.error('Sync failed but customer updated:', syncError);
-        alert('Customer updated but sync to sheet failed');
-      }
+      await api.put(`/api/insurance/customers/${editingCustomer.id}`, payload);
+      await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
       
       setEditingCustomer(null);
       loadData();
@@ -791,11 +756,16 @@ export default function InsuranceDashboard() {
   };
 
   const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      customer.mobile_number.includes(searchTerm) ||
-      customer.registration_no.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    
+    // Search through ALL customer fields dynamically
+    return Object.values(customer).some(value => {
+      if (value === null || value === undefined) return false;
+      return String(value).toLowerCase().includes(searchLower);
+    });
+  }).filter(customer => {
     const matchesStatus = statusFilter === 'all' || customer.status.trim().toLowerCase() === statusFilter.toLowerCase();
-    return matchesSearch && matchesStatus;
+    return matchesStatus;
   });
 
   if (loading) {
@@ -816,14 +786,14 @@ export default function InsuranceDashboard() {
   };
 
   const renderDashboardTab = () => {
-    const { overdue, expiringToday, expiring1Day, expiring7 } = categorizeCustomers();
-    const todayTasks = [...overdue, ...expiringToday, ...expiring1Day, ...expiring7];
+    const { expiringToday, expiring1Day, expiring3, expiring7 } = categorizeCustomers();
+    const todayTasks = [...expiringToday, ...expiring1Day, ...expiring3, ...expiring7];
     
     console.log('📊 Dashboard Debug:');
     console.log('Total customers:', customers.length);
-    console.log('Overdue:', overdue.length);
     console.log('Expiring today:', expiringToday.length);
     console.log('Expiring 1 day:', expiring1Day.length);
+    console.log('Expiring 3 days:', expiring3.length);
     console.log('Expiring 7 days:', expiring7.length);
     console.log('Today tasks:', todayTasks.length);
     if (customers.length > 0) {
@@ -883,6 +853,7 @@ export default function InsuranceDashboard() {
                         <div>
                           <h4 className="text-sm font-medium text-white">{customer.name}</h4>
                           <p className="text-xs text-slate-300">{customer.registration_no} - {customer.company}</p>
+                          {customer.g_code && <p className="text-xs text-cyan-400 font-medium">G Code: {customer.g_code}</p>}
                           <p className="text-xs text-slate-400">Renewal: {displayDate}</p>
                           <p className={`text-xs font-medium mt-0.5 ${
                             isOverdue ? 'text-red-400' : 'text-orange-400'
@@ -920,7 +891,9 @@ export default function InsuranceDashboard() {
                                 policyNumber: customer.current_policy_no,
                                 companyName: customer.company,
                                 premiumAmount: customer.premium?.toString(),
-                                clientKey
+                                clientKey,
+                                vehicleNumber: customer.registration_no,
+                                productModel: customer.product
                               });
                             } else {
                               message = generateRenewalReminder({ 
@@ -930,7 +903,9 @@ export default function InsuranceDashboard() {
                                 policyNumber: customer.current_policy_no,
                                 companyName: customer.company,
                                 premiumAmount: customer.premium?.toString(),
-                                clientKey
+                                clientKey,
+                                vehicleNumber: customer.registration_no,
+                                productModel: customer.product
                               });
                             }
                             logWhatsAppMessage(customer.id, customer.name, message);
@@ -989,14 +964,14 @@ export default function InsuranceDashboard() {
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => { setDetailsModalTitle('Overdue Renewals'); setDetailsModalCustomers(overdue); setShowDetailsModal(true); }}>
-            <h4 className="text-xs text-red-300 mb-1">Overdue Renewals</h4>
-            <p className="text-2xl font-bold text-red-400">{overdue.length}</p>
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => { setDetailsModalTitle('Expiring Today'); setDetailsModalCustomers(expiringToday); setShowDetailsModal(true); }}>
+            <h4 className="text-xs text-red-300 mb-1">Expiring Today</h4>
+            <p className="text-2xl font-bold text-red-400">{expiringToday.length}</p>
             <Button 
               size="sm" 
               variant="outline" 
               className="mt-2 w-full text-xs"
-              onClick={(e) => { e.stopPropagation(); setDetailsModalTitle('Overdue Renewals'); setDetailsModalCustomers(overdue); setShowDetailsModal(true); }}
+              onClick={(e) => { e.stopPropagation(); setDetailsModalTitle('Expiring Today'); setDetailsModalCustomers(expiringToday); setShowDetailsModal(true); }}
             >
               View Details
             </Button>
@@ -1094,7 +1069,20 @@ export default function InsuranceDashboard() {
               >
                 {syncing ? 'Syncing...' : '📤 Sync to Sheets'}
               </Button>
-              
+              <Button 
+                onClick={() => {
+                  if (clientConfig?.spreadsheetId) {
+                    window.open(`https://docs.google.com/spreadsheets/d/${clientConfig.spreadsheetId}`, '_blank', 'noopener,noreferrer');
+                  } else {
+                    alert('Sheet URL not available');
+                  }
+                }}
+                variant="outline"
+                title="Open Google Sheet"
+                size="sm"
+              >
+                📊 Open Sheet
+              </Button>
             </div>
           </div>
         </div>
@@ -1188,7 +1176,7 @@ export default function InsuranceDashboard() {
 
 
   const renderRenewalsTab = () => {
-    const { overdue, expiringToday, expiring1Day, expiring7, expiring15, expiring30, renewed } = categorizeCustomers();
+    const { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed } = categorizeCustomers();
     
     return (
       <div className="space-y-6">
@@ -1240,17 +1228,17 @@ export default function InsuranceDashboard() {
 
           {/* Statistics - Fixed */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => document.getElementById('overdue-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className="text-xs text-red-300 mb-1">Overdue</h4>
-            <p className="text-2xl font-bold text-red-400">{overdue.length}</p>
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => document.getElementById('today-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <h4 className="text-xs text-red-300 mb-1">Expiring Today</h4>
+            <p className="text-2xl font-bold text-red-400">{expiringToday.length}</p>
           </div>
-          <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg cursor-pointer hover:bg-orange-500/20 transition-all" onClick={() => document.getElementById('expiring7-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className="text-xs text-orange-300 mb-1">Within 7 Days</h4>
-            <p className="text-2xl font-bold text-orange-400">{expiringToday.length + expiring1Day.length + expiring7.length}</p>
+          <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg cursor-pointer hover:bg-orange-500/20 transition-all" onClick={() => document.getElementById('expiring3-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <h4 className="text-xs text-orange-300 mb-1">Within 3 Days</h4>
+            <p className="text-2xl font-bold text-orange-400">{expiring1Day.length + expiring3.length}</p>
           </div>
-          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg cursor-pointer hover:bg-yellow-500/20 transition-all" onClick={() => document.getElementById('expiring30-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className="text-xs text-yellow-300 mb-1">Within 30 Days</h4>
-            <p className="text-2xl font-bold text-yellow-400">{expiring15.length + expiring30.length}</p>
+          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg cursor-pointer hover:bg-yellow-500/20 transition-all" onClick={() => document.getElementById('expiring7-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <h4 className="text-xs text-yellow-300 mb-1">Within 7 Days</h4>
+            <p className="text-2xl font-bold text-yellow-400">{expiring7.length}</p>
           </div>
           <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg cursor-pointer hover:bg-green-500/20 transition-all" onClick={() => document.getElementById('renewed-section')?.scrollIntoView({ behavior: 'smooth' })}>
             <h4 className="text-xs text-green-300 mb-1">Renewed</h4>
@@ -1262,55 +1250,51 @@ export default function InsuranceDashboard() {
         {/* Content Sections */}
         <div className="space-y-4">
 
-        {/* Bulk Actions */}
-        {selectedCustomers.length > 0 && (() => {
-          const selectedCustomerData = customers.filter(c => selectedCustomers.includes(c.id));
-          const allPending = selectedCustomerData.every(c => c.status.trim().toLowerCase() === 'due');
-          const allDone = selectedCustomerData.every(c => c.status.trim().toLowerCase() === 'renewed');
-          
-          let buttonText = 'Toggle Status';
-          if (allPending) buttonText = 'Mark as Renewed';
-          else if (allDone) buttonText = 'Mark as Pending';
-          
-          return (
-            <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 flex justify-between items-center">
-              <p className="text-white font-medium">{selectedCustomers.length} customers selected</p>
-              <Button onClick={handleBulkStatusToggle}>{buttonText}</Button>
+        {/* Bulk Actions - Sticky */}
+        {selectedCustomers.length > 0 && (
+          <div className="sticky top-0 z-20 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 backdrop-blur-md shadow-lg">
+            <p className="text-white font-semibold text-base">
+              <span className="bg-cyan-500/30 px-2 py-1 rounded">{selectedCustomers.length}</span> customer{selectedCustomers.length > 1 ? 's' : ''} selected
+            </p>
+            <div className="flex gap-2 items-center flex-wrap">
+              <span className="text-sm text-slate-200 font-medium">Mark as:</span>
+              <select 
+                className="px-4 py-2 border-2 border-cyan-500/50 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 focus:ring-2 focus:ring-cyan-500 transition-all cursor-pointer"
+                onChange={(e) => { if (e.target.value) handleBulkStatusUpdate(e.target.value); e.target.value = ''; }}
+                defaultValue=""
+              >
+                <option value="" disabled>Select Status</option>
+                <option value="due">🔴 DUE</option>
+                <option value="renewed">🟢 Renewed</option>
+                <option value="not renewed">⚫ Not Renewed</option>
+                <option value="inprocess">🔵 In Process</option>
+              </select>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setSelectedCustomers([])}
+                className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+              >
+                ✕ Clear Selection
+              </Button>
             </div>
-          );
-        })()}
+          </div>
+        )}
 
         {/* Show message if no renewals at all */}
-        {overdue.length === 0 && expiringToday.length === 0 && expiring1Day.length === 0 && expiring7.length === 0 && expiring15.length === 0 && expiring30.length === 0 && renewed.length === 0 && (
+        {expiringToday.length === 0 && expiring1Day.length === 0 && expiring3.length === 0 && expiring7.length === 0 && expiring15.length === 0 && expiring30.length === 0 && overdue.length === 0 && renewed.length === 0 && (
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-12 text-center">
             <p className="text-2xl text-slate-400">✅ No renewals to display</p>
             <p className="text-sm text-slate-500 mt-2">All customers are up to date!</p>
           </div>
         )}
 
-        {/* Overdue */}
-        {overdue.length > 0 && (
-          <div id="overdue-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-red-400">🔴 Overdue ({overdue.length})</h3>
-            <div className="space-y-3">
-              {overdue.slice(0, showAllOverdue ? overdue.length : 5).map(c => renderRenewalCard(c, `Overdue by ${Math.abs(getDaysUntilExpiry(c))} days`, 'border-red-500/50'))}
-            </div>
-            {overdue.length > 5 && (
-              <div className="text-center mt-4">
-                <Button variant="outline" onClick={() => setShowAllOverdue(!showAllOverdue)}>
-                  {showAllOverdue ? 'Show Less' : `Show All (${overdue.length - 5} more)`}
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Expiring Today */}
         {expiringToday.length > 0 && (
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div id="today-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-red-400">🚨 Expiring Today ({expiringToday.length})</h3>
             <div className="space-y-3">
-              {expiringToday.slice(0, showAllToday ? expiringToday.length : 5).map(c => renderRenewalCard(c, 'Expires TODAY', 'border-red-500/50'))}
+              {expiringToday.slice(0, showAllToday ? expiringToday.length : 5).map(c => renderRenewalCard(c, `Expires TODAY`, 'border-red-500/50'))}
             </div>
             {expiringToday.length > 5 && (
               <div className="text-center mt-4">
@@ -1322,7 +1306,7 @@ export default function InsuranceDashboard() {
           </div>
         )}
 
-        {/* Expiring in 1 Day */}
+        {/* Expiring Tomorrow */}
         {expiring1Day.length > 0 && (
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-orange-400">⚠️ Expiring Tomorrow ({expiring1Day.length})</h3>
@@ -1339,12 +1323,29 @@ export default function InsuranceDashboard() {
           </div>
         )}
 
+        {/* Expiring Within 3 Days */}
+        {expiring3.length > 0 && (
+          <div id="expiring3-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-orange-400">🟠 Expiring Within 3 Days ({expiring3.length})</h3>
+            <div className="space-y-3">
+              {expiring3.slice(0, showAll7Days ? expiring3.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-orange-500/50'))}
+            </div>
+            {expiring3.length > 5 && (
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAll7Days(!showAll7Days)}>
+                  {showAll7Days ? 'Show Less' : `Show All (${expiring3.length - 5} more)`}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Expiring Within 7 Days */}
         {expiring7.length > 0 && (
           <div id="expiring7-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-orange-400">🟠 Expiring Within 7 Days ({expiring7.length})</h3>
+            <h3 className="text-base font-semibold mb-3 text-yellow-400">🟡 Expiring Within 7 Days ({expiring7.length})</h3>
             <div className="space-y-3">
-              {expiring7.slice(0, showAll7Days ? expiring7.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-orange-500/50'))}
+              {expiring7.slice(0, showAll7Days ? expiring7.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-yellow-500/50'))}
             </div>
             {expiring7.length > 5 && (
               <div className="text-center mt-4">
@@ -1384,6 +1385,23 @@ export default function InsuranceDashboard() {
               <div className="text-center mt-4">
                 <Button variant="outline" onClick={() => setShowAll30Days(!showAll30Days)}>
                   {showAll30Days ? 'Show Less' : `Show All (${expiring30.length - 5} more)`}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Overdue */}
+        {overdue.length > 0 && (
+          <div id="overdue-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-red-500">🔴 Overdue ({overdue.length})</h3>
+            <div className="space-y-3">
+              {overdue.slice(0, showAllOverdue ? overdue.length : 5).map(c => renderRenewalCard(c, `${Math.abs(getDaysUntilExpiry(c))} days overdue`, 'border-red-600/50'))}
+            </div>
+            {overdue.length > 5 && (
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAllOverdue(!showAllOverdue)}>
+                  {showAllOverdue ? 'Show Less' : `Show All (${overdue.length - 5} more)`}
                 </Button>
               </div>
             )}
@@ -1495,58 +1513,7 @@ export default function InsuranceDashboard() {
         <div className="flex gap-3 items-center">
           {currentTab === 'customers' && (
             <Button onClick={() => {
-              const defaultVertical = verticalFilter === 'life' ? 'life' : 'general';
-              setNewCustomer({
-                name: '',
-                mobile_number: '',
-                email: '',
-                current_policy_no: '',
-                company: '',
-                premium: '',
-                premium_mode: '',
-                renewal_date: '',
-                payment_date: '',
-                status: 'due',
-                thank_you_sent: '',
-                vertical: defaultVertical,
-                registration_no: '',
-                last_year_premium: '',
-                od_expiry_date: '',
-                tp_expiry_date: '',
-                new_policy_no: '',
-                new_company: '',
-                product: '',
-                notes: '',
-                g_code: '',
-                modified_expiry_date: '',
-                type: '',
-                chq_no_date: '',
-                bank_name: '',
-                customer_id: '',
-                agent_code: '',
-                amount: '',
-                veh_type: '',
-                pancard: '',
-                aadhar_card: '',
-                others: '',
-                ag: '',
-                pol: '',
-                pt: '',
-                ppt: '',
-                md: '',
-                br: '',
-                summ: '',
-                payment_type: '',
-                phone_call: '',
-                sort: '',
-                com: '',
-                i_magic: '',
-                true_field: '',
-                prev_status: '',
-                prev_rank: '',
-                fam_earliest: '',
-                fc: ''
-              });
+              setDynamicFormData({});
               setShowAddModal(true);
             }}>
               Add Customer
@@ -1563,85 +1530,88 @@ export default function InsuranceDashboard() {
       {/* Add Customer Modal */}
       <Modal
         open={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={() => { setShowAddModal(false); setDynamicFormData({}); }}
         title="Add New Customer"
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
-          {verticalFilter === 'all' && (
-            <select className="w-full p-2 border rounded bg-slate-700 text-white" value={newCustomer.vertical} onChange={(e) => setNewCustomer({...newCustomer, vertical: e.target.value})}>
-              <option value="general">📋 General Insurance</option>
-              <option value="life">👤 Life Insurance</option>
-            </select>
-          )}
-          
-          {(verticalFilter === 'life' || (verticalFilter === 'all' && newCustomer.vertical === 'life')) ? (
-            <>
-              <Input placeholder="Name *" value={newCustomer.name} onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})} required />
-              <Input type="email" placeholder="Email ID" value={newCustomer.email} onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})} />
-              <Input placeholder="Mobile Number *" value={newCustomer.mobile_number} onChange={(e) => setNewCustomer({...newCustomer, mobile_number: e.target.value})} required />
-              <Input placeholder="Policy No" value={newCustomer.current_policy_no} onChange={(e) => setNewCustomer({...newCustomer, current_policy_no: e.target.value})} />
-              <Input placeholder="Insurer" value={newCustomer.company} onChange={(e) => setNewCustomer({...newCustomer, company: e.target.value})} />
-              <Input type="number" placeholder="Premium" value={newCustomer.premium} onChange={(e) => setNewCustomer({...newCustomer, premium: e.target.value})} />
-              <div><label className="text-sm text-slate-300 mb-1 block">Date of Expiry</label><Input type="date" value={newCustomer.renewal_date} onChange={(e) => setNewCustomer({...newCustomer, renewal_date: e.target.value})} /></div>
-              <div><label className="text-sm text-slate-300 mb-1 block">Payment Date</label><Input type="date" value={newCustomer.payment_date} onChange={(e) => setNewCustomer({...newCustomer, payment_date: e.target.value})} /></div>
-              <Input placeholder="AG" value={newCustomer.ag} onChange={(e) => setNewCustomer({...newCustomer, ag: e.target.value})} />
-              <Input placeholder="POL" value={newCustomer.pol} onChange={(e) => setNewCustomer({...newCustomer, pol: e.target.value})} />
-              <Input placeholder="PT" value={newCustomer.pt} onChange={(e) => setNewCustomer({...newCustomer, pt: e.target.value})} />
-              <Input placeholder="PPT" value={newCustomer.ppt} onChange={(e) => setNewCustomer({...newCustomer, ppt: e.target.value})} />
-              <Input placeholder="MD" value={newCustomer.md} onChange={(e) => setNewCustomer({...newCustomer, md: e.target.value})} />
-              <Input placeholder="BR" value={newCustomer.br} onChange={(e) => setNewCustomer({...newCustomer, br: e.target.value})} />
-              <Input placeholder="SUMM" value={newCustomer.summ} onChange={(e) => setNewCustomer({...newCustomer, summ: e.target.value})} />
-              <Input placeholder="Payment Type" value={newCustomer.payment_type} onChange={(e) => setNewCustomer({...newCustomer, payment_type: e.target.value})} />
-              <Input placeholder="Phone Call" value={newCustomer.phone_call} onChange={(e) => setNewCustomer({...newCustomer, phone_call: e.target.value})} />
-              <Input placeholder="Sort" value={newCustomer.sort} onChange={(e) => setNewCustomer({...newCustomer, sort: e.target.value})} />
-              <Input placeholder="COM" value={newCustomer.com} onChange={(e) => setNewCustomer({...newCustomer, com: e.target.value})} />
-              <Input placeholder="I Magic" value={newCustomer.i_magic} onChange={(e) => setNewCustomer({...newCustomer, i_magic: e.target.value})} />
-              <Input placeholder="True" value={newCustomer.true_field} onChange={(e) => setNewCustomer({...newCustomer, true_field: e.target.value})} />
-              <Input placeholder="FC" value={newCustomer.fc} onChange={(e) => setNewCustomer({...newCustomer, fc: e.target.value})} />
-            </>
+          {sheetFields.length === 0 ? (
+            <p className="text-center text-slate-400 py-8">Loading form fields...</p>
           ) : (
-            <>
-              <Input placeholder="Name *" value={newCustomer.name} onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})} required />
-              <Input placeholder="Policy No" value={newCustomer.current_policy_no} onChange={(e) => setNewCustomer({...newCustomer, current_policy_no: e.target.value})} />
-              <Input placeholder="G Code" value={newCustomer.g_code} onChange={(e) => setNewCustomer({...newCustomer, g_code: e.target.value})} />
-              <Input type="number" placeholder="Last Year Premium" value={newCustomer.last_year_premium} onChange={(e) => setNewCustomer({...newCustomer, last_year_premium: e.target.value})} />
-              <div><label className="text-sm text-slate-300 mb-1 block">Date of Expiry</label><Input type="date" value={newCustomer.renewal_date} onChange={(e) => setNewCustomer({...newCustomer, renewal_date: e.target.value})} /></div>
-              <div><label className="text-sm text-slate-300 mb-1 block">Modified Expiry Date</label><Input type="date" value={newCustomer.modified_expiry_date} onChange={(e) => setNewCustomer({...newCustomer, modified_expiry_date: e.target.value})} /></div>
-              <Input placeholder="Company" value={newCustomer.company} onChange={(e) => setNewCustomer({...newCustomer, company: e.target.value})} />
-              <Input placeholder="Type" value={newCustomer.type} onChange={(e) => setNewCustomer({...newCustomer, type: e.target.value})} />
-              <div><label className="text-sm text-slate-300 mb-1 block">Deposited/Payment Date</label><Input type="date" value={newCustomer.payment_date} onChange={(e) => setNewCustomer({...newCustomer, payment_date: e.target.value})} /></div>
-              <Input placeholder="CHQ No & Date" value={newCustomer.chq_no_date} onChange={(e) => setNewCustomer({...newCustomer, chq_no_date: e.target.value})} />
-              <Input placeholder="Bank Name" value={newCustomer.bank_name} onChange={(e) => setNewCustomer({...newCustomer, bank_name: e.target.value})} />
-              <Input placeholder="Customer ID" value={newCustomer.customer_id} onChange={(e) => setNewCustomer({...newCustomer, customer_id: e.target.value})} />
-              <Input placeholder="Agent Code" value={newCustomer.agent_code} onChange={(e) => setNewCustomer({...newCustomer, agent_code: e.target.value})} />
-              <Input type="number" placeholder="Amount" value={newCustomer.amount} onChange={(e) => setNewCustomer({...newCustomer, amount: e.target.value})} />
-              <Input placeholder="New Policy No" value={newCustomer.new_policy_no} onChange={(e) => setNewCustomer({...newCustomer, new_policy_no: e.target.value})} />
-              <Input placeholder="New Policy Company" value={newCustomer.new_company} onChange={(e) => setNewCustomer({...newCustomer, new_company: e.target.value})} />
-              <Input placeholder="Product Type" value={newCustomer.veh_type} onChange={(e) => setNewCustomer({...newCustomer, veh_type: e.target.value})} />
-              <Input placeholder="Product Model" value={newCustomer.product} onChange={(e) => setNewCustomer({...newCustomer, product: e.target.value})} />
-              <Input placeholder="VEH No" value={newCustomer.registration_no} onChange={(e) => setNewCustomer({...newCustomer, registration_no: e.target.value})} />
-              <div><label className="text-sm text-slate-300 mb-1 block">TP Expiry Date</label><Input type="date" value={newCustomer.tp_expiry_date} onChange={(e) => setNewCustomer({...newCustomer, tp_expiry_date: e.target.value})} /></div>
-              <Input placeholder="Premium Mode" value={newCustomer.premium_mode} onChange={(e) => setNewCustomer({...newCustomer, premium_mode: e.target.value})} />
-              <Input type="email" placeholder="Email ID" value={newCustomer.email} onChange={(e) => setNewCustomer({...newCustomer, email: e.target.value})} />
-              <Input placeholder="Mobile No" value={newCustomer.mobile_number} onChange={(e) => setNewCustomer({...newCustomer, mobile_number: e.target.value})} required />
-              <Input placeholder="PAN Card" value={newCustomer.pancard} onChange={(e) => setNewCustomer({...newCustomer, pancard: e.target.value})} />
-              <Input placeholder="Aadhar Card" value={newCustomer.aadhar_card} onChange={(e) => setNewCustomer({...newCustomer, aadhar_card: e.target.value})} />
-              <Input placeholder="Others (VI/DL/PP)" value={newCustomer.others} onChange={(e) => setNewCustomer({...newCustomer, others: e.target.value})} />
-            </>
+            sheetFields
+              .filter(field => !['S NO', 's no', 'S_NO'].includes(field)) // Skip serial number
+              .map((field) => {
+              const key = field.toLowerCase().replace(/\s+/g, '_').replace(/&amp;/g, '&');
+              const isRequired = key === 'name' || key === 'mobile_number' || key === 'mobile_no';
+              const isDate = key.includes('date') || key.includes('expiry');
+              const isTextarea = key === 'notes' || key === 'remarks';
+              const isSelect = key === 'status';
+              
+              if (isTextarea) {
+                return (
+                  <div key={key}>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
+                    <textarea
+                      className="w-full p-2 border rounded bg-slate-700 text-white"
+                      placeholder={field}
+                      value={dynamicFormData[key] || ''}
+                      onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
+                      rows={3}
+                    />
+                  </div>
+                );
+              }
+              
+              if (isSelect) {
+                return (
+                  <div key={key}>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}</label>
+                    <select
+                      className="w-full p-2 border rounded bg-slate-700 text-white"
+                      value={dynamicFormData[key] || 'due'}
+                      onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
+                    >
+                      <option value="due">DUE</option>
+                      <option value="renewed">Renewed</option>
+                      <option value="not renewed">Not Renewed</option>
+                      <option value="inprocess">In Process</option>
+                    </select>
+                  </div>
+                );
+              }
+              
+              if (isDate) {
+                return (
+                  <div key={key}>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
+                    <Input
+                      type="date"
+                      value={dynamicFormData[key] || ''}
+                      onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
+                    />
+                  </div>
+                );
+              }
+              
+              const inputType = key.includes('email') ? 'email' : key.includes('premium') || key.includes('amount') ? 'number' : 'text';
+              
+              return (
+                <div key={key}>
+                  <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
+                  <Input
+                    type={inputType}
+                    placeholder={field}
+                    value={dynamicFormData[key] || ''}
+                    onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
+                    required={isRequired}
+                  />
+                </div>
+              );
+            })
           )}
-          
-          <select className="w-full p-2 border rounded bg-slate-700 text-white" value={newCustomer.status} onChange={(e) => setNewCustomer({...newCustomer, status: e.target.value})}>
-            <option value="due">Due</option>
-            <option value="renewed">Renewed</option>
-            <option value="not renewed">Not Renewed</option>
-            <option value="inprocess">In Process</option>
-          </select>
-          <Input placeholder="Thank You Message Sent (yes/no)" value={newCustomer.thank_you_sent} onChange={(e) => setNewCustomer({...newCustomer, thank_you_sent: e.target.value})} />
-          <textarea className="w-full p-2 border rounded bg-slate-700 text-white" placeholder="Remarks/Notes" value={newCustomer.notes} onChange={(e) => setNewCustomer({...newCustomer, notes: e.target.value})} rows={3} />
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-4 border-t border-slate-600">
             <Button onClick={handleAddCustomer}>Add Customer</Button>
-            <Button variant="outline" onClick={() => setShowAddModal(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setShowAddModal(false); setDynamicFormData({}); }}>Cancel</Button>
           </div>
         </div>
       </Modal>
@@ -1649,76 +1619,122 @@ export default function InsuranceDashboard() {
       {/* Details Modal - Shared across all tabs */}
       <Modal open={showDetailsModal} onClose={() => { setShowDetailsModal(false); setModalSearchTerm(''); }} title={detailsModalTitle}>
         <div className="space-y-3">
-          <Input
-            placeholder="Search customers by name, mobile, or vehicle..."
-            value={modalSearchTerm}
-            onChange={(e) => setModalSearchTerm(e.target.value)}
-            className="w-full"
-          />
-          <div className="max-h-96 overflow-y-auto space-y-3">
-            {detailsModalCustomers.filter(c => 
-              c.name.toLowerCase().includes(modalSearchTerm.toLowerCase()) ||
-              c.mobile_number.includes(modalSearchTerm) ||
-              c.registration_no.toLowerCase().includes(modalSearchTerm.toLowerCase())
-            ).length === 0 ? (
+          {detailsModalCustomers.length > 1 && (
+            <Input
+              placeholder="Search by name, mobile, G CODE, vehicle, etc..."
+              value={modalSearchTerm}
+              onChange={(e) => {
+                console.log('🔍 Search term:', e.target.value);
+                setModalSearchTerm(e.target.value);
+              }}
+              className="w-full"
+            />
+          )}
+          <div className="max-h-[70vh] overflow-y-auto space-y-3">
+            {(() => {
+              if (detailsModalCustomers.length > 0) {
+                console.log('📋 Sample customer data:', detailsModalCustomers[0]);
+                console.log('📋 G CODE value:', detailsModalCustomers[0].g_code);
+              }
+              
+              const filtered = detailsModalCustomers.filter(c => {
+                if (!modalSearchTerm) return true;
+                const searchLower = modalSearchTerm.toLowerCase();
+                
+                // Search through ALL customer fields
+                const found = Object.entries(c).some(([key, value]) => {
+                  if (value === null || value === undefined) return false;
+                  const strValue = String(value).toLowerCase();
+                  const matches = strValue.includes(searchLower);
+                  if (matches && key === 'g_code') {
+                    console.log('✅ Found G CODE match:', value);
+                  }
+                  return matches;
+                });
+                
+                return found;
+              });
+              
+              console.log('🔍 Filtered results:', filtered.length, 'out of', detailsModalCustomers.length);
+              
+              return filtered.length === 0 ? (
               <p className="text-center text-slate-400 py-8">No customers found</p>
             ) : (
-              detailsModalCustomers.filter(c => 
-                c.name.toLowerCase().includes(modalSearchTerm.toLowerCase()) ||
-                c.mobile_number.includes(modalSearchTerm) ||
-                c.registration_no.toLowerCase().includes(modalSearchTerm.toLowerCase())
-              ).map((customer) => (
-              <div key={customer.id} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-white">{customer.name}</h4>
-                    <p className="text-sm text-slate-300">{customer.mobile_number}</p>
-                    <p className="text-sm text-slate-400">Vehicle: {customer.registration_no}</p>
-                    <p className="text-sm text-slate-400">Company: {customer.company}</p>
-                    <p className="text-sm text-slate-400">Premium: ₹{customer.premium}</p>
-                    <p className="text-sm text-slate-400">Renewal: {getDisplayDate(customer)}</p>
-                    <span className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${
-                      customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
-                      customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
-                      'bg-yellow-500/20 text-yellow-300'
-                    }`}>
-                      {customer.status}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={(e) => {
-                      e.stopPropagation();
-                      const message = generatePolicyDetailsMessage({
-                        customerName: customer.name,
-                        vehicleNumber: customer.registration_no,
-                        companyName: customer.company,
-                        renewalDate: getDisplayDate(customer),
-                        policyNumber: customer.current_policy_no,
-                        policyType: customer.vertical,
-                        premiumAmount: customer.premium?.toString(),
-                        clientKey
-                      });
-                      logWhatsAppMessage(customer.id, customer.name, message);
-                      window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-                    }}>💬</Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={(e) => {
-                        e.preventDefault();
+              filtered.map((customer) => (
+              <div key={customer.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start border-b border-slate-600 pb-3">
+                    <div>
+                      <h4 className="font-bold text-white text-lg">{customer.name}</h4>
+                      <span className={`inline-block mt-2 px-3 py-1 text-xs rounded-full font-medium ${
+                        customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
+                        customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
+                        customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
+                        'bg-yellow-500/20 text-yellow-300'
+                      }`}>
+                        {customer.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={(e) => {
                         e.stopPropagation();
-                        setNoteCustomerId(customer.id);
-                        setShowNoteModal(true);
-                      }} 
-                      title="Add Note/Report"
-                    >
-                      📝
-                    </Button>
+                        const message = generatePolicyDetailsMessage({
+                          customerName: customer.name,
+                          vehicleNumber: customer.registration_no,
+                          companyName: customer.company,
+                          renewalDate: getDisplayDate(customer),
+                          policyNumber: customer.current_policy_no,
+                          policyType: customer.vertical,
+                          premiumAmount: customer.premium?.toString(),
+                          clientKey
+                        });
+                        logWhatsAppMessage(customer.id, customer.name, message);
+                        window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+                      }}>💬 WhatsApp</Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setNoteCustomerId(customer.id);
+                          setShowNoteModal(true);
+                        }} 
+                      >
+                        📝 Note
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {sheetFields.filter(field => !['S NO', 's no', 'S_NO'].includes(field)).map((field) => {
+                      const key = field.toLowerCase().replace(/\s+/g, '_').replace(/&amp;/g, '&');
+                      const value = customer[key];
+                      
+                      // Show all fields, even if empty (except truly null/undefined)
+                      if (value === null || value === undefined) return null;
+                      
+                      return (
+                        <div key={key}>
+                          <p className="text-xs text-slate-400">{field}</p>
+                          <p className={`text-sm font-medium ${
+                            key === 'g_code' ? 'text-cyan-400 font-bold' :
+                            key.includes('premium') || key.includes('amount') ? 'text-green-400 font-bold' :
+                            'text-white'
+                          }`}>
+                            {value === '' || value === 0 ? '-' : 
+                             key.includes('premium') || key.includes('amount') ? `₹${value.toLocaleString?.() || value}` : 
+                             value}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
             ))
-          )}
+          );
+          })()}
           </div>
         </div>
       </Modal>
@@ -1768,53 +1784,87 @@ export default function InsuranceDashboard() {
       >
         {editingCustomer && (
           <div className="space-y-3 max-h-[75vh] overflow-y-auto p-1">
-            {verticalFilter === 'all' && (
-              <select className="w-full p-2 border rounded bg-slate-700 text-white" value={editingCustomer.vertical || 'general'} onChange={(e) => setEditingCustomer({...editingCustomer, vertical: e.target.value})}>
-                <option value="general">📋 General Insurance</option>
-                <option value="life">👤 Life Insurance</option>
-              </select>
-            )}
-            
-            <Input placeholder="Name" value={editingCustomer.name || ''} onChange={(e) => setEditingCustomer({...editingCustomer, name: e.target.value})} />
-            <Input placeholder="Mobile" value={editingCustomer.mobile_number || ''} onChange={(e) => setEditingCustomer({...editingCustomer, mobile_number: e.target.value})} />
-            <Input type="email" placeholder="Email" value={editingCustomer.email || ''} onChange={(e) => setEditingCustomer({...editingCustomer, email: e.target.value})} />
-            <Input placeholder="Policy No" value={editingCustomer.current_policy_no || ''} onChange={(e) => setEditingCustomer({...editingCustomer, current_policy_no: e.target.value})} />
-            
-            {(verticalFilter === 'life' || (verticalFilter === 'all' && editingCustomer.vertical === 'life')) ? (
-              <>
-                <Input placeholder="Insurer" value={editingCustomer.company || ''} onChange={(e) => setEditingCustomer({...editingCustomer, company: e.target.value})} />
-                <Input type="number" placeholder="Premium Amount" value={editingCustomer.premium || ''} onChange={(e) => setEditingCustomer({...editingCustomer, premium: parseFloat(e.target.value)})} />
-                <Input placeholder="Premium Mode" value={editingCustomer.premium_mode || ''} onChange={(e) => setEditingCustomer({...editingCustomer, premium_mode: e.target.value})} />
-                <div><label className="text-sm text-slate-300 mb-1 block">Date of Expiry</label><Input type="date" value={editingCustomer.renewal_date?.includes('/') ? editingCustomer.renewal_date.split('/').reverse().join('-') : editingCustomer.renewal_date || ''} onChange={(e) => setEditingCustomer({...editingCustomer, renewal_date: e.target.value})} /></div>
-                <div><label className="text-sm text-slate-300 mb-1 block">Payment Date</label><Input type="date" value={editingCustomer.payment_date?.includes('/') ? editingCustomer.payment_date.split('/').reverse().join('-') : editingCustomer.payment_date || ''} onChange={(e) => setEditingCustomer({...editingCustomer, payment_date: e.target.value})} /></div>
-              </>
+            {sheetFields.length === 0 ? (
+              <p className="text-center text-slate-400 py-8">Loading form fields...</p>
             ) : (
-              <>
-                <Input placeholder="Vehicle No" value={editingCustomer.registration_no || ''} onChange={(e) => setEditingCustomer({...editingCustomer, registration_no: e.target.value})} />
-                <Input placeholder="Company" value={editingCustomer.company || ''} onChange={(e) => setEditingCustomer({...editingCustomer, company: e.target.value})} />
-                <Input type="number" placeholder="Last Year Premium" value={editingCustomer.last_year_premium || ''} onChange={(e) => setEditingCustomer({...editingCustomer, last_year_premium: e.target.value})} />
-                <Input type="number" placeholder="Premium Amount" value={editingCustomer.premium || ''} onChange={(e) => setEditingCustomer({...editingCustomer, premium: parseFloat(e.target.value)})} />
-                <div><label className="text-sm text-slate-300 mb-1 block">Date of Expiry</label><Input type="date" value={editingCustomer.renewal_date?.includes('/') ? editingCustomer.renewal_date.split('/').reverse().join('-') : editingCustomer.renewal_date || ''} onChange={(e) => setEditingCustomer({...editingCustomer, renewal_date: e.target.value})} /></div>
-                <div><label className="text-sm text-slate-300 mb-1 block">OD Expiry Date</label><Input type="date" value={editingCustomer.od_expiry_date?.includes('/') ? editingCustomer.od_expiry_date.split('/').reverse().join('-') : editingCustomer.od_expiry_date || ''} onChange={(e) => setEditingCustomer({...editingCustomer, od_expiry_date: e.target.value})} /></div>
-                <div><label className="text-sm text-slate-300 mb-1 block">TP Expiry</label><Input type="date" value={editingCustomer.tp_expiry_date?.includes('/') ? editingCustomer.tp_expiry_date.split('/').reverse().join('-') : editingCustomer.tp_expiry_date || ''} onChange={(e) => setEditingCustomer({...editingCustomer, tp_expiry_date: e.target.value})} /></div>
-                <Input placeholder="Product Model" value={editingCustomer.product || ''} onChange={(e) => setEditingCustomer({...editingCustomer, product: e.target.value})} />
-                <Input placeholder="Premium Mode" value={editingCustomer.premium_mode || ''} onChange={(e) => setEditingCustomer({...editingCustomer, premium_mode: e.target.value})} />
-                <div><label className="text-sm text-slate-300 mb-1 block">Payment Date</label><Input type="date" value={editingCustomer.payment_date?.includes('/') ? editingCustomer.payment_date.split('/').reverse().join('-') : editingCustomer.payment_date || ''} onChange={(e) => setEditingCustomer({...editingCustomer, payment_date: e.target.value})} /></div>
-                <Input placeholder="New Policy No" value={editingCustomer.new_policy_no || ''} onChange={(e) => setEditingCustomer({...editingCustomer, new_policy_no: e.target.value})} />
-                <Input placeholder="New Policy Company" value={editingCustomer.new_company || ''} onChange={(e) => setEditingCustomer({...editingCustomer, new_company: e.target.value})} />
-              </>
+              sheetFields
+                .filter(field => !['S NO', 's no', 'S_NO'].includes(field)) // Skip serial number
+                .map((field) => {
+                const key = field.toLowerCase().replace(/\s+/g, '_').replace(/&amp;/g, '&');
+                const isRequired = key === 'name' || key === 'mobile_number' || key === 'mobile_no';
+                const isDate = key.includes('date') || key.includes('expiry');
+                const isTextarea = key === 'notes' || key === 'remarks';
+                const isSelect = key === 'status';
+                
+                if (isTextarea) {
+                  return (
+                    <div key={key}>
+                      <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
+                      <textarea
+                        className="w-full p-2 border rounded bg-slate-700 text-white"
+                        placeholder={field}
+                        value={editingCustomer[key] || ''}
+                        onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
+                        rows={3}
+                      />
+                    </div>
+                  );
+                }
+                
+                if (isSelect) {
+                  return (
+                    <div key={key}>
+                      <label className="text-sm text-slate-300 mb-1 block">{field}</label>
+                      <select
+                        className="w-full p-2 border rounded bg-slate-700 text-white"
+                        value={editingCustomer[key] || 'due'}
+                        onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
+                      >
+                        <option value="due">DUE</option>
+                        <option value="renewed">Renewed</option>
+                        <option value="not renewed">Not Renewed</option>
+                        <option value="inprocess">In Process</option>
+                      </select>
+                    </div>
+                  );
+                }
+                
+                if (isDate) {
+                  const dateValue = editingCustomer[key];
+                  const formattedDate = dateValue?.includes('/') 
+                    ? dateValue.split('/').reverse().join('-') 
+                    : dateValue || '';
+                  
+                  return (
+                    <div key={key}>
+                      <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
+                      <Input
+                        type="date"
+                        value={formattedDate}
+                        onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
+                      />
+                    </div>
+                  );
+                }
+                
+                const inputType = key.includes('email') ? 'email' : key.includes('premium') || key.includes('amount') ? 'number' : 'text';
+                
+                return (
+                  <div key={key}>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
+                    <Input
+                      type={inputType}
+                      placeholder={field}
+                      value={editingCustomer[key] || ''}
+                      onChange={(e) => setEditingCustomer({...editingCustomer, [key]: inputType === 'number' ? parseFloat(e.target.value) : e.target.value})}
+                      required={isRequired}
+                    />
+                  </div>
+                );
+              })
             )}
             
-            <select className="w-full p-2 border rounded bg-slate-700 text-white" value={editingCustomer.status || 'due'} onChange={(e) => setEditingCustomer({...editingCustomer, status: e.target.value})}>
-              <option value="due">Due</option>
-              <option value="renewed">Renewed</option>
-              <option value="not renewed">Not Renewed</option>
-              <option value="inprocess">In Process</option>
-            </select>
-            <Input placeholder="Thank You Message Sent" value={editingCustomer.thank_you_sent || ''} onChange={(e) => setEditingCustomer({...editingCustomer, thank_you_sent: e.target.value})} />
-            <textarea className="w-full p-2 border rounded bg-slate-700 text-white" placeholder="Remarks/Notes" value={editingCustomer.notes || ''} onChange={(e) => setEditingCustomer({...editingCustomer, notes: e.target.value})} rows={3} />
-            
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-4 border-t border-slate-600">
               <Button onClick={handleUpdateCustomer}>Update Customer</Button>
               <Button variant="outline" onClick={() => setEditingCustomer(null)}>Cancel</Button>
             </div>

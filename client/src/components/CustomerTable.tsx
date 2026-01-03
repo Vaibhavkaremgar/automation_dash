@@ -15,6 +15,7 @@ interface Customer {
   status: string;
   reason: string;
   vertical: string;
+  g_code?: string;
 }
 
 interface CustomerTableProps {
@@ -74,6 +75,12 @@ export default function CustomerTable({ customers, isMotor, onEdit, onDelete, ge
                 <span className="hidden md:inline">Name</span>
                 <span className="md:hidden">Name</span>
               </th>
+              {isMotor && (
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider">
+                  <span className="hidden md:inline">G Code</span>
+                  <span className="md:hidden">G</span>
+                </th>
+              )}
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase tracking-wider">
                 <span className="hidden md:inline">Mobile</span>
                 <span className="md:hidden">Mob</span>
@@ -108,6 +115,11 @@ export default function CustomerTable({ customers, isMotor, onEdit, onDelete, ge
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                   {customer.name}
                 </td>
+                {isMotor && (
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-400 font-medium">
+                    {customer.g_code || '-'}
+                  </td>
+                )}
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100">
                   {customer.mobile_number}
                 </td>

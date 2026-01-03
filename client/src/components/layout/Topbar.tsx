@@ -498,7 +498,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       <div className="space-y-4">
         <div className="flex gap-2">
           <Input
-            placeholder="Search by name, mobile, or vehicle number..."
+            placeholder="Search by name, mobile, G CODE, vehicle, or any field..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}

@@ -10,11 +10,7 @@ import AnimatedBackground from '../ui/AnimatedBackground'
 import AIBackground from '../ui/AIBackground'
 import NotificationBanner from '../ui/NotificationBanner'
 import SyncIndicator from '../ui/SyncIndicator'
-import FestivalBanner from '../ui/FestivalBanner'
-import FestivalDecorations from '../ui/FestivalDecorations'
-import FestivalCharacter from '../ui/FestivalCharacter'
 import { useAuth } from '../../context/AuthContext'
-import '../../styles/festival-themes.css'
 
 export default function AppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -41,21 +37,12 @@ export default function AppLayout() {
       <AIBackground />
       <SyncIndicator />
       
-      {/* Festival Decorations - Shows 2 days before + festival + 2 days after */}
-      <FestivalDecorations />
-      
-      {/* Festival Character - Moving across bottom */}
-      <FestivalCharacter />
-      
       <Sidebar />
       
       <MobileSidebar open={mobileOpen} onClose={()=>setMobileOpen(false)} />
       
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
         <Topbar onMenu={()=>setMobileOpen(true)} />
-        
-        {/* Festival Banner - Shows only on actual festival day */}
-        <FestivalBanner />
         
         <main className="flex-1 overflow-auto p-4 sm:p-6">
           <Outlet />

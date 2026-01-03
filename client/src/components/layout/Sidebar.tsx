@@ -72,15 +72,27 @@ export default memo(function Sidebar() {
                 : '/logos/KMG_enhanced_logo.png'
               }
               alt="Company Logo" 
-              className="h-16 w-auto object-contain max-w-full"
+              className={`h-16 w-auto object-contain max-w-full ${
+                user?.email?.toLowerCase().includes('joban') 
+                  ? 'bg-white rounded-lg p-2' 
+                  : ''
+              }`}
             />
           </div>
         )}
         <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-600 to-transparent mb-4"></div>
         
         {sidebarTitle && (
-          <div className="text-lg font-semibold text-white text-center">
-            {sidebarTitle.replace(/🏢\s*/, '')}
+          <div className="text-lg font-semibold text-center">
+            {user?.email?.toLowerCase().includes('joban') ? (
+              <>
+                <span className="text-blue-500">Jobanputra's</span>
+                {' '}
+                <span className="text-green-400">Insurance Shoppe</span>
+              </>
+            ) : (
+              <span className="text-white">{sidebarTitle.replace(/🏢\s*/, '')}</span>
+            )}
           </div>
         )}
         {user?.client_type && (

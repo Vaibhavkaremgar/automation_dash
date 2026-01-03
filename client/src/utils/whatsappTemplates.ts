@@ -12,6 +12,7 @@ interface MessageParams {
   premiumAmount?: string;
   supportContact?: string;
   clientKey?: string;
+  productModel?: string;
 }
 
 const getSignature = (clientKey?: string): string => {
@@ -30,78 +31,25 @@ export const generateRenewalReminder = (params: MessageParams): string => {
   const {
     customerName,
     renewalDate,
-    daysRemaining,
-    policyNumber,
     companyName,
-    premiumAmount,
-    supportContact,
+    vehicleNumber,
+    productModel,
+    clientKey,
   } = params;
 
-  const commonDetails = `
-${policyNumber ? `Policy No: ${policyNumber}\n` : ''}${companyName ? `Insurer: ${companyName}\n` : ''}${premiumAmount ? `Premium Amount: ₹${premiumAmount}\n` : ''}
-`;
-
-  if (daysRemaining !== undefined && daysRemaining < 0) {
-    return `Dear ${customerName},
-
-We hope you are doing well.
-
-This is to inform you that your insurance policy expired on ${renewalDate}. To avoid any risk due to lapse in coverage, we kindly request you to proceed with the renewal at the earliest.
-
-${commonDetails}
-Our team will be happy to assist you with the renewal process and address any queries you may have.
-
-${supportContact ? `For assistance, please contact us at ${supportContact}.\n` : ''}
-Thank you for your continued trust in our services.
-
-${getSignature(params.clientKey)}`;
-  }
-
-  if (daysRemaining === 0 || daysRemaining === 1) {
-    return `Dear ${customerName},
-
-This is an important reminder regarding your insurance policy.
-
-Your policy is scheduled to expire ${daysRemaining === 0 ? 'today' : 'tomorrow'} on ${renewalDate}. To ensure uninterrupted coverage, we recommend completing the renewal at your earliest convenience.
-
-${commonDetails}
-Please let us know if you would like our assistance in completing the renewal process.
-
-${supportContact ? `You may reach us at ${supportContact} for immediate support.\n` : ''}
-Thank you for your prompt attention.
-
-${getSignature(params.clientKey)}`;
-  }
-
-  if (daysRemaining && daysRemaining <= 7) {
-    return `Dear ${customerName},
-
-Greetings from our Insurance Services Team.
-
-This is a gentle reminder that your insurance policy is due for renewal on ${renewalDate}, which is in ${daysRemaining} days.
-
-${commonDetails}
-We recommend planning the renewal in advance to ensure continuous protection without any interruption.
-
-${supportContact ? `For any assistance, please contact us at ${supportContact}.\n` : ''}
-Thank you for choosing our services.
-
-${getSignature(params.clientKey)}`;
-  }
+  const vehicleInfo = vehicleNumber ? `Vehicle No. ${vehicleNumber}` : '';
+  const productInfo = productModel ? `Product Model. ${productModel}` : '';
+  const details = [vehicleInfo, productInfo].filter(Boolean).join(', ');
 
   return `Dear ${customerName},
 
-We hope this message finds you well.
+This is to inform you that your insurance policy with ${companyName || 'your insurer'}${details ? ` (${details})` : ''} expires on ${renewalDate}.
 
-We would like to inform you that your insurance policy is scheduled for renewal on ${renewalDate}${daysRemaining ? ` (${daysRemaining} days remaining)` : ''}.
+You are kindly requested to proceed with the renewal of the same at the earliest, to avoid any risk arising from a lapse in coverage.
 
-${commonDetails}
-Our team is available to assist you with the renewal process whenever convenient.
+Our team will be happy to assist you with the renewal process and address any queries you may have.
 
-${supportContact ? `Please feel free to reach us at ${supportContact} for support.\n` : ''}
-Thank you for your continued association with us.
-
-${getSignature(params.clientKey)}`;
+${getSignature(clientKey)}`;
 };
 
 /**
@@ -110,23 +58,23 @@ ${getSignature(params.clientKey)}`;
 export const generateThankYouMessage = (params: MessageParams): string => {
   const {
     customerName,
-    policyNumber,
     companyName,
-    premiumAmount,
+    vehicleNumber,
+    productModel,
+    clientKey,
   } = params;
+
+  const vehicleInfo = vehicleNumber ? `Vehicle No. ${vehicleNumber}` : '';
+  const productInfo = productModel ? `Product Model. ${productModel}` : '';
+  const details = [vehicleInfo, productInfo].filter(Boolean).join(', ');
 
   return `Dear ${customerName},
 
-Thank you for renewing your insurance policy with us.
+This is to inform that your ${companyName || 'insurance'} insurance policy${details ? ` for (${details})` : ''} has been renewed and is now active.
 
-We are pleased to confirm that your policy is now active and your coverage is in force.
+The policy documents will be shared with you shortly for your records.
 
-${policyNumber ? `Policy No: ${policyNumber}\n` : ''}${companyName ? `Insurer: ${companyName}\n` : ''}${premiumAmount ? `Premium Paid: ₹${premiumAmount}\n` : ''}
-Your policy documents will be shared with you shortly for your records.
-
-We sincerely appreciate your trust and look forward to serving you in the future.
-
-${getSignature(params.clientKey)}`;
+${getSignature(clientKey)}`;
 };
 
 /**

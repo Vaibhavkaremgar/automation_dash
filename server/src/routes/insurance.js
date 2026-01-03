@@ -26,10 +26,10 @@ router.get('/customers/search', (req, res) => {
     db.all(`
       SELECT * FROM insurance_customers 
       WHERE user_id = ? 
-      AND (name LIKE ? OR mobile_number LIKE ? OR registration_no LIKE ?)
+      AND (name LIKE ? OR mobile_number LIKE ? OR registration_no LIKE ? OR g_code LIKE ? OR company LIKE ? OR current_policy_no LIKE ? OR email LIKE ?)
       ORDER BY name ASC
       LIMIT 50
-    `, [req.user.id, searchTerm, searchTerm, searchTerm], (err, customers) => {
+    `, [req.user.id, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm], (err, customers) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(customers || []);
     });
