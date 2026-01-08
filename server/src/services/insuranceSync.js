@@ -252,9 +252,17 @@ class InsuranceSyncService {
         };
       }
       
-      // Skip rows without name or mobile
-      if (!customer.name || !customer.mobile_number) {
-        console.log(`⚠️  Skipping row ${i + 2}: missing ${!customer.name ? 'NAME' : ''} ${!customer.name && !customer.mobile_number ? 'and' : ''} ${!customer.mobile_number ? 'MOBILE NO' : ''} (name='${customer.name}', mobile='${customer.mobile_number}')`);
+      // Skip rows without name or mobile - COMMENTED OUT TO ALLOW ALL ROWS
+      // if (!customer.name || !customer.mobile_number) {
+      //   console.log(`⚠️  Skipping row ${i + 2}: missing ${!customer.name ? 'NAME' : ''} ${!customer.name && !customer.mobile_number ? 'and' : ''} ${!customer.mobile_number ? 'MOBILE NO' : ''} (name='${customer.name}', mobile='${customer.mobile_number}')`);
+      //   skipped++;
+      //   continue;
+      // }
+      
+      // Allow rows with at least some data (not completely empty)
+      const hasAnyData = customer.name || customer.mobile_number || customer.email || customer.company || customer.registration_no;
+      if (!hasAnyData) {
+        console.log(`⚠️  Skipping row ${i + 2}: completely empty`);
         skipped++;
         continue;
       }

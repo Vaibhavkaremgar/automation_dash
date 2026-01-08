@@ -53,7 +53,6 @@ export default function CandidatesPage() {
     if (!data) return []
     let candidates = data
     
-    // Debug: log all unique status values
     const uniqueStatuses = [...new Set(candidates.map((c: any) => c.status))]
     console.log('Unique status values:', uniqueStatuses)
     
@@ -97,40 +96,19 @@ export default function CandidatesPage() {
   )
 
   return (
-    <motion.div 
-      className="space-y-6"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.6 }}
-    >
-      <motion.h1 
-        className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
         👥 Candidates
-      </motion.h1>
+      </h1>
 
       {/* Summary Stats */}
-      <motion.div 
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: 'Total Candidates', count: data?.length || 0, icon: '👥', color: 'from-blue-600 to-cyan-600', bgColor: 'bg-blue-500/10' },
           { label: 'Shortlisted', count: data?.filter((c: any) => c.status?.toLowerCase().includes('shortlist') || c.status?.toLowerCase().includes('selected')).length || 0, icon: '✅', color: 'from-green-600 to-emerald-600', bgColor: 'bg-green-500/10' },
           { label: 'Under Review', count: data?.filter((c: any) => !c.status || c.status === '' || (!c.status?.toLowerCase().includes('shortlist') && !c.status?.toLowerCase().includes('reject') && !c.status?.toLowerCase().includes('selected'))).length || 0, icon: '⏳', color: 'from-purple-600 to-indigo-600', bgColor: 'bg-purple-500/10' }
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 + index * 0.1 }}
-            whileHover={{ y: -5, scale: 1.02 }}
-          >
+        ].map((stat) => (
+          <div key={stat.label}>
             <AnimatedCard className={`p-4 relative overflow-hidden border-0 ${stat.bgColor} backdrop-blur-sm`}>
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${stat.color} flex items-center justify-center text-xl shadow-lg`}>
@@ -143,15 +121,15 @@ export default function CandidatesPage() {
               </div>
               <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-r ${stat.color} opacity-10 rounded-bl-full`} />
             </AnimatedCard>
-          </motion.div>
+          </div>
         ))}
-      </motion.div>
+      </div>
 
       <AnimatedCard className="p-6">
         <div className="flex flex-wrap gap-4 items-center justify-between">
           <div className="flex gap-3">
-            {['all', 'shortlisted', 'pending'].map((filterType, index) => (
-              <motion.button 
+            {['all', 'shortlisted', 'pending'].map((filterType) => (
+              <button 
                 key={filterType}
                 onClick={() => setFilter(filterType)} 
                 className={`px-6 py-3 rounded-xl text-sm font-medium transition-all ${
@@ -159,43 +137,28 @@ export default function CandidatesPage() {
                     ? 'bg-gradient-to-r from-indigo-600 to-cyan-600 text-white shadow-lg shadow-indigo-500/25' 
                     : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600/50 border border-slate-600'
                 }`}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.8 + index * 0.1 }}
               >
                 {filterType === 'all' ? '📋 All Candidates' : 
                  filterType === 'shortlisted' ? '✅ Shortlisted' : '⏳ Under Review'}
-              </motion.button>
+              </button>
             ))}
           </div>
           
           <div className="flex gap-3 items-center">
-            <motion.input 
+            <input 
               value={search} 
               onChange={e => setSearch(e.target.value)} 
               placeholder="🔍 Search candidates..." 
               className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm" 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 1.2 }}
-              whileFocus={{ scale: 1.02 }}
             />
             
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.3 }}
+            <AnimatedButton 
+              onClick={() => syncCandidates.mutate()}
+              disabled={syncCandidates.isPending}
+              className="whitespace-nowrap"
             >
-              <AnimatedButton 
-                onClick={() => syncCandidates.mutate()}
-                disabled={syncCandidates.isPending}
-                className="whitespace-nowrap"
-              >
-                {syncCandidates.isPending ? '🔄 Syncing...' : '🔄 Sync from Sheets'}
-              </AnimatedButton>
-            </motion.div>
+              {syncCandidates.isPending ? '🔄 Syncing...' : '🔄 Sync from Sheets'}
+            </AnimatedButton>
           </div>
         </div>
       </AnimatedCard>
@@ -223,148 +186,117 @@ export default function CandidatesPage() {
               </tr>
             </thead>
             <tbody>
-              <AnimatePresence>
-                {filteredCandidates?.map((candidate: any, index: number) => (
-                  <motion.tr 
-                    key={candidate.id} 
-                    className="border-t border-slate-700/50 hover:bg-slate-700/30 transition-colors"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ delay: index * 0.05 }}
-                    whileHover={{ backgroundColor: "rgba(51, 65, 85, 0.3)" }}
-                  >
-                    <td className="p-4">
-                      <motion.div 
-                        className="flex items-center gap-3 cursor-pointer group"
-                        onClick={() => setSelectedCandidate(candidate)}
-                        whileHover={{ x: 3 }}
-                      >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-600 to-cyan-600 flex items-center justify-center text-white font-bold shadow-md group-hover:shadow-lg transition-shadow">
-                          {candidate.name?.charAt(0)?.toUpperCase() || '?'}
-                        </div>
-                        <div>
-                          <div className="font-medium text-white group-hover:text-cyan-300 transition-colors">{candidate.name || 'Unknown'}</div>
-                          <div className="text-xs text-slate-500">View profile</div>
-                        </div>
-                      </motion.div>
-                    </td>
-                    {isAdmin && (
-                      <td className="p-4">
-                        <div className="text-slate-300 text-sm">{candidate.client_name || 'Unknown Client'}</div>
-                      </td>
-                    )}
-                    <td className="p-4">
-                      <div className="space-y-1">
-                        <div className="text-slate-300 text-sm truncate max-w-[200px]">{candidate.email || 'No email'}</div>
-                        <div className="text-slate-500 text-xs">{candidate.mobile || 'No phone'}</div>
+              {filteredCandidates?.map((candidate: any) => (
+                <tr 
+                  key={candidate.id} 
+                  className="border-t border-slate-700/50 hover:bg-slate-700/30 transition-colors"
+                >
+                  <td className="p-4">
+                    <div 
+                      className="flex items-center gap-3 cursor-pointer group"
+                      onClick={() => setSelectedCandidate(candidate)}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-600 to-cyan-600 flex items-center justify-center text-white font-bold shadow-md">
+                        {candidate.name?.charAt(0)?.toUpperCase() || '?'}
                       </div>
-                    </td>
+                      <div>
+                        <div className="font-medium text-white group-hover:text-cyan-300 transition-colors">{candidate.name || 'Unknown'}</div>
+                        <div className="text-xs text-slate-500">View profile</div>
+                      </div>
+                    </div>
+                  </td>
+                  {isAdmin && (
                     <td className="p-4">
-                      {candidate.match_score ? (
-                        <div className="flex items-center gap-2">
-                          <div className={`text-lg font-bold ${
-                            parseInt(candidate.match_score) >= 80 ? 'text-green-400' :
-                            parseInt(candidate.match_score) >= 60 ? 'text-yellow-400' :
-                            'text-red-400'
-                          }`}>
-                            {candidate.match_score}%
-                          </div>
-                          <div className="w-16 h-2 bg-slate-700 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full ${
-                                parseInt(candidate.match_score) >= 80 ? 'bg-green-500' :
-                                parseInt(candidate.match_score) >= 60 ? 'bg-yellow-500' :
-                                'bg-red-500'
-                              }`}
-                              style={{ width: `${candidate.match_score}%` }}
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-slate-500 text-sm">N/A</span>
-                      )}
+                      <div className="text-slate-300 text-sm">{candidate.client_name || 'Unknown Client'}</div>
                     </td>
-                    <td className="p-4">
-                      {candidate.interview_date ? (
-                        <div className="flex items-center gap-1">
-                          <span className="text-cyan-400 text-sm">📅</span>
-                          <span className="text-slate-300 text-sm">{candidate.interview_date}</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-500 text-sm">Not set</span>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <motion.span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          candidate.status?.toLowerCase().includes('shortlist') || candidate.status?.toLowerCase().includes('selected') ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                          candidate.status?.toLowerCase().includes('reject') ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                          'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                        }`}
-                        whileHover={{ scale: 1.05 }}
-                      >
-                        {candidate.status?.toLowerCase().includes('shortlist') || candidate.status?.toLowerCase().includes('selected') ? '✅ Shortlisted' :
-                         candidate.status?.toLowerCase().includes('reject') ? '❌ Rejected' : '⏳ Review'}
-                      </motion.span>
-                    </td>
-                    <td className="p-4">
+                  )}
+                  <td className="p-4">
+                    <div className="space-y-1">
+                      <div className="text-slate-300 text-sm truncate max-w-[200px]">{candidate.email || 'No email'}</div>
+                      <div className="text-slate-500 text-xs">{candidate.mobile || 'No phone'}</div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    {candidate.match_score ? (
                       <div className="flex items-center gap-2">
-                        <motion.button
-                          onClick={() => setEmailModal({ candidateId: candidate.id })}
-                          className="text-green-400 hover:text-green-300 transition-colors p-2 rounded-lg hover:bg-green-500/10"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          title="Send Email"
-                        >
-                          📧
-                        </motion.button>
-                        <motion.button
-                          onClick={() => setInterviewResultsModal({ 
-                            candidate: {
-                              id: candidate.id,
-                              name: candidate.name,
-                              email: candidate.email
-                            }
-                          })}
-                          className="text-blue-400 hover:text-blue-300 transition-colors p-2 rounded-lg hover:bg-blue-500/10"
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          title="View Interview Results"
-                        >
-                          📊
-                        </motion.button>
+                        <div className={`text-lg font-bold ${
+                          parseInt(candidate.match_score) >= 80 ? 'text-green-400' :
+                          parseInt(candidate.match_score) >= 60 ? 'text-yellow-400' :
+                          'text-red-400'
+                        }`}>
+                          {candidate.match_score}%
+                        </div>
+                        <div className="w-16 h-2 bg-slate-700 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full rounded-full ${
+                              parseInt(candidate.match_score) >= 80 ? 'bg-green-500' :
+                              parseInt(candidate.match_score) >= 60 ? 'bg-yellow-500' :
+                              'bg-red-500'
+                            }`}
+                            style={{ width: `${candidate.match_score}%` }}
+                          />
+                        </div>
                       </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
+                    ) : (
+                      <span className="text-slate-500 text-sm">N/A</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    {candidate.interview_date ? (
+                      <div className="flex items-center gap-1">
+                        <span className="text-cyan-400 text-sm">📅</span>
+                        <span className="text-slate-300 text-sm">{candidate.interview_date}</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-500 text-sm">Not set</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    <span
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        candidate.status?.toLowerCase().includes('shortlist') || candidate.status?.toLowerCase().includes('selected') ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                        candidate.status?.toLowerCase().includes('reject') ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                        'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      }`}
+                    >
+                      {candidate.status?.toLowerCase().includes('shortlist') || candidate.status?.toLowerCase().includes('selected') ? '✅ Shortlisted' :
+                       candidate.status?.toLowerCase().includes('reject') ? '❌ Rejected' : '⏳ Review'}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setEmailModal({ candidateId: candidate.id })}
+                        className="text-green-400 hover:text-green-300 transition-colors p-2 rounded-lg hover:bg-green-500/10"
+                        title="Send Email"
+                      >
+                        📧
+                      </button>
+                      <button
+                        onClick={() => setInterviewResultsModal({ 
+                          candidate: {
+                            id: candidate.id,
+                            name: candidate.name,
+                            email: candidate.email
+                          }
+                        })}
+                        className="text-blue-400 hover:text-blue-300 transition-colors p-2 rounded-lg hover:bg-blue-500/10"
+                        title="View Interview Results"
+                      >
+                        📊
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
           
           {filteredCandidates?.length === 0 && (
-            <motion.div 
-              className="text-center py-16 text-slate-400"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
+            <div className="text-center py-16 text-slate-400">
               {data?.length === 0 ? (
                 <div>
-                  <motion.div 
-                    className="text-6xl mb-6"
-                    animate={{ 
-                      rotate: [0, 10, -10, 0],
-                      scale: [1, 1.1, 1]
-                    }}
-                    transition={{ 
-                      duration: 2,
-                      repeat: Infinity,
-                      repeatType: "reverse"
-                    }}
-                  >
-                    🤖
-                  </motion.div>
+                  <div className="text-6xl mb-6">🤖</div>
                   <div className="text-xl mb-3 text-cyan-300">No candidates in the system</div>
                   <div className="text-sm mb-4">Sync from Google Sheets to load candidate data</div>
                   <AnimatedButton onClick={() => syncCandidates.mutate()} disabled={syncCandidates.isPending}>
@@ -373,24 +305,12 @@ export default function CandidatesPage() {
                 </div>
               ) : (
                 <div>
-                  <motion.div 
-                    className="text-6xl mb-6"
-                    animate={{ 
-                      scale: [1, 1.2, 1],
-                      opacity: [0.5, 1, 0.5]
-                    }}
-                    transition={{ 
-                      duration: 2,
-                      repeat: Infinity
-                    }}
-                  >
-                    🔍
-                  </motion.div>
+                  <div className="text-6xl mb-6">🔍</div>
                   <div className="text-xl text-cyan-300">No candidates match your search</div>
                   <div className="text-sm mt-2">Try adjusting your filters or search terms</div>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
         </div>
       </AnimatedCard>
@@ -407,9 +327,9 @@ export default function CandidatesPage() {
           >
             <motion.div 
               className="bg-slate-800/95 backdrop-blur-md rounded-2xl p-8 w-full max-w-2xl border border-slate-700/50 shadow-2xl"
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-6">
@@ -422,14 +342,12 @@ export default function CandidatesPage() {
                     <div className="text-slate-400 text-sm">Candidate Profile</div>
                   </div>
                 </div>
-                <motion.button
+                <button
                   onClick={() => setSelectedCandidate(null)}
                   className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-700/50"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
                 >
                   ✕
-                </motion.button>
+                </button>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -459,17 +377,16 @@ export default function CandidatesPage() {
                     <div className="text-xs font-medium text-cyan-400 mb-2 flex items-center gap-2">
                       <span>📊</span> Status
                     </div>
-                    <motion.span 
+                    <span 
                       className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                         selectedCandidate.status?.toLowerCase().includes('shortlist') || selectedCandidate.status?.toLowerCase().includes('selected') ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
                         selectedCandidate.status?.toLowerCase().includes('reject') ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
                         'bg-purple-500/20 text-purple-400 border border-purple-500/30'
                       }`}
-                      whileHover={{ scale: 1.05 }}
                     >
                       {selectedCandidate.status?.toLowerCase().includes('shortlist') || selectedCandidate.status?.toLowerCase().includes('selected') ? '✅ Shortlisted' :
                        selectedCandidate.status?.toLowerCase().includes('reject') ? '❌ Rejected' : '⏳ Under Review'}
-                    </motion.span>
+                    </span>
                   </div>
                 </div>
               </div>
@@ -501,6 +418,6 @@ export default function CandidatesPage() {
         candidateId={emailModal?.candidateId}
         candidateIds={emailModal?.candidateIds}
       />
-    </motion.div>
+    </div>
   )
 }

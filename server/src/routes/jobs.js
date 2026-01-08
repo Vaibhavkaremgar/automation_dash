@@ -46,11 +46,12 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'Title required' });
     }
 
-    const result = await pool.query(
-      'INSERT INTO jobs (user_id, title, description, requirements, department) VALUES (?, ?, ?, ?, ?) RETURNING *',
-      [req.user.id, title, description || null, requirements || null, department || null]
+    const result = await run(
+      'INSERT INTO jobs (user_id, title, description, requirements, department, status) VALUES (?, ?, ?, ?, ?, ?)',
+      [req.user.id, title, description || null, requirements || null, department || null, 'open']
     );
-    const job = result[0];
+    
+    const job = await get('SELECT * FROM jobs WHERE id = ?', [result.lastID]);
     
     try {
       const sheetsService = require('../services/sheets');
@@ -78,11 +79,10 @@ router.put('/:id', async (req, res, next) => {
     const jobId = parseInt(req.params.id, 10);
     const { title, description, requirements, status, department } = req.body;
 
-    const checkResult = await pool.query('SELECT * FROM jobs WHERE id = ? AND user_id = ?', [jobId, req.user.id]);
-    const job = checkResult.rows[0];
+    const job = await get('SELECT * FROM jobs WHERE id = ? AND user_id = ?', [jobId, req.user.id]);
     if (!job) return res.status(404).json({ error: 'Job not found' });
 
-    await pool.query(
+    await run(
       'UPDATE jobs SET title = ?, description = ?, requirements = ?, status = ?, department = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [
         title !== undefined ? title : job.title,
@@ -94,8 +94,7 @@ router.put('/:id', async (req, res, next) => {
       ]
     );
 
-    const updatedResult = await pool.query('SELECT * FROM jobs WHERE id = ?', [jobId]);
-    const updated = updatedResult.rows[0];
+    const updated = await get('SELECT * FROM jobs WHERE id = ?', [jobId]);
 
     if (config.n8n && config.n8n.webhookUrl) {
       try {
@@ -163,7 +162,7 @@ router.post('/:id/select', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
   try {
     const jobId = parseInt(req.params.id, 10);
-    const result = await all('DELETE FROM jobs WHERE id = ? AND user_id = ?', [jobId, req.user.id]);
+    const result = await run('DELETE FROM jobs WHERE id = ? AND user_id = ?', [jobId, req.user.id]);
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Job not found' });

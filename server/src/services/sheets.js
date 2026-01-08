@@ -220,7 +220,7 @@ class SheetsService {
     
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      const rowId = `row_${i + 2}`;
+      const rowId = `${spreadsheetId}_${sheetTab}_row_${i + 2}`;
       sheetRowIds.add(rowId);
       
       const hasMeetLink = row.some(cell => 
