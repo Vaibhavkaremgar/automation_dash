@@ -1710,24 +1710,51 @@ export default function InsuranceDashboard() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {sheetFields.filter(field => !['S NO', 's no', 'S_NO'].includes(field)).map((field) => {
-                      const key = field.toLowerCase().replace(/\s+/g, '_').replace(/&amp;/g, '&');
-                      const value = customer[key];
-                      
-                      // Show all fields, even if empty (except truly null/undefined)
+                    {Object.entries({
+                      'NAME': customer.name,
+                      'MOBILE NO': customer.mobile_number,
+                      'EMAIL ID': customer.email,
+                      'POLICY NO': customer.current_policy_no,
+                      'G CODE': customer.g_code,
+                      'VEH NO': customer.registration_no,
+                      'COMPANY': customer.company,
+                      'TYPE': customer.product || customer.vertical,
+                      'AMOUNT': customer.premium,
+                      'LAST YEAR PREMIUM': customer.last_year_premium,
+                      'DATE OF EXPIRY': customer.od_expiry_date,
+                      'MODIFIED EXPIRY DATE': customer.renewal_date,
+                      'TP Expiry Date': customer.tp_expiry_date,
+                      'DEPOSITED/ PAYMENT DATE': customer.payment_date,
+                      'Premium mode': customer.premium_mode,
+                      'STATUS': customer.status,
+                      'NEW POLICY NO': customer.new_policy_no,
+                      'NEW POLICY COMPANY': customer.new_company,
+                      'Product Type': customer.product_type,
+                      'Product Model': customer.product_model,
+                      'CHQ NO & DATE': customer.cheque_no,
+                      'BANK NAME': customer.bank_name,
+                      'CUSTOMER ID': customer.customer_id,
+                      'AGENT CODE': customer.agent_code,
+                      'PANCARD': customer.pancard,
+                      'AADHAR CARD': customer.aadhar_card,
+                      'OTHERS - VI/DL/PP': customer.others_doc,
+                      'Thankyou message sent yes/no': customer.thank_you_sent,
+                      'REMARKS': customer.notes
+                    }).map(([label, value]) => {
+                      // Skip if value is null or undefined
                       if (value === null || value === undefined) return null;
                       
                       return (
-                        <div key={key}>
-                          <p className="text-xs text-slate-400">{field}</p>
+                        <div key={label}>
+                          <p className="text-xs text-slate-400">{label}</p>
                           <p className={`text-sm font-medium ${
-                            field.includes('G CODE') || field.includes('G_CODE') ? 'text-cyan-400 font-bold' :
-                            field.includes('POLICY NO') ? 'text-cyan-400 font-bold' :
-                            field.includes('PREMIUM') || field.includes('AMOUNT') ? 'text-green-400 font-bold' :
+                            label.includes('G CODE') ? 'text-cyan-400 font-bold' :
+                            label.includes('POLICY NO') ? 'text-cyan-400 font-bold' :
+                            label.includes('PREMIUM') || label.includes('AMOUNT') ? 'text-green-400 font-bold' :
                             'text-white'
                           }`}>
                             {value === '' || value === 0 ? '-' : 
-                             (field.includes('PREMIUM') || field.includes('AMOUNT')) && typeof value === 'number' ? `₹${value.toLocaleString()}` : 
+                             (label.includes('PREMIUM') || label.includes('AMOUNT')) && typeof value === 'number' ? `₹${value.toLocaleString()}` : 
                              value}
                           </p>
                         </div>
