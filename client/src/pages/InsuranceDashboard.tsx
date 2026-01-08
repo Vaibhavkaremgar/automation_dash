@@ -1666,6 +1666,9 @@ export default function InsuranceDashboard() {
                   <div className="flex justify-between items-start border-b border-slate-600 pb-3">
                     <div>
                       <h4 className="font-bold text-white text-lg">{customer.name}</h4>
+                      {customer.current_policy_no && (
+                        <p className="text-sm text-cyan-400 font-bold mt-1">Policy No: {customer.current_policy_no}</p>
+                      )}
                       <span className={`inline-block mt-2 px-3 py-1 text-xs rounded-full font-medium ${
                         customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
                         customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
@@ -1718,12 +1721,13 @@ export default function InsuranceDashboard() {
                         <div key={key}>
                           <p className="text-xs text-slate-400">{field}</p>
                           <p className={`text-sm font-medium ${
-                            key === 'g_code' ? 'text-cyan-400 font-bold' :
-                            key.includes('premium') || key.includes('amount') ? 'text-green-400 font-bold' :
+                            field.includes('G CODE') || field.includes('G_CODE') ? 'text-cyan-400 font-bold' :
+                            field.includes('POLICY NO') ? 'text-cyan-400 font-bold' :
+                            field.includes('PREMIUM') || field.includes('AMOUNT') ? 'text-green-400 font-bold' :
                             'text-white'
                           }`}>
                             {value === '' || value === 0 ? '-' : 
-                             key.includes('premium') || key.includes('amount') ? `₹${value.toLocaleString?.() || value}` : 
+                             (field.includes('PREMIUM') || field.includes('AMOUNT')) && typeof value === 'number' ? `₹${value.toLocaleString()}` : 
                              value}
                           </p>
                         </div>
