@@ -60,9 +60,12 @@ router.get('/customers', (req, res) => {
       if (vertical === 'general') {
         query += ' AND vertical IN (?, ?, ?)';
         params.push('motor', 'health', 'non-motor');
+      } else if (vertical === 'health') {
+        query += ' AND LOWER(product) = ?';
+        params.push('health');
       } else if (vertical === 'non-motor') {
-        query += ' AND vertical = ?';
-        params.push('non-motor');
+        query += ' AND (LOWER(REPLACE(product, " ", "")) = ? OR LOWER(REPLACE(product, "-", "")) = ?)';
+        params.push('nonmotor', 'nonmotor');
       } else if (vertical === '2-wheeler') {
         query += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%2wh%');
