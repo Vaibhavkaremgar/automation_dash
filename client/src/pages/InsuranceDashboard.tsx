@@ -577,18 +577,9 @@ export default function InsuranceDashboard() {
     try {
       const vertical = verticalFilter === 'life' ? 'life' : 'general';
       const res = await api.get(`/api/insurance-config/config?vertical=${vertical}`);
-      console.log('🔍 CLIENT CONFIG:', res.data);
-      console.log('📋 SHEET FIELDS:', res.data.sheetHeaders);
       setClientConfig(res.data);
       setSheetFields(res.data.sheetHeaders || []);
       SHEET_TAB_NAME = res.data.tabName;
-      
-      // Log for debugging
-      if (!res.data.sheetHeaders || res.data.sheetHeaders.length === 0) {
-        console.error('⚠️ WARNING: No sheet headers loaded!');
-      } else {
-        console.log(`✅ Loaded ${res.data.sheetHeaders.length} sheet fields for ${vertical}`);
-      }
     } catch (error) {
       console.error('Failed to load client config:', error);
     }
@@ -710,17 +701,12 @@ export default function InsuranceDashboard() {
   };
 
   const syncFromSheets = async (silent = false) => {
-    if (syncing) {
-      console.log('Sync already in progress, skipping...');
-      return;
-    }
+    if (syncing) return;
     try {
       setSyncing(true);
-      console.log('Starting sync from sheets...');
       const result = await api.post('/api/insurance/sync/from-sheet', {
         tabName: SHEET_TAB_NAME
       });
-      console.log('Sync result:', result.data);
       if (!silent) {
         alert(`✅ Sync from sheet completed! Imported: ${result.data.imported} customers`);
       }
@@ -768,19 +754,6 @@ export default function InsuranceDashboard() {
   const renderDashboardTab = () => {
     const { expiringToday, expiring1Day, expiring3, expiring7 } = categorizeCustomers();
     const todayTasks = [...expiringToday, ...expiring1Day, ...expiring3, ...expiring7];
-    
-    console.log('📊 Dashboard Debug:');
-    console.log('Total customers:', customers.length);
-    console.log('Expiring today:', expiringToday.length);
-    console.log('Expiring 1 day:', expiring1Day.length);
-    console.log('Expiring 3 days:', expiring3.length);
-    console.log('Expiring 7 days:', expiring7.length);
-    console.log('Today tasks:', todayTasks.length);
-    if (customers.length > 0) {
-      console.log('Sample customer:', customers[0]);
-      console.log('Sample renewal date:', getDisplayDate(customers[0]));
-      console.log('Sample days until expiry:', getDaysUntilExpiry(customers[0]));
-    }
     
     return (
       <div className="space-y-4">
@@ -999,11 +972,9 @@ export default function InsuranceDashboard() {
   const syncToSheets = async () => {
     try {
       setSyncing(true);
-      console.log('Starting sync to sheets...');
       const result = await api.post('/api/insurance/sync/to-sheet', {
         tabName: SHEET_TAB_NAME
       });
-      console.log('Sync result:', result.data);
       alert(`✅ Sync to sheet completed! Exported: ${result.data.exported} customers`);
     } catch (error) {
       console.error('Failed to sync to sheets:', error);
@@ -1650,39 +1621,20 @@ export default function InsuranceDashboard() {
             <Input
               placeholder="Search by name, mobile, G CODE, vehicle, etc..."
               value={modalSearchTerm}
-              onChange={(e) => {
-                console.log('🔍 Search term:', e.target.value);
-                setModalSearchTerm(e.target.value);
-              }}
+              onChange={(e) => setModalSearchTerm(e.target.value)}
               className="w-full"
             />
           )}
           <div className="max-h-[70vh] overflow-y-auto space-y-3">
             {(() => {
-              if (detailsModalCustomers.length > 0) {
-                console.log('📋 Sample customer data:', detailsModalCustomers[0]);
-                console.log('📋 G CODE value:', detailsModalCustomers[0].g_code);
-              }
-              
               const filtered = detailsModalCustomers.filter(c => {
                 if (!modalSearchTerm) return true;
                 const searchLower = modalSearchTerm.toLowerCase();
-                
-                // Search through ALL customer fields
-                const found = Object.entries(c).some(([key, value]) => {
+                return Object.entries(c).some(([key, value]) => {
                   if (value === null || value === undefined) return false;
-                  const strValue = String(value).toLowerCase();
-                  const matches = strValue.includes(searchLower);
-                  if (matches && key === 'g_code') {
-                    console.log('✅ Found G CODE match:', value);
-                  }
-                  return matches;
+                  return String(value).toLowerCase().includes(searchLower);
                 });
-                
-                return found;
               });
-              
-              console.log('🔍 Filtered results:', filtered.length, 'out of', detailsModalCustomers.length);
               
               return filtered.length === 0 ? (
               <p className="text-center text-slate-400 py-8">No customers found</p>

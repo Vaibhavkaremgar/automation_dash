@@ -54,7 +54,6 @@ export default function JobsPage() {
       }
     },
     onSuccess: () => { 
-      console.log('Job created, invalidating analytics queries...')
       setTitle('')
       setDescription('')
       setDepartment('')
@@ -79,7 +78,6 @@ export default function JobsPage() {
       }
     },
     onSuccess: () => {
-      console.log('Job deleted, invalidating analytics queries...')
       qc.invalidateQueries({ queryKey: ['jobs'] })
       qc.invalidateQueries({ queryKey: ['analytics', 'client'] })
       qc.invalidateQueries({ queryKey: ['analytics-client'] })
@@ -99,7 +97,6 @@ export default function JobsPage() {
       }
     },
     onSuccess: () => { 
-      console.log('Job updated, invalidating analytics queries...')
       setEditModal(null)
       qc.invalidateQueries({ queryKey: ['jobs'] })
       qc.invalidateQueries({ queryKey: ['analytics', 'client'] })

@@ -38,7 +38,6 @@ export default function CandidatesPage() {
       return response.data
     },
     onSuccess: () => {
-      console.log('Candidates sync successful, invalidating queries...')
       qc.invalidateQueries({ queryKey: ['candidates'] })
       qc.invalidateQueries({ queryKey: ['analytics', 'client'] })
       qc.invalidateQueries({ queryKey: ['analytics-client'] })
@@ -52,9 +51,6 @@ export default function CandidatesPage() {
   const filteredCandidates = useMemo(() => {
     if (!data) return []
     let candidates = data
-    
-    const uniqueStatuses = [...new Set(candidates.map((c: any) => c.status))]
-    console.log('Unique status values:', uniqueStatuses)
     
     if (filter === 'shortlisted') {
       candidates = candidates.filter((c: any) => 
@@ -82,7 +78,6 @@ export default function CandidatesPage() {
       c.client_name?.toLowerCase().includes(search.toLowerCase())
     )
     
-    console.log(`Filter: ${filter}, Found: ${candidates.length} candidates`)
     return candidates
   }, [data, filter, search])
 

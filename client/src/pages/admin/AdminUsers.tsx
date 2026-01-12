@@ -21,7 +21,6 @@ export default function AdminUsersPage() {
 
   const createUser = useMutation({
     mutationFn: async () => {
-      console.log('Creating user with:', { email, name, google_sheet_url: googleSheetUrl })
       const response = await api.post('/api/admin/users', { 
         email, 
         name, 
@@ -31,7 +30,6 @@ export default function AdminUsersPage() {
       return response.data
     },
     onSuccess: (data) => { 
-      console.log('User created successfully:', data)
       setTempPassword(data.tempPassword)
       setEmail('')
       setName('')
