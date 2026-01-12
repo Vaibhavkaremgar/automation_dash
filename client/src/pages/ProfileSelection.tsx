@@ -62,7 +62,9 @@ export default function ProfileSelection() {
       });
 
       if (res.data.success) {
-        localStorage.setItem('activeProfile', JSON.stringify(res.data.profile));
+        const profileData = { ...res.data.profile, is_admin: res.data.profile.role === 'admin' ? 1 : 0 };
+        localStorage.setItem('activeProfile', JSON.stringify(profileData));
+        localStorage.setItem('user', JSON.stringify({ ...JSON.parse(localStorage.getItem('user') || '{}'), is_admin: profileData.is_admin }));
         navigate('/insurance');
       }
     } catch (error: any) {

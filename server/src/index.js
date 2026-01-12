@@ -37,13 +37,13 @@ const app = express();
 
 app.use(cors({
   origin: config.nodeEnv === 'production' 
-    // Railway Production URLs
-    ? ['https://vbautomations.up.railway.app', config.frontendUrl].filter(Boolean)
-    : ['http://localhost:5173', 'https://vbautomations.up.railway.app', config.frontendUrl].filter(Boolean),
+    // Local Development URLs
+    ? [config.frontendUrl].filter(Boolean)
+    : ['http://localhost:5173', config.frontendUrl].filter(Boolean),
     
-    // Local Development URLs (Commented for Railway deployment)
-    // ? [config.frontendUrl].filter(Boolean)
-    // : ['http://localhost:5173', config.frontendUrl].filter(Boolean),
+    // Railway Production URLs (Commented for local development)
+    // ? ['https://vbautomations.up.railway.app', config.frontendUrl].filter(Boolean)
+    // : ['http://localhost:5173', 'https://vbautomations.up.railway.app', config.frontendUrl].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-profile-id'],

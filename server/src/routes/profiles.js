@@ -91,7 +91,6 @@ router.post('/', authRequired, async (req, res) => {
   }
 });
 
-// Verify profile password
 router.post('/verify', authRequired, async (req, res) => {
   try {
     const { profile_id, password } = req.body;
@@ -134,7 +133,7 @@ router.post('/verify', authRequired, async (req, res) => {
       
       if (adminMatch) {
         console.log('✅ Access granted via ADMIN PROFILE password (master key)');
-        return res.json({ success: true, profile: { id: profile.id, profile_name: profile.profile_name, role: profile.role }, admin_access: true });
+        return res.json({ success: true, profile: { id: profile.id, profile_name: profile.profile_name, role: profile.role, is_admin: profile.role === 'admin' ? 1 : 0 }, admin_access: true });
       }
     }
 
@@ -145,7 +144,7 @@ router.post('/verify', authRequired, async (req, res) => {
     
     if (profileMatch) {
       console.log('✅ Access granted via PROFILE password');
-      return res.json({ success: true, profile: { id: profile.id, profile_name: profile.profile_name, role: profile.role } });
+      return res.json({ success: true, profile: { id: profile.id, profile_name: profile.profile_name, role: profile.role, is_admin: profile.role === 'admin' ? 1 : 0 } });
     }
 
     console.log('❌ Password verification failed - neither admin nor profile password matched');

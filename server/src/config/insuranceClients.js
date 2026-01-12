@@ -3,7 +3,7 @@ const insuranceClients = {
   kmg: {
     identifier: ['kmg', 'kmginsurance'],
     name: 'KMG Insurance Agency',
-    spreadsheetId: '1eg0JT8a1SR7PcwS3EnuVQlFUUwTRPdEfQtfLynpJfNg',
+    spreadsheetId: '1qV6K3t7zpQl2pild6q2i1iS6ga9Zd6QQgu3nvyIEmN0',
     tabs: {
       general: {
         tab: 'kmg_general_ins',
@@ -19,9 +19,11 @@ const insuranceClients = {
           premium_mode: 'Premium mode',
           last_year_premium: 'LAST YEAR PREMIUM',
           renewal_date: 'MODIFIED EXPIRY DATE',
-          od_expiry_date: 'DATE OF EXPIRY',
+          od_expiry_date: 'Policy Expiry Date',
           tp_expiry_date: 'TP Expiry Date',
           payment_date: 'DEPOSITED/ PAYMENT DATE',
+          policy_start_date: 'Policy start date',
+          paid_by: 'Paid by',
           status: 'STATUS',
           thank_you_sent: 'Thankyou message sent yes/no',
           new_policy_no: 'NEW POLICY NO',
@@ -63,7 +65,7 @@ const insuranceClients = {
   joban: {
     identifier: ['joban', 'jobanputra', 'joban putra'],
     name: 'Joban Putra Insurance',
-    spreadsheetId: '1CE5TFC5bFx7WixVLoVOzdiMntwgRISO9YVR_cWZhku4',
+    spreadsheetId: '1SJY8rPUbhr1NUhKELpuLPU9dhlhz86ZWQ0AI5s4dj40',
     tabs: {
       general: {
         tab: 'general_ins',
@@ -74,11 +76,13 @@ const insuranceClients = {
           current_policy_no: 'POLICY NO',
           g_code: 'G CODE',
           last_year_premium: 'LAST YEAR PREMIUM',
-          od_expiry_date: 'DATE OF EXPIRY',
+          od_expiry_date: 'Policy Expiry Date',
           renewal_date: 'MODIFIED EXPIRY DATE',
           company: 'COMPANY',
           vertical: 'TYPE',
           payment_date: 'DEPOSITED/ PAYMENT DATE',
+          policy_start_date: 'Policy start date',
+          paid_by: 'Paid by',
           chq_no_date: 'CHQ NO & DATE',
           bank_name: 'BANK NAME',
           customer_id: 'CUSTOMER ID',

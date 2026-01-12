@@ -390,8 +390,33 @@ async function runMigrations() {
       if (!colNames.includes('g_code')) {
         await run(`ALTER TABLE insurance_customers ADD COLUMN g_code TEXT`);
       }
+      if (!colNames.includes('paid_by')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN paid_by TEXT`);
+      }
+      if (!colNames.includes('policy_start_date')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN policy_start_date TEXT`);
+      }
+      if (!colNames.includes('s_no')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN s_no TEXT`);
+      }
+      if (!colNames.includes('sheet_row_number')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN sheet_row_number INTEGER`);
+      }
     } catch (e) {
       console.log('Column migration check:', e.message);
+    }
+    
+    // Add is_admin column to users table
+    try {
+      const userCols = await all(`PRAGMA table_info(users)`);
+      const userColNames = userCols.map(c => c.name);
+      
+      if (!userColNames.includes('is_admin')) {
+        await run(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`);
+        console.log('✅ Added is_admin column to users table');
+      }
+    } catch (e) {
+      console.log('User column migration check:', e.message);
     }
 
     // Create insurance_policies table
@@ -418,18 +443,41 @@ async function runMigrations() {
     await run(`
       CREATE TABLE IF NOT EXISTS insurance_claims (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        policy_id INTEGER NOT NULL,
-        claim_number TEXT UNIQUE,
-        claim_amount REAL,
+        user_id INTEGER NOT NULL,
+        customer_id INTEGER NOT NULL,
+        policy_number TEXT,
+        insurance_company TEXT,
+        vehicle_number TEXT,
         claim_type TEXT,
-        status TEXT DEFAULT 'pending',
-        filed_date TEXT,
-        resolved_date TEXT,
+        incident_date TEXT,
+        description TEXT,
+        claim_amount REAL,
+        claim_status TEXT DEFAULT 'filed',
+        claimant TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (policy_id) REFERENCES insurance_policies(id) ON DELETE CASCADE
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (customer_id) REFERENCES insurance_customers(id) ON DELETE CASCADE
       )
     `);
+    
+    // Add claimant column if it doesn't exist
+    try {
+      const claimCols = await all(`PRAGMA table_info(insurance_claims)`);
+      const claimColNames = claimCols.map(c => c.name);
+      
+      if (!claimColNames.includes('claimant')) {
+        await run(`ALTER TABLE insurance_claims ADD COLUMN claimant TEXT`);
+      }
+      if (!claimColNames.includes('user_id')) {
+        await run(`ALTER TABLE insurance_claims ADD COLUMN user_id INTEGER`);
+      }
+      if (!claimColNames.includes('customer_id')) {
+        await run(`ALTER TABLE insurance_claims ADD COLUMN customer_id INTEGER`);
+      }
+    } catch (e) {
+      console.log('Claims column migration check:', e.message);
+    }
 
     // Create sessions table
     await run(`
@@ -466,6 +514,12 @@ async function runMigrations() {
     }
 
     console.log('✅ Database migrations completed successfully');
+    
+    // Add indexes for performance
+    await run('CREATE INDEX IF NOT EXISTS idx_insurance_customers_user_vertical ON insurance_customers(user_id, vertical)');
+    await run('CREATE INDEX IF NOT EXISTS idx_insurance_customers_status ON insurance_customers(status)');
+    await run('CREATE INDEX IF NOT EXISTS idx_insurance_customers_renewal_date ON insurance_customers(renewal_date)');
+    console.log('✅ Database indexes created');
   } catch (error) {
     console.error('❌ Migration error:', error.message);
     throw error;

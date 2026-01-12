@@ -600,7 +600,7 @@ router.post('/customers/:id/notes', validateCustomerOwnership, async (req, res) 
       if (!customer) return res.status(404).json({ error: 'Customer not found' });
       
       const timestamp = new Date().toLocaleString();
-      const newNote = `[${timestamp}] ${note}`;
+      const newNote = `${note} [${timestamp}]`;
       const updatedNotes = customer.notes ? `${customer.notes}\n${newNote}` : newNote;
       
       db.run(`
@@ -706,16 +706,16 @@ router.get('/claims', (req, res) => {
 // Create new claim
 router.post('/claims', activityLogger, (req, res) => {
   try {
-    const { customer_id, policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount } = req.body;
+    const { customer_id, policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount, claimant } = req.body;
     
     if (!customer_id) {
       return res.status(400).json({ error: 'Customer is required' });
     }
     
     db.run(`
-      INSERT INTO insurance_claims (user_id, customer_id, policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount, claim_status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'filed')
-    `, [req.user.id, customer_id, policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount], function(err) {
+      INSERT INTO insurance_claims (user_id, customer_id, policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount, claimant, claim_status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'filed')
+    `, [req.user.id, customer_id, policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount, claimant], function(err) {
       if (err) return res.status(500).json({ error: err.message });
       
       db.get('SELECT * FROM insurance_claims WHERE id = ?', [this.lastID], (err, claim) => {
@@ -769,13 +769,13 @@ router.patch('/claims/:id/status', validateClaimOwnership, (req, res) => {
 // Update claim
 router.put('/claims/:id', validateClaimOwnership, (req, res) => {
   try {
-    const { policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount } = req.body;
+    const { policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount, claimant } = req.body;
     
     db.run(`
       UPDATE insurance_claims 
-      SET policy_number = ?, insurance_company = ?, vehicle_number = ?, claim_type = ?, incident_date = ?, description = ?, claim_amount = ?, updated_at = CURRENT_TIMESTAMP
+      SET policy_number = ?, insurance_company = ?, vehicle_number = ?, claim_type = ?, incident_date = ?, description = ?, claim_amount = ?, claimant = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
-    `, [policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount, req.params.id, req.user.id], (err) => {
+    `, [policy_number, insurance_company, vehicle_number, claim_type, incident_date, description, claim_amount, claimant, req.params.id, req.user.id], (err) => {
       if (err) return res.status(500).json({ error: err.message });
       
       db.get('SELECT * FROM insurance_claims WHERE id = ?', [req.params.id], (err, claim) => {

@@ -24,9 +24,10 @@ interface CustomerTableProps {
   onEdit: (customer: Customer) => void;
   onDelete: (id: number) => void;
   getDisplayDate: (customer: Customer) => string;
+  isAdmin?: boolean;
 }
 
-export default function CustomerTable({ customers, isMotor, onEdit, onDelete, getDisplayDate }: CustomerTableProps) {
+export default function CustomerTable({ customers, isMotor, onEdit, onDelete, getDisplayDate, isAdmin = false }: CustomerTableProps) {
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
 
@@ -151,9 +152,11 @@ export default function CustomerTable({ customers, isMotor, onEdit, onDelete, ge
                   <Button size="sm" variant="outline" onClick={() => onEdit(customer)}>
                     Edit
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => onDelete(customer.id)}>
-                    Delete
-                  </Button>
+                  {isAdmin && (
+                    <Button size="sm" variant="outline" onClick={() => onDelete(customer.id)}>
+                      Delete
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}

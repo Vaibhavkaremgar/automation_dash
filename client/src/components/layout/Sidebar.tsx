@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { LayoutDashboard, Briefcase, Users, Upload, Wallet, BarChart3, Mail, Settings, Receipt, Shield, MessageSquare } from 'lucide-react'
@@ -90,6 +90,12 @@ export default memo(function Sidebar() {
                 {' '}
                 <span className="text-green-400">Insurance Shoppe</span>
               </>
+            ) : user?.email?.toLowerCase().includes('kmg') ? (
+              <>
+                <span className="text-blue-600">Krishna Mohan</span>
+                {' '}
+                <span className="text-pink-400">Gupta Palla</span>
+              </>
             ) : (
               <span className="text-white">{sidebarTitle.replace(/🏢\s*/, '')}</span>
             )}
@@ -97,7 +103,7 @@ export default memo(function Sidebar() {
         )}
         {user?.client_type && (
           <div className="text-xs text-indigo-300 mt-1 text-center">
-            {user.client_type === 'insurance' ? 'Insurance Agency' : 'HR Agency'}
+            {user?.email?.toLowerCase().includes('kmg') ? 'Certified Insurance & Mutual Funds Distributor' : user.client_type === 'insurance' ? 'Insurance Agency' : 'HR Agency'}
           </div>
         )}
         <div className="text-xs text-slate-400 truncate mt-1 text-center" title={user?.email || ''}>

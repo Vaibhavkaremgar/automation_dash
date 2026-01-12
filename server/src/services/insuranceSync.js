@@ -30,6 +30,7 @@ function parseCsv(text) {
 class InsuranceSyncService {
   constructor() {
     this.sheets = null;
+    this.lastSyncTime = {};
   }
 
   initAuth() {
@@ -175,7 +176,7 @@ class InsuranceSyncService {
           email: getCell(row, 'email'),
           current_policy_no: getCell(row, 'current_policy_no'),
           company: getCell(row, 'company'),
-          premium: parseFloat(getCell(row, 'premium')) || 0,
+          premium: parseFloat((getCell(row, 'premium') || '0').replace(/,/g, '')) || 0,
           premium_mode: getCell(row, 'premium_mode'),
           renewal_date: this.formatDate(getCell(row, 'renewal_date')),
           payment_date: this.formatDate(getCell(row, 'payment_date')),
@@ -215,13 +216,14 @@ class InsuranceSyncService {
         const finalRenewalDate = modifiedExpiry && modifiedExpiry.trim() !== '' ? modifiedExpiry : dateOfExpiry;
         
         customer = {
+          s_no: getCell(row, 's_no'),
           name: getCell(row, 'name'),
           mobile_number: getCell(row, 'mobile_number'),
           email: getCell(row, 'email'),
           current_policy_no: getCell(row, 'current_policy_no'),
           company: getCell(row, 'company'),
           registration_no: getCell(row, 'registration_no'),
-          premium: parseFloat(getCell(row, 'premium')) || 0,
+          premium: parseFloat((getCell(row, 'premium') || '0').replace(/,/g, '')) || 0,
           premium_mode: getCell(row, 'premium_mode'),
           last_year_premium: getCell(row, 'last_year_premium'),
           renewal_date: finalRenewalDate,
@@ -252,14 +254,6 @@ class InsuranceSyncService {
         };
       }
       
-      // Skip rows without name or mobile - COMMENTED OUT TO ALLOW ALL ROWS
-      // if (!customer.name || !customer.mobile_number) {
-      //   console.log(`⚠️  Skipping row ${i + 2}: missing ${!customer.name ? 'NAME' : ''} ${!customer.name && !customer.mobile_number ? 'and' : ''} ${!customer.mobile_number ? 'MOBILE NO' : ''} (name='${customer.name}', mobile='${customer.mobile_number}')`);
-      //   skipped++;
-      //   continue;
-      // }
-      
-      // Allow rows with at least some data (not completely empty)
       const hasAnyData = customer.name || customer.mobile_number || customer.email || customer.company || customer.registration_no;
       if (!hasAnyData) {
         console.log(`⚠️  Skipping row ${i + 2}: completely empty`);
@@ -269,9 +263,9 @@ class InsuranceSyncService {
       
       try {
         await run(`
-          INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, payment_date, notes, product_type, product_model, modified_expiry_date, cheque_no, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [userId, customer.name, customer.mobile_number, customer.insurance_activated_date || '', customer.renewal_date, customer.od_expiry_date || '', customer.tp_expiry_date || '', customer.premium_mode || '', customer.premium, customer.last_year_premium || '', customer.vertical, customer.product || '', customer.registration_no || '', customer.current_policy_no || '', customer.company || '', customer.status, customer.new_policy_no || '', customer.new_company || '', customer.policy_doc_link || '', customer.thank_you_sent || '', customer.reason || '', customer.email || '', customer.payment_date || '', customer.notes || '', customer.product_type || '', customer.product_model || '', customer.modified_expiry_date || '', customer.cheque_no || '', customer.bank_name || '', customer.customer_id || '', customer.agent_code || '', customer.pancard || '', customer.aadhar_card || '', customer.others_doc || '', customer.g_code || '']);
+          INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, payment_date, notes, product_type, product_model, modified_expiry_date, cheque_no, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, s_no, sheet_row_number)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [userId, customer.name, customer.mobile_number, customer.insurance_activated_date || '', customer.renewal_date, customer.od_expiry_date || '', customer.tp_expiry_date || '', customer.premium_mode || '', customer.premium, customer.last_year_premium || '', customer.vertical, customer.product || '', customer.registration_no || '', customer.current_policy_no || '', customer.company || '', customer.status, customer.new_policy_no || '', customer.new_company || '', customer.policy_doc_link || '', customer.thank_you_sent || '', customer.reason || '', customer.email || '', customer.payment_date || '', customer.notes || '', customer.product_type || '', customer.product_model || '', customer.modified_expiry_date || '', customer.cheque_no || '', customer.bank_name || '', customer.customer_id || '', customer.agent_code || '', customer.pancard || '', customer.aadhar_card || '', customer.others_doc || '', customer.g_code || '', customer.s_no || '', i + 2]);
         imported++;
         if (imported <= 2) {
           console.log(`✅ Imported row ${i + 2}: ${customer.name} (${customer.vertical})`);
@@ -283,11 +277,10 @@ class InsuranceSyncService {
       }
     }
     
+    // Store sync time
+    this.lastSyncTime[`${userId}_${tabName}`] = new Date().toISOString();
+    
     console.log(`✅ Sync completed: ${imported} imported, ${skipped} skipped`);
-    console.log(`📊 Summary: Total rows in sheet: ${rows.length - 1}, Imported: ${imported}, Skipped: ${skipped}`);
-    if (skipped > 0) {
-      console.log(`⚠️  ${skipped} rows were skipped due to missing NAME or MOBILE NO fields`);
-    }
     return { imported, updated: 0 };
   }
 
@@ -298,10 +291,9 @@ class InsuranceSyncService {
     }
 
     try {
-      console.log(`🔄 Syncing TO sheet - User: ${userId}, Tab: ${tabName}, Filter:`, verticalFilter);
+      console.log(`🔄 Syncing TO sheet - User: ${userId}, Tab: ${tabName}`);
       const user = await get('SELECT email FROM users WHERE id = ?', [userId]);
       const clientConfig = getClientConfig(user?.email);
-      console.log(`📋 Client: ${clientConfig.name}`);
       
       let query = 'SELECT * FROM insurance_customers WHERE user_id = ?';
       const params = [userId];
@@ -315,103 +307,151 @@ class InsuranceSyncService {
       const customers = await all(query + ' ORDER BY id', params);
       console.log(`📊 Found ${customers.length} customers to sync`);
       
+      if (customers.length === 0) {
+        console.log('✅ No customers to sync');
+        return { success: true, exported: 0, updated: 0, added: 0 };
+      }
+      
       const isLifeTab = verticalFilter && verticalFilter.includes('life') && !verticalFilter.includes('motor');
       const schema = isLifeTab ? clientConfig.tabs.life.schema : clientConfig.tabs.general.schema;
       
-      // Read current sheet headers to get column order
-      const headerResponse = await this.sheets.spreadsheets.values.get({
+      // Read current sheet
+      const sheetResponse = await this.sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: `${tabName}!1:1`
+        range: `${tabName}!A:ZZ`
       });
-      const headers = headerResponse.data.values?.[0] || [];
-      console.log(`📋 Sheet headers:`, headers);
+      const sheetData = sheetResponse.data.values || [];
+      const headers = sheetData[0] || [];
+      const existingRows = sheetData.slice(1);
       
-      // Create reverse mapping: column name -> field name
+      const nameColIndex = headers.findIndex(h => h === schema.name);
+      const mobileColIndex = headers.findIndex(h => h === schema.mobile_number);
+      
       const reverseSchema = {};
       Object.entries(schema).forEach(([field, colName]) => {
         reverseSchema[colName] = field;
       });
       
-      // Build rows in the exact order of sheet columns
-      const values = customers.map((customer, index) => {
-        return headers.map(header => {
-          // Special handling for S NO
-          if (header === 'S NO') return index + 1;
-          
+      // Map existing rows by mobile AND store row number
+      const sheetRowMap = new Map();
+      existingRows.forEach((row, index) => {
+        const mobile = row[mobileColIndex] || '';
+        if (mobile) {
+          sheetRowMap.set(mobile.trim(), { row, rowNumber: index + 2, sheetIndex: index });
+        }
+      });
+      
+      let updated = 0;
+      let added = 0;
+      
+      // Batch updates
+      const batchUpdates = [];
+      const appendRows = [];
+      
+      for (const customer of customers) {
+        const customerKey = customer.mobile_number ? customer.mobile_number.trim() : null;
+        if (!customerKey) continue;
+        
+        // Try to find by sheet_row_number first (exact match), then by mobile
+        let existingEntry = null;
+        if (customer.sheet_row_number && customer.sheet_row_number >= 2) {
+          const sheetIndex = customer.sheet_row_number - 2;
+          if (sheetIndex >= 0 && sheetIndex < existingRows.length) {
+            existingEntry = { row: existingRows[sheetIndex], rowNumber: customer.sheet_row_number, sheetIndex };
+          }
+        }
+        if (!existingEntry) {
+          existingEntry = sheetRowMap.get(customerKey);
+        }
+        
+        const rowData = headers.map((header) => {
           const fieldName = reverseSchema[header];
-          if (!fieldName) return ''; // Column not in schema
           
-          // Map field to customer data
+          // Preserve S.NO from existing sheet or database
+          if (header === 'S NO') {
+            return customer.s_no || (existingEntry ? existingEntry.row[headers.indexOf(header)] : '');
+          }
+          
+          if (!fieldName) return existingEntry ? (existingEntry.row[headers.indexOf(header)] || '') : '';
+          
           const fieldMap = {
-            name: customer.name || '',
-            mobile_number: customer.mobile_number || '',
-            email: customer.email || '',
-            current_policy_no: customer.current_policy_no || '',
-            company: customer.company || '',
-            registration_no: customer.registration_no || '',
-            premium: customer.premium || '',
-            premium_mode: customer.premium_mode || '',
-            last_year_premium: customer.last_year_premium || '',
-            renewal_date: customer.modified_expiry_date || '',
-            od_expiry_date: customer.od_expiry_date || '',
-            tp_expiry_date: customer.tp_expiry_date || '',
-            payment_date: customer.payment_date || '',
-            status: customer.status || 'due',
-            thank_you_sent: customer.thank_you_sent || '',
-            new_policy_no: customer.new_policy_no || '',
-            new_company: customer.new_company || '',
-            product_type: customer.product_type || '',
-            product_model: customer.product_model || '',
-            vertical: customer.vertical || '',
-            notes: customer.notes || '',
-            cheque_no: customer.cheque_no || '',
-            bank_name: customer.bank_name || '',
-            customer_id: customer.customer_id || '',
-            agent_code: customer.agent_code || '',
-            pancard: customer.pancard || '',
-            aadhar_card: customer.aadhar_card || '',
-            others_doc: customer.others_doc || '',
-            g_code: customer.g_code || ''
+            name: customer.name,
+            mobile_number: customer.mobile_number,
+            email: customer.email,
+            current_policy_no: customer.current_policy_no,
+            company: customer.company,
+            registration_no: customer.registration_no,
+            premium: customer.premium,
+            premium_mode: customer.premium_mode,
+            last_year_premium: customer.last_year_premium,
+            renewal_date: customer.modified_expiry_date || customer.od_expiry_date,
+            od_expiry_date: customer.od_expiry_date,
+            tp_expiry_date: customer.tp_expiry_date,
+            payment_date: customer.payment_date,
+            status: customer.status,
+            thank_you_sent: customer.thank_you_sent,
+            new_policy_no: customer.new_policy_no,
+            new_company: customer.new_company,
+            product_type: customer.product_type,
+            product_model: customer.product_model,
+            vertical: customer.vertical,
+            notes: customer.notes,
+            cheque_no: customer.cheque_no,
+            bank_name: customer.bank_name,
+            customer_id: customer.customer_id,
+            agent_code: customer.agent_code,
+            pancard: customer.pancard,
+            aadhar_card: customer.aadhar_card,
+            others_doc: customer.others_doc,
+            g_code: customer.g_code,
+            paid_by: customer.paid_by,
+            policy_start_date: customer.policy_start_date,
+            s_no: customer.s_no
           };
           
-          return fieldMap[fieldName] || '';
+          const dbValue = fieldMap[fieldName];
+          return dbValue !== null && dbValue !== undefined ? dbValue : '';
         });
-      });
-
-      if (values.length > 0) {
-        console.log(`📝 Writing ${values.length} rows to sheet`);
         
-        // Calculate last column letter (handles A-Z and AA-ZZ)
-        const getColumnLetter = (index) => {
-          let letter = '';
-          while (index >= 0) {
-            letter = String.fromCharCode(65 + (index % 26)) + letter;
-            index = Math.floor(index / 26) - 1;
-          }
-          return letter;
-        };
-        
-        const lastCol = getColumnLetter(headers.length - 1);
-        const clearRange = `${tabName}!A2:${lastCol}1000`;
-        
-        await this.sheets.spreadsheets.values.clear({
-          spreadsheetId,
-          range: clearRange
-        });
-        console.log(`✅ Cleared range: ${clearRange}`);
-        
-        await this.sheets.spreadsheets.values.update({
-          spreadsheetId,
-          range: `${tabName}!A2`,
-          valueInputOption: 'RAW',
-          resource: { values }
-        });
-        console.log(`✅ Updated sheet successfully`);
-      } else {
-        console.log('⚠️  No customers to sync');
+        if (existingEntry) {
+          const endCol = headers.length > 26 
+            ? String.fromCharCode(64 + Math.floor((headers.length - 1) / 26)) + String.fromCharCode(65 + ((headers.length - 1) % 26))
+            : String.fromCharCode(64 + headers.length);
+          
+          batchUpdates.push({
+            range: `${tabName}!A${existingEntry.rowNumber}:${endCol}${existingEntry.rowNumber}`,
+            values: [rowData]
+          });
+          updated++;
+        } else {
+          appendRows.push(rowData);
+          added++;
+        }
       }
-
-      return { success: true, exported: customers.length };
+      
+      // Execute batch update
+      if (batchUpdates.length > 0) {
+        await this.sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId,
+          resource: {
+            valueInputOption: 'RAW',
+            data: batchUpdates
+          }
+        });
+      }
+      
+      // Append new rows
+      if (appendRows.length > 0) {
+        await this.sheets.spreadsheets.values.append({
+          spreadsheetId,
+          range: `${tabName}!A:A`,
+          valueInputOption: 'RAW',
+          resource: { values: appendRows }
+        });
+      }
+      
+      console.log(`✅ Sync complete: ${updated} updated, ${added} added`);
+      return { success: true, exported: customers.length, updated, added };
     } catch (error) {
       console.error('Sync to sheet failed:', error);
       throw error;
@@ -420,18 +460,15 @@ class InsuranceSyncService {
 
   formatDate(dateStr) {
     if (!dateStr) return '';
-    // If already in DD/MM/YYYY format, return as is
     if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
       return dateStr;
     }
-    // Handle YYYY-MM-DD format
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
       const [year, month, day] = dateStr.split('-');
       return `${day}/${month}/${year}`;
     }
-    // Convert other formats to DD/MM/YYYY
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr; // Return as-is if can't parse
+    if (isNaN(date.getTime())) return dateStr;
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();

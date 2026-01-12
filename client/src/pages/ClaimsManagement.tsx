@@ -50,7 +50,8 @@ export default function ClaimsManagement() {
     claim_type: '',
     incident_date: '',
     description: '',
-    claim_amount: ''
+    claim_amount: '',
+    claimant: ''
   });
 
   const [statusUpdate, setStatusUpdate] = useState({
@@ -114,7 +115,8 @@ export default function ClaimsManagement() {
         claim_type: 'own_damage',
         incident_date: '',
         description: '',
-        claim_amount: ''
+        claim_amount: '',
+        claimant: ''
       });
       loadData();
     } catch (error) {
@@ -418,6 +420,11 @@ export default function ClaimsManagement() {
             ))}
           </select>
           <Input
+            placeholder="Claimant Name"
+            value={newClaim.claimant}
+            onChange={(e) => setNewClaim({...newClaim, claimant: e.target.value})}
+          />
+          <Input
             placeholder="Policy Number"
             value={newClaim.policy_number}
             onChange={(e) => setNewClaim({...newClaim, policy_number: e.target.value})}
@@ -513,6 +520,11 @@ export default function ClaimsManagement() {
             rows={3}
             value={newClaim.description}
             onChange={(e) => setNewClaim({...newClaim, description: e.target.value})}
+          />
+          <Input
+            placeholder="Claimant Name"
+            value={newClaim.claimant}
+            onChange={(e) => setNewClaim({...newClaim, claimant: e.target.value})}
           />
           <Input
             type="number"

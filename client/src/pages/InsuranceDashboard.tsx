@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -56,6 +56,23 @@ export default function InsuranceDashboard() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const clientKey = user?.email?.toLowerCase().includes('joban') ? 'joban' : 'kmg';
+  
+  // Get is_admin from localStorage (set by ProfileSelection)
+  const getIsAdmin = () => {
+    if (user?.role === 'admin') return true; // Main dashboard admin
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        return parsedUser.is_admin === 1;
+      }
+    } catch (e) {
+      console.error('Failed to parse user from localStorage:', e);
+    }
+    return false;
+  };
+  
+  const isAdmin = getIsAdmin();
   const [clientConfig, setClientConfig] = useState<any>(null);
   const [sheetFields, setSheetFields] = useState<string[]>([]);
   const isJoban = user?.email?.toLowerCase().includes('joban') || false;
@@ -96,6 +113,8 @@ export default function InsuranceDashboard() {
   const [showAllRenewed, setShowAllRenewed] = useState(false);
   const [showAllCustomers, setShowAllCustomers] = useState(false);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
+  const [showRenewalUpdateModal, setShowRenewalUpdateModal] = useState(false);
+  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { amount: string; new_company: string; new_policy_no: string; paid_by: string; remarks: string }>>({});
 
   const getCurrentTab = () => {
     const path = location.pathname;
@@ -216,6 +235,13 @@ export default function InsuranceDashboard() {
     }
   };
 
+  const parseAmount = (value: any): number => {
+    if (!value) return 0;
+    const str = String(value).replace(/[^0-9.-]/g, '');
+    const num = parseFloat(str);
+    return isNaN(num) ? 0 : num;
+  };
+
   const getDisplayDate = (customer: Customer) => {
     // Always prioritize renewal_date (MODIFIED EXPIRY DATE) first
     // Fall back to od_expiry_date (DATE OF EXPIRY) if renewal_date is empty
@@ -319,9 +345,9 @@ export default function InsuranceDashboard() {
         });
       }
       
-      await api.post('/api/insurance/sync/to-sheet', {
-        tabName: SHEET_TAB_NAME
-      });
+      // await api.post('/api/insurance/sync/to-sheet', {
+      //   tabName: SHEET_TAB_NAME
+      // });
       
       if (newStatus === 'renewed' && confirm('Send Thank You messages via WhatsApp to renewed customers?')) {
         selectedCustomerData.forEach(customer => {
@@ -355,13 +381,13 @@ export default function InsuranceDashboard() {
       await api.post(`/api/insurance/customers/${noteCustomerId}/notes`, { note });
       
       // Sync to Google Sheets
-      try {
-        await api.post('/api/insurance/sync/to-sheet', {
-          tabName: SHEET_TAB_NAME
-        });
-      } catch (syncError) {
-        console.error('Sync to sheet failed:', syncError);
-      }
+      // try {
+      //   await api.post('/api/insurance/sync/to-sheet', {
+      //     tabName: SHEET_TAB_NAME
+      //   });
+      // } catch (syncError) {
+      //   console.error('Sync to sheet failed:', syncError);
+      // }
       
       setShowNoteModal(false);
       setNote('');
@@ -418,180 +444,134 @@ export default function InsuranceDashboard() {
     );
   };
 
-  const renderRenewalCard = (customer: Customer, daysLabel: string, colorClass: string, isRenewed: boolean = false) => (
-    <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
-      <div className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          checked={selectedCustomers.includes(customer.id)}
-          onChange={(e) => { e.stopPropagation(); toggleCustomerSelection(customer.id); }}
-          onClick={(e) => e.stopPropagation()}
-          className="w-4 h-4 flex-shrink-0 mt-1"
-        />
-        <div className="flex-1 min-w-0">
-          <h4 className="font-medium text-white text-sm">{customer.name}</h4>
-          <p className="text-xs text-slate-300">{customer.registration_no} - {customer.company}</p>
-          {customer.g_code && <p className="text-xs text-cyan-400 font-medium">G Code: {customer.g_code}</p>}
-          <p className="text-xs font-medium mt-1 text-orange-400">Renewal: {getDisplayDate(customer)}</p>
-          <p className="font-bold text-white text-base mt-1">₹{customer.premium?.toLocaleString()}</p>
-        </div>
-        <div className="hidden md:flex gap-2 flex-shrink-0">
-          <button
-            className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all opacity-60"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              alert('🔒 Premium Feature\n\nUpgrade to Voice Bot Premium to enable automated calling.\n\nContact support to upgrade.');
-            }}
-            title="Premium Feature"
-          >
-            📞🔒
-          </button>
-          <button
-            className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              let message = '';
-              
-              const displayDate = getDisplayDate(customer);
-              const days = getDaysUntilExpiry(customer);
-              
-              if (isRenewed) {
-                message = generateThankYouMessage({ 
-                  customerName: customer.name, 
-                  renewalDate: displayDate,
-                  policyNumber: customer.current_policy_no,
-                  companyName: customer.company,
-                  premiumAmount: customer.premium?.toString(),
-                  clientKey,
-                  vehicleNumber: customer.registration_no,
-                  productModel: customer.product
-                });
-              } else {
-                message = generateRenewalReminder({ 
-                  customerName: customer.name, 
-                  renewalDate: displayDate, 
-                  daysRemaining: days,
-                  policyNumber: customer.current_policy_no,
-                  companyName: customer.company,
-                  premiumAmount: customer.premium?.toString(),
-                  clientKey,
-                  vehicleNumber: customer.registration_no,
-                  productModel: customer.product
-                });
-              }
-              logWhatsAppMessage(customer.id, customer.name, message);
-              window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-            }}
-          >
-            💬
-          </button>
-          <button
-            type="button"
-            className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setNoteCustomerId(customer.id);
-              setShowNoteModal(true);
-            }}
-            title="Add Note/Report"
-          >
-            📝
-          </button>
-          <button
-            className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              viewMessageHistory(customer.id);
-            }}
-            title="Message History"
-          >
-            📨
-          </button>
+  const renderRenewalCard = (customer: Customer, daysLabel: string, colorClass: string, isRenewed: boolean = false) => {
+    const isMotor = customer.vertical === 'motor' || customer.vertical === '2-wheeler';
+    const isSelected = selectedCustomers.includes(customer.id);
+    
+    return (
+      <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
+        <div className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => { e.stopPropagation(); toggleCustomerSelection(customer.id); }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-4 h-4 flex-shrink-0 mt-1"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-3">
+              <h4 className="font-medium text-white text-sm">{customer.name}</h4>
+              {isMotor && customer.registration_no && (
+                <span className="text-slate-300">• {customer.registration_no}</span>
+              )}
+              <span className="text-slate-300">• {customer.company}</span>
+              {customer.g_code && (
+                <span className="text-cyan-400 font-medium">• G: {customer.g_code}</span>
+              )}
+              <span className="text-cyan-400 font-medium">• Pol: {customer.current_policy_no || '-'}</span>
+              <span className="text-orange-400 font-medium">• {getDisplayDate(customer)}</span>
+              <span className="font-bold text-white text-base">• ₹{parseAmount(customer.premium).toLocaleString()}</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {isSelected && (
+                <select 
+                  className="px-3 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium hover:bg-slate-700 cursor-pointer"
+                  onChange={(e) => { e.stopPropagation(); if (e.target.value) { handleBulkStatusUpdate(e.target.value); e.target.value = ''; } }}
+                  onClick={(e) => e.stopPropagation()}
+                  defaultValue=""
+                >
+                  <option value="" disabled>Mark as...</option>
+                  <option value="due">🔴 DUE</option>
+                  <option value="renewed">🟢 Renewed</option>
+                  <option value="not renewed">⚫ Not Renewed</option>
+                  <option value="inprocess">🔵 In Process</option>
+                </select>
+              )}
+              {!isSelected && (
+                <>
+                  <button
+                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all opacity-60"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      alert('🔒 Premium Feature\n\nUpgrade to Voice Bot Premium to enable automated calling.\n\nContact support to upgrade.');
+                    }}
+                    title="Premium Feature"
+                  >
+                    📞🔒
+                  </button>
+                  <button
+                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                  let message = '';
+                  
+                  const displayDate = getDisplayDate(customer);
+                  const days = getDaysUntilExpiry(customer);
+                  
+                  if (isRenewed) {
+                    message = generateThankYouMessage({ 
+                      customerName: customer.name, 
+                      renewalDate: displayDate,
+                      policyNumber: customer.current_policy_no,
+                      companyName: customer.company,
+                      premiumAmount: customer.premium?.toString(),
+                      clientKey,
+                      vehicleNumber: customer.registration_no,
+                      productModel: customer.product
+                    });
+                  } else {
+                    message = generateRenewalReminder({ 
+                      customerName: customer.name, 
+                      renewalDate: displayDate, 
+                      daysRemaining: days,
+                      policyNumber: customer.current_policy_no,
+                      companyName: customer.company,
+                      premiumAmount: customer.premium?.toString(),
+                      clientKey,
+                      vehicleNumber: customer.registration_no,
+                      productModel: customer.product
+                    });
+                  }
+                      logWhatsAppMessage(customer.id, customer.name, message);
+                      window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    💬
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setNoteCustomerId(customer.id);
+                      setShowNoteModal(true);
+                    }}
+                    title="Add Note/Report"
+                  >
+                    📝
+                  </button>
+                  <button
+                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      viewMessageHistory(customer.id);
+                    }}
+                    title="Message History"
+                  >
+                    📨
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
-      <div className="flex md:hidden flex-wrap gap-2 mt-3">
-        <button
-          className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all opacity-60 flex-1"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            alert('🔒 Premium Feature\n\nUpgrade to Voice Bot Premium to enable automated calling.\n\nContact support to upgrade.');
-          }}
-          title="Premium Feature"
-        >
-          📞🔒
-        </button>
-        <button
-          className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all flex-1"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            let message = '';
-            
-            const displayDate = getDisplayDate(customer);
-            const days = getDaysUntilExpiry(customer);
-            
-            if (isRenewed) {
-              message = generateThankYouMessage({ 
-                customerName: customer.name, 
-                renewalDate: displayDate,
-                policyNumber: customer.current_policy_no,
-                companyName: customer.company,
-                premiumAmount: customer.premium?.toString(),
-                clientKey,
-                vehicleNumber: customer.registration_no,
-                productModel: customer.product
-              });
-            } else {
-              message = generateRenewalReminder({ 
-                customerName: customer.name, 
-                renewalDate: displayDate, 
-                daysRemaining: days,
-                policyNumber: customer.current_policy_no,
-                companyName: customer.company,
-                premiumAmount: customer.premium?.toString(),
-                clientKey,
-                vehicleNumber: customer.registration_no,
-                productModel: customer.product
-              });
-            }
-            logWhatsAppMessage(customer.id, customer.name, message);
-            window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-          }}
-        >
-          💬
-        </button>
-        <button
-          type="button"
-          className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all flex-1"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setNoteCustomerId(customer.id);
-            setShowNoteModal(true);
-          }}
-          title="Add Note/Report"
-        >
-          📝
-        </button>
-        <button
-          className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all flex-1"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            viewMessageHistory(customer.id);
-          }}
-          title="Message History"
-        >
-          📨
-        </button>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const loadClientConfig = async () => {
     try {
@@ -673,7 +653,7 @@ export default function InsuranceDashboard() {
       });
       
       await api.post('/api/insurance/customers', payload);
-      await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+      // await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
       
       setShowAddModal(false);
       setDynamicFormData({});
@@ -705,7 +685,7 @@ export default function InsuranceDashboard() {
       });
       
       await api.put(`/api/insurance/customers/${editingCustomer.id}`, payload);
-      await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+      // await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
       
       setEditingCustomer(null);
       loadData();
@@ -720,9 +700,9 @@ export default function InsuranceDashboard() {
     
     try {
       await api.delete(`/api/insurance/customers/${id}`);
-      await api.post('/api/insurance/sync/to-sheet', {
-        tabName: SHEET_TAB_NAME
-      });
+      // await api.post('/api/insurance/sync/to-sheet', {
+      //   tabName: SHEET_TAB_NAME
+      // });
       loadData();
     } catch (error) {
       console.error('Failed to delete customer:', error);
@@ -806,7 +786,7 @@ export default function InsuranceDashboard() {
       <div className="space-y-4">
         {/* Stats */}
         {analytics && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Total Customers</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{analytics.totalCustomers}</p>
@@ -819,9 +799,13 @@ export default function InsuranceDashboard() {
               <h3 className="text-xs text-slate-400">Expired Policies</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">{analytics.expiredPolicies || 0}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const renewed = customers.filter(c => c.status.trim().toLowerCase() === 'renewed'); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
-              <h3 className="text-xs text-slate-400">Total Premium</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{analytics.totalPremium?.toLocaleString() || 0}</p>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { if (c.status.trim().toLowerCase() !== 'renewed') return false; const dateStr = getDisplayDate(c); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Year Renewed Policies'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">This Year Premium</h3>
+              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { if (c.status.trim().toLowerCase() !== 'renewed') return false; const dateStr = getDisplayDate(c); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+            </div>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { if (c.status.trim().toLowerCase() !== 'renewed') return false; const dateStr = getDisplayDate(c); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Month Renewed Policies'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">This Month Premium</h3>
+              <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { if (c.status.trim().toLowerCase() !== 'renewed') return false; const dateStr = getDisplayDate(c); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </div>
           </div>
         )}
@@ -844,28 +828,33 @@ export default function InsuranceDashboard() {
                 const displayDate = getDisplayDate(customer);
                 
                 return (
-                  <div key={customer.id} className={`p-3 rounded-lg border ${
+                  <div key={customer.id} className={`p-3 rounded-lg border cursor-pointer hover:bg-opacity-80 transition-all ${
                     isOverdue ? 'bg-red-500/10 border-red-500/30' : 'bg-orange-500/10 border-orange-500/30'
-                  } flex items-center justify-between`}>
+                  }`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-3">
                         <span className="text-lg">{isOverdue ? '🔴' : '🟠'}</span>
-                        <div>
-                          <h4 className="text-sm font-medium text-white">{customer.name}</h4>
-                          <p className="text-xs text-slate-300">{customer.registration_no} - {customer.company}</p>
-                          {customer.g_code && <p className="text-xs text-cyan-400 font-medium">G Code: {customer.g_code}</p>}
-                          <p className="text-xs text-slate-400">Renewal: {displayDate}</p>
-                          <p className={`text-xs font-medium mt-0.5 ${
-                            isOverdue ? 'text-red-400' : 'text-orange-400'
-                          }`}>
-                            {isOverdue ? `Overdue by ${Math.abs(daysLeft)} days` : `Expires in ${daysLeft} days`}
-                          </p>
-                        </div>
+                        <span className="text-slate-400">Name:</span>
+                        <h4 className="text-sm font-medium text-white">{customer.name}</h4>
+                        <span className="text-slate-400">• Vehicle:</span>
+                        <span className="text-slate-300">{customer.registration_no}</span>
+                        <span className="text-slate-400">• Company:</span>
+                        <span className="text-slate-300">{customer.company}</span>
+                        {customer.g_code && <><span className="text-slate-400">• G Code:</span><span className="text-cyan-400 font-medium">{customer.g_code}</span></>}
+                        <span className="text-slate-400">• Policy No:</span>
+                        <span className="text-cyan-400 font-medium">{customer.current_policy_no || '-'}</span>
+                        <span className="text-slate-400">• Renewal:</span>
+                        <span className="text-orange-400 font-medium">{displayDate}</span>
+                        <span className="text-slate-400">• Days:</span>
+                        <span className={`font-medium ${
+                          isOverdue ? 'text-red-400' : 'text-orange-400'
+                        }`}>
+                          {isOverdue ? `Overdue ${Math.abs(daysLeft)}d` : `${daysLeft}d left`}
+                        </span>
+                        <span className="text-slate-400">• Premium:</span>
+                        <span className="text-white font-bold text-base">₹{parseAmount(customer.premium).toLocaleString()}</span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white font-bold text-base">₹{customer.premium?.toLocaleString()}</span>
-                      <div className="flex gap-2 ml-4">
+                      <div className="flex gap-2">
                         <Button 
                           size="sm" 
                           variant="outline" 
@@ -1060,7 +1049,7 @@ export default function InsuranceDashboard() {
               >
                 {syncing ? 'Syncing...' : '🔄 Sync from Sheets'}
               </Button>
-              <Button 
+              {/* <Button 
                 onClick={syncToSheets} 
                 disabled={syncing}
                 variant="outline"
@@ -1068,7 +1057,7 @@ export default function InsuranceDashboard() {
                 size="sm"
               >
                 {syncing ? 'Syncing...' : '📤 Sync to Sheets'}
-              </Button>
+              </Button> */}
               <Button 
                 onClick={() => {
                   if (clientConfig?.spreadsheetId) {
@@ -1093,6 +1082,7 @@ export default function InsuranceDashboard() {
           onEdit={setEditingCustomer}
           onDelete={handleDeleteCustomer}
           getDisplayDate={getDisplayDate}
+          isAdmin={isAdmin}
         />
         
         {filteredCustomers.length > 20 && (
@@ -1151,19 +1141,30 @@ export default function InsuranceDashboard() {
       {/* Company-wise Breakdown */}
       <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4">
         <h3 className="text-base font-semibold mb-3 text-white">Company-wise Policies</h3>
+        
+        {/* Total Amount Card */}
+        <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg cursor-pointer hover:bg-purple-500/20 transition-all" onClick={() => { setDetailsModalTitle('All Policies - Total Premium'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
+          <h4 className="text-sm font-medium text-purple-300 mb-1">Total Premium (All Companies)</h4>
+          <p className="text-3xl font-bold text-purple-400">₹{customers.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString()}</p>
+          <p className="text-xs text-slate-300 mt-1">{customers.length} total policies</p>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {Object.entries(
             customers.reduce((acc, customer) => {
               const company = customer.company || 'Unknown';
-              if (!acc[company]) acc[company] = { count: 0, premium: 0 };
+              if (!acc[company]) acc[company] = { count: 0, premium: 0, renewed: 0, due: 0, customers: [] };
               acc[company].count++;
-              acc[company].premium += customer.premium || 0;
+              acc[company].premium += parseAmount(customer.premium);
+              if (customer.status.trim().toLowerCase() === 'renewed') acc[company].renewed++;
+              if (customer.status.trim().toLowerCase() === 'due') acc[company].due++;
+              acc[company].customers.push(customer);
               return acc;
             }, {})
           ).map(([company, data]: [string, any]) => (
-            <div key={company} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const companyCustomers = customers.filter(c => c.company === company); setDetailsModalTitle(`${company} - Customers`); setDetailsModalCustomers(companyCustomers); setShowDetailsModal(true); }}>
+            <div key={company} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const sorted = [...data.customers].sort((a, b) => { const aIsDue = a.status.trim().toLowerCase() === 'due' ? 0 : 1; const bIsDue = b.status.trim().toLowerCase() === 'due' ? 0 : 1; return aIsDue - bIsDue; }); setDetailsModalTitle(`${company} - Customers`); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h4 className="text-sm font-medium text-white mb-1">{company}</h4>
-              <p className="text-xs text-slate-300">{data.count} policies</p>
+              <p className="text-xs text-slate-300">Total: {data.count} | <span className="text-green-400">Renewed: {data.renewed}</span> | <span className="text-red-400">Due: {data.due}</span></p>
               <p className="text-base font-bold text-cyan-400">₹{data.premium.toLocaleString()}</p>
             </div>
           ))}
@@ -1250,13 +1251,21 @@ export default function InsuranceDashboard() {
         {/* Content Sections */}
         <div className="space-y-4">
 
-        {/* Bulk Actions - Sticky */}
+        {/* Renewal Update Modal - Shows when customers are selected */}
         {selectedCustomers.length > 0 && (
           <div className="sticky top-0 z-20 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 backdrop-blur-md shadow-lg">
             <p className="text-white font-semibold text-base">
               <span className="bg-cyan-500/30 px-2 py-1 rounded">{selectedCustomers.length}</span> customer{selectedCustomers.length > 1 ? 's' : ''} selected
             </p>
             <div className="flex gap-2 items-center flex-wrap">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowRenewalUpdateModal(true)}
+                className="border-green-500/50 text-green-400 hover:bg-green-500/10"
+              >
+                ✏️ Update & Sync
+              </Button>
               <span className="text-sm text-slate-200 font-medium">Mark as:</span>
               <select 
                 className="px-4 py-2 border-2 border-cyan-500/50 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 focus:ring-2 focus:ring-cyan-500 transition-all cursor-pointer"
@@ -1545,6 +1554,7 @@ export default function InsuranceDashboard() {
               const isDate = key.includes('date') || key.includes('expiry');
               const isTextarea = key === 'notes' || key === 'remarks';
               const isSelect = key === 'status';
+              const isTypeField = key === 'vertical' || key === 'type';
               
               if (isTextarea) {
                 return (
@@ -1557,6 +1567,23 @@ export default function InsuranceDashboard() {
                       onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
                       rows={3}
                     />
+                  </div>
+                );
+              }
+              
+              if (isTypeField) {
+                return (
+                  <div key={key}>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}</label>
+                    <select
+                      className="w-full p-2 border rounded bg-slate-700 text-white"
+                      value={dynamicFormData[key] || 'motor'}
+                      onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
+                    >
+                      <option value="motor">Motor</option>
+                      <option value="health">Health</option>
+                      <option value="non-motor">Non-Motor</option>
+                    </select>
                   </div>
                 );
               }
@@ -1663,103 +1690,82 @@ export default function InsuranceDashboard() {
               filtered.map((customer) => (
               <div key={customer.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
                 <div className="space-y-3">
-                  <div className="flex justify-between items-start border-b border-slate-600 pb-3">
+                  <div className="flex justify-between items-start mb-2">
                     <div>
                       <h4 className="font-bold text-white text-lg">{customer.name}</h4>
-                      {customer.current_policy_no && (
-                        <p className="text-sm text-cyan-400 font-bold mt-1">Policy No: {customer.current_policy_no}</p>
-                      )}
-                      <span className={`inline-block mt-2 px-3 py-1 text-xs rounded-full font-medium ${
-                        customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
-                        customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
-                        customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
-                        'bg-yellow-500/20 text-yellow-300'
-                      }`}>
-                        {customer.status.toUpperCase()}
-                      </span>
+                      <p className="text-sm text-slate-300">{customer.mobile_number}</p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={(e) => {
-                        e.stopPropagation();
-                        const message = generatePolicyDetailsMessage({
-                          customerName: customer.name,
-                          vehicleNumber: customer.registration_no,
-                          companyName: customer.company,
-                          renewalDate: getDisplayDate(customer),
-                          policyNumber: customer.current_policy_no,
-                          policyType: customer.vertical,
-                          premiumAmount: customer.premium?.toString(),
-                          clientKey
-                        });
-                        logWhatsAppMessage(customer.id, customer.name, message);
-                        window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-                      }}>💬 WhatsApp</Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setNoteCustomerId(customer.id);
-                          setShowNoteModal(true);
-                        }} 
-                      >
-                        📝 Note
-                      </Button>
+                    <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium ${
+                      customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
+                      customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
+                      customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
+                      'bg-yellow-500/20 text-yellow-300'
+                    }`}>
+                      {customer.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {customer.registration_no && (
+                      <div>
+                        <span className="text-slate-400">Vehicle:</span>
+                        <p className="text-white">{customer.registration_no}</p>
+                      </div>
+                    )}
+                    {customer.company && (
+                      <div>
+                        <span className="text-slate-400">Company:</span>
+                        <p className="text-white">{customer.company}</p>
+                      </div>
+                    )}
+                    {customer.g_code && (
+                      <div>
+                        <span className="text-slate-400">G Code:</span>
+                        <p className="text-cyan-400 font-bold">{customer.g_code}</p>
+                      </div>
+                    )}
+                    {customer.current_policy_no && (
+                      <div>
+                        <span className="text-slate-400">Policy No:</span>
+                        <p className="text-cyan-400 font-bold">{customer.current_policy_no}</p>
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-slate-400">Renewal Date:</span>
+                      <p className="text-orange-400 font-medium">{getDisplayDate(customer)}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Premium:</span>
+                      <p className="text-white font-bold">₹{parseAmount(customer.premium).toLocaleString()}</p>
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {Object.entries({
-                      'NAME': customer.name,
-                      'MOBILE NO': customer.mobile_number,
-                      'EMAIL ID': customer.email,
-                      'POLICY NO': customer.current_policy_no,
-                      'G CODE': customer.g_code,
-                      'VEH NO': customer.registration_no,
-                      'COMPANY': customer.company,
-                      'TYPE': customer.product || customer.vertical,
-                      'AMOUNT': customer.premium,
-                      'LAST YEAR PREMIUM': customer.last_year_premium,
-                      'DATE OF EXPIRY': customer.od_expiry_date,
-                      'MODIFIED EXPIRY DATE': customer.renewal_date,
-                      'TP Expiry Date': customer.tp_expiry_date,
-                      'DEPOSITED/ PAYMENT DATE': customer.payment_date,
-                      'Premium mode': customer.premium_mode,
-                      'STATUS': customer.status,
-                      'NEW POLICY NO': customer.new_policy_no,
-                      'NEW POLICY COMPANY': customer.new_company,
-                      'Product Type': customer.product_type,
-                      'Product Model': customer.product_model,
-                      'CHQ NO & DATE': customer.cheque_no,
-                      'BANK NAME': customer.bank_name,
-                      'CUSTOMER ID': customer.customer_id,
-                      'AGENT CODE': customer.agent_code,
-                      'PANCARD': customer.pancard,
-                      'AADHAR CARD': customer.aadhar_card,
-                      'OTHERS - VI/DL/PP': customer.others_doc,
-                      'Thankyou message sent yes/no': customer.thank_you_sent,
-                      'REMARKS': customer.notes
-                    }).map(([label, value]) => {
-                      // Skip if value is null or undefined
-                      if (value === null || value === undefined) return null;
-                      
-                      return (
-                        <div key={label}>
-                          <p className="text-xs text-slate-400">{label}</p>
-                          <p className={`text-sm font-medium ${
-                            label.includes('G CODE') ? 'text-cyan-400 font-bold' :
-                            label.includes('POLICY NO') ? 'text-cyan-400 font-bold' :
-                            label.includes('PREMIUM') || label.includes('AMOUNT') ? 'text-green-400 font-bold' :
-                            'text-white'
-                          }`}>
-                            {value === '' || value === 0 ? '-' : 
-                             (label.includes('PREMIUM') || label.includes('AMOUNT')) && typeof value === 'number' ? `₹${value.toLocaleString()}` : 
-                             value}
-                          </p>
-                        </div>
-                      );
-                    })}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={(e) => {
+                      e.stopPropagation();
+                      const message = generatePolicyDetailsMessage({
+                        customerName: customer.name,
+                        vehicleNumber: customer.registration_no,
+                        companyName: customer.company,
+                        renewalDate: getDisplayDate(customer),
+                        policyNumber: customer.current_policy_no,
+                        policyType: customer.vertical,
+                        premiumAmount: customer.premium?.toString(),
+                        clientKey
+                      });
+                      logWhatsAppMessage(customer.id, customer.name, message);
+                      window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+                    }}>💬 WhatsApp</Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setNoteCustomerId(customer.id);
+                        setShowNoteModal(true);
+                      }} 
+                    >
+                      📝 Note
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -1803,6 +1809,118 @@ export default function InsuranceDashboard() {
           <div className="flex gap-3">
             <Button onClick={handleAddNote}>Save Note</Button>
             <Button variant="outline" onClick={() => { setShowNoteModal(false); setNote(''); setNoteCustomerId(null); }}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Renewal Update Modal */}
+      <Modal open={showRenewalUpdateModal} onClose={() => { setShowRenewalUpdateModal(false); setBulkRenewalData({}); }} title={`Update ${selectedCustomers.length} Customer${selectedCustomers.length > 1 ? 's' : ''}`}>
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+          {selectedCustomers.map((customerId) => {
+            const customer = customers.find(c => c.id === customerId);
+            if (!customer) return null;
+            
+            const data = bulkRenewalData[customerId] || { amount: '', new_company: '', new_policy_no: '', paid_by: '', remarks: '' };
+            
+            return (
+              <div key={customerId} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 space-y-3">
+                <div className="flex justify-between items-center border-b border-slate-600 pb-2">
+                  <div>
+                    <h4 className="font-bold text-white">{customer.name}</h4>
+                    <p className="text-xs text-slate-300">{customer.registration_no} - {customer.company}</p>
+                  </div>
+                  <p className="text-sm text-cyan-400 font-bold">Current: ₹{customer.premium?.toLocaleString()}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">Amount</label>
+                    <Input
+                      type="number"
+                      placeholder={customer.premium?.toString() || '0'}
+                      value={data.amount}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, amount: e.target.value}})}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">New Company</label>
+                    <Input
+                      type="text"
+                      placeholder={customer.company || 'Company'}
+                      value={data.new_company}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, new_company: e.target.value}})}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">New Policy No</label>
+                    <Input
+                      type="text"
+                      placeholder="Policy number"
+                      value={data.new_policy_no}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, new_policy_no: e.target.value}})}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">Paid By</label>
+                    <Input
+                      type="text"
+                      placeholder="Payment method"
+                      value={data.paid_by}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, paid_by: e.target.value}})}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="text-xs text-slate-300 mb-1 block">Remarks</label>
+                  <textarea
+                    className="w-full p-2 border rounded bg-slate-700 text-white text-sm min-h-[60px]"
+                    placeholder="Remarks"
+                    value={data.remarks}
+                    onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, remarks: e.target.value}})}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          
+          <div className="flex gap-3 pt-4 border-t border-slate-600 sticky bottom-0 bg-slate-800 p-3 -mx-1">
+            <Button onClick={async () => {
+              try {
+                for (const customerId of selectedCustomers) {
+                  const customer = customers.find(c => c.id === customerId);
+                  if (!customer) continue;
+                  
+                  const data = bulkRenewalData[customerId] || {};
+                  
+                  await api.put(`/api/insurance/customers/${customerId}`, {
+                    ...customer,
+                    premium: data.amount ? parseFloat(data.amount) : customer.premium,
+                    new_company: data.new_company || customer.new_company,
+                    new_policy_no: data.new_policy_no || customer.new_policy_no,
+                    paid_by: data.paid_by || customer.paid_by,
+                    notes: data.remarks ? `${customer.notes || ''}\n${data.remarks} [${new Date().toLocaleString()}]` : customer.notes,
+                    status: 'renewed'
+                  });
+                }
+                
+                // await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+                
+                setShowRenewalUpdateModal(false);
+                setBulkRenewalData({});
+                setSelectedCustomers([]);
+                loadData();
+                alert(`✅ Updated and synced ${selectedCustomers.length} customer(s) successfully!`);
+              } catch (error) {
+                console.error('Update failed:', error);
+                alert('❌ Failed to update customers');
+              }
+            }}>Update All & Sync to Sheet</Button>
+            <Button variant="outline" onClick={() => { setShowRenewalUpdateModal(false); setBulkRenewalData({}); }}>Cancel</Button>
           </div>
         </div>
       </Modal>
