@@ -111,6 +111,7 @@ export default function InsuranceDashboard() {
   const [showAll30Days, setShowAll30Days] = useState(false);
   const [showAllRenewed, setShowAllRenewed] = useState(false);
   const [showAllCustomers, setShowAllCustomers] = useState(false);
+  const [quickActionsLimit, setQuickActionsLimit] = useState(5);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
   const [showRenewalUpdateModal, setShowRenewalUpdateModal] = useState(false);
   const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { amount: string; new_company: string; new_policy_no: string; paid_by: string; remarks: string }>>({});
@@ -232,6 +233,11 @@ export default function InsuranceDashboard() {
     }, 120000);
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-reload data after any customer update to keep Quick Actions in sync
+  const reloadDataAfterUpdate = async () => {
+    await loadData();
+  };
 
   useEffect(() => {
     loadData();
@@ -361,8 +367,18 @@ export default function InsuranceDashboard() {
         });
       }
       
+      // Auto-sync to sheet
+      try {
+        const syncResult = await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+        if (syncResult.data.message !== 'No changes to sync') {
+          console.log('Auto-synced bulk status update to sheet');
+        }
+      } catch (syncError) {
+        console.error('Auto-sync failed:', syncError);
+      }
+      
       setSelectedCustomers([]);
-      loadData();
+      await reloadDataAfterUpdate();
       alert(`${selectedCustomers.length} customers marked as ${newStatus}`);
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -441,9 +457,27 @@ export default function InsuranceDashboard() {
     );
   };
 
-  const renderRenewalCard = (customer: Customer, daysLabel: string, colorClass: string, isRenewed: boolean = false) => {
+  const renderRenewalCard = (customer: Customer, daysLabel: string, colorClass: string, isRenewed: boolean = false, compact: boolean = false) => {
     const isMotor = customer.vertical === 'motor' || customer.vertical === '2-wheeler';
     const isSelected = selectedCustomers.includes(customer.id);
+    
+    if (compact) {
+      return (
+        <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all hover:scale-[1.01]`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-white text-sm truncate">{customer.name}</h4>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-1">
+                {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
+                <span className="text-cyan-400">Pol: {customer.current_policy_no || '-'}</span>
+                <span className="text-orange-400 font-medium">{getDisplayDate(customer)}</span>
+              </div>
+            </div>
+            <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
+          </div>
+        </div>
+      );
+    }
     
     return (
       <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
@@ -738,7 +772,7 @@ export default function InsuranceDashboard() {
       }
       
       setEditingCustomer(null);
-      loadData();
+      await reloadDataAfterUpdate();
     } catch (error) {
       console.error('Failed to update customer:', error);
       alert('Failed to update customer: ' + (error.response?.data?.error || error.message));
@@ -874,7 +908,7 @@ export default function InsuranceDashboard() {
         {/* Quick Actions */}
         <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4">
           <h3 className="text-base font-semibold mb-3 text-white flex items-center gap-2">
-            ⚡ Quick Actions - Today's Priority
+            ⚡ Quick Actions - Today's Priority ({todayTasks.length})
           </h3>
           
           {todayTasks.length === 0 ? (
@@ -883,125 +917,32 @@ export default function InsuranceDashboard() {
             </div>
           ) : (
             <div className="space-y-2">
-              {todayTasks.slice(0, 5).map(customer => {
+              {todayTasks.slice(0, quickActionsLimit).map(customer => {
                 const daysLeft = getDaysUntilExpiry(customer);
                 const isOverdue = daysLeft < 0;
-                const displayDate = getDisplayDate(customer);
+                const colorClass = isOverdue ? 'border-red-500/30' : 'border-orange-500/30';
                 
-                return (
-                  <div key={customer.id} className={`p-3 rounded-lg border cursor-pointer hover:bg-opacity-80 transition-all ${
-                    isOverdue ? 'bg-red-500/10 border-red-500/30' : 'bg-orange-500/10 border-orange-500/30'
-                  }`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
-                    <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-3">
-                        <span className="text-lg">{isOverdue ? '🔴' : '🟠'}</span>
-                        <span className="text-slate-400">Name:</span>
-                        <h4 className="text-sm font-medium text-white">{customer.name}</h4>
-                        <span className="text-slate-400">• Vehicle:</span>
-                        <span className="text-slate-300">{customer.registration_no}</span>
-                        <span className="text-slate-400">• Company:</span>
-                        <span className="text-slate-300">{customer.company}</span>
-                        {customer.g_code && <><span className="text-slate-400">• G Code:</span><span className="text-cyan-400 font-medium">{customer.g_code}</span></>}
-                        <span className="text-slate-400">• Policy No:</span>
-                        <span className="text-cyan-400 font-medium">{customer.current_policy_no || '-'}</span>
-                        <span className="text-slate-400">• Renewal:</span>
-                        <span className="text-orange-400 font-medium">{displayDate}</span>
-                        <span className="text-slate-400">• Days:</span>
-                        <span className={`font-medium ${
-                          isOverdue ? 'text-red-400' : 'text-orange-400'
-                        }`}>
-                          {isOverdue ? `Overdue ${Math.abs(daysLeft)}d` : `${daysLeft}d left`}
-                        </span>
-                        <span className="text-slate-400">• Premium:</span>
-                        <span className="text-white font-bold text-base">₹{parseAmount(customer.premium).toLocaleString()}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => alert('🔒 Premium Feature\n\nUpgrade to Voice Bot Premium to enable automated calling feature.\n\nContact support to upgrade.')}
-                          title="Call Customer (Premium)"
-                          className="opacity-60"
-                        >
-                          📞 🔒
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => {
-                            const days = getDaysUntilExpiry(customer);
-                            const displayDate = getDisplayDate(customer);
-                            const isDone = customer.status.trim().toLowerCase() === 'renewed';
-                            let message = '';
-                            
-                            if (isDone) {
-                              message = generateThankYouMessage({ 
-                                customerName: customer.name, 
-                                renewalDate: displayDate,
-                                policyNumber: customer.current_policy_no,
-                                companyName: customer.company,
-                                premiumAmount: customer.premium?.toString(),
-                                clientKey,
-                                vehicleNumber: customer.registration_no,
-                                productModel: customer.product
-                              });
-                            } else {
-                              message = generateRenewalReminder({ 
-                                customerName: customer.name, 
-                                renewalDate: displayDate, 
-                                daysRemaining: days,
-                                policyNumber: customer.current_policy_no,
-                                companyName: customer.company,
-                                premiumAmount: customer.premium?.toString(),
-                                clientKey,
-                                vehicleNumber: customer.registration_no,
-                                productModel: customer.product
-                              });
-                            }
-                            logWhatsAppMessage(customer.id, customer.name, message);
-                            window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-                          }}
-                          title="WhatsApp Customer"
-                        >
-                          💬
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setNoteCustomerId(customer.id);
-                            setShowNoteModal(true);
-                          }}
-                          title="Add Note/Report"
-                        >
-                          📝
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            viewMessageHistory(customer.id);
-                          }}
-                          title="Message History"
-                        >
-                          📨
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                );
+                return renderRenewalCard(customer, '', colorClass, false, true);
               })}
               
-              {todayTasks.length > 5 && (
+              {todayTasks.length > quickActionsLimit && (
                 <div className="text-center pt-2">
                   <Button 
                     variant="outline" 
-                    onClick={() => window.location.href = '/insurance/renewals'}
+                    onClick={() => setQuickActionsLimit(prev => prev + 10)}
                   >
-                    View All {todayTasks.length} Priority Tasks →
+                    Show More ({todayTasks.length - quickActionsLimit} remaining)
+                  </Button>
+                </div>
+              )}
+              
+              {quickActionsLimit > 5 && (
+                <div className="text-center pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setQuickActionsLimit(5)}
+                  >
+                    Show Less
                   </Button>
                 </div>
               )}
