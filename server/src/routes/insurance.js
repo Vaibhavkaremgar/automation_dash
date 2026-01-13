@@ -1083,17 +1083,38 @@ router.get('/reports', async (req, res) => {
       return sum + amount;
     }, 0);
     
-    // Get all renewed customers
-    const renewedCustomers = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'renewed');
+    // THIS MONTH PREMIUM: Renewed/InProcess customers with od_expiry_date in current month (SAME AS DASHBOARD)
+    const now = new Date();
+    const thisMonthCustomers = allCustomers.filter(c => {
+      const status = c.status?.toLowerCase().trim();
+      if (status !== 'renewed' && status !== 'inprocess') return false;
+      const dateStr = c.od_expiry_date?.trim();
+      if (!dateStr) return false;
+      try {
+        const [d, m, y] = dateStr.split('/');
+        const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+      } catch (e) {
+        return false;
+      }
+    });
+    const collectedThisMonth = thisMonthCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
     
-    // Collected this month: customers with status='renewed' - use AMOUNT column
-    const collectedThisMonth = renewedCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
-    
-    // Collected this year: same as month for now (can be refined later)
-    const collectedThisYear = collectedThisMonth;
-    
-    // Total renewed premium
-    const renewedPremium = collectedThisMonth;
+    // THIS YEAR PREMIUM: Renewed/InProcess customers with od_expiry_date in current year (SAME AS DASHBOARD)
+    const thisYearCustomers = allCustomers.filter(c => {
+      const status = c.status?.toLowerCase().trim();
+      if (status !== 'renewed' && status !== 'inprocess') return false;
+      const dateStr = c.od_expiry_date?.trim();
+      if (!dateStr) return false;
+      try {
+        const [d, m, y] = dateStr.split('/');
+        const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        return date.getFullYear() === now.getFullYear();
+      } catch (e) {
+        return false;
+      }
+    });
+    const collectedThisYear = thisYearCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
     
     // New customers this month (based on created_at or insurance_activated_date)
     const newThisMonth = allCustomers.filter(c => {
@@ -1101,17 +1122,18 @@ router.get('/reports', async (req, res) => {
       if (!dateStr) return false;
       try {
         const date = new Date(dateStr);
-        const now = new Date();
         return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
       } catch (e) {
         return false;
       }
     }).length;
     
-    // Get top customer and company
-    const sortedByPremium = [...allCustomers].sort((a, b) => (b.premium || 0) - (a.premium || 0));
+    // HIGHEST PREMIUM CUSTOMER: Only RENEWED customers, highest AMOUNT
+    const renewedCustomers = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'renewed');
+    const sortedByPremium = [...renewedCustomers].sort((a, b) => (b.premium || 0) - (a.premium || 0));
     const topCustomer = sortedByPremium[0] || { name: 'N/A', premium: 0 };
     
+    // TOP INSURANCE COMPANY: Group by company, sum AMOUNT for ALL customers
     const companyTotals = {};
     allCustomers.forEach(c => {
       const company = c.company || 'Unknown';

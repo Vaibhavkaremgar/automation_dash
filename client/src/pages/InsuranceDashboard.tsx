@@ -83,6 +83,7 @@ export default function InsuranceDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [renewalStats, setRenewalStats] = useState({ reminders_today: 0, customers_reminded: 0 });
   const [renewalSearchTerm, setRenewalSearchTerm] = useState('');
+  const [searchTimers, setSearchTimers] = useState<{[key: string]: NodeJS.Timeout}>({});
   const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteCustomerId, setNoteCustomerId] = useState<number | null>(null);
@@ -110,6 +111,7 @@ export default function InsuranceDashboard() {
   const [showAll15Days, setShowAll15Days] = useState(false);
   const [showAll30Days, setShowAll30Days] = useState(false);
   const [showAllRenewed, setShowAllRenewed] = useState(false);
+  const [showAllInProcess, setShowAllInProcess] = useState(false);
   const [showAllCustomers, setShowAllCustomers] = useState(false);
   const [quickActionsLimit, setQuickActionsLimit] = useState(5);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
@@ -239,6 +241,45 @@ export default function InsuranceDashboard() {
     await loadData();
   };
 
+  // Auto-clear search terms after 1 minute
+  const handleSearchChange = (searchKey: string, value: string) => {
+    // Clear existing timer for this search field
+    if (searchTimers[searchKey]) {
+      clearTimeout(searchTimers[searchKey]);
+    }
+
+    // Update search term
+    if (searchKey === 'renewalSearch') {
+      setRenewalSearchTerm(value);
+    } else if (searchKey === 'customerSearch') {
+      setSearchTerm(value);
+    } else if (searchKey === 'modalSearch') {
+      setModalSearchTerm(value);
+    }
+
+    // Set new timer to clear after 1 minute
+    if (value) {
+      const timer = setTimeout(() => {
+        if (searchKey === 'renewalSearch') {
+          setRenewalSearchTerm('');
+        } else if (searchKey === 'customerSearch') {
+          setSearchTerm('');
+        } else if (searchKey === 'modalSearch') {
+          setModalSearchTerm('');
+        }
+      }, 60000); // 1 minute
+
+      setSearchTimers(prev => ({ ...prev, [searchKey]: timer }));
+    }
+  };
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(searchTimers).forEach(timer => clearTimeout(timer));
+    };
+  }, [searchTimers]);
+
   useEffect(() => {
     loadData();
   }, [verticalFilter, generalSubFilter]);
@@ -327,8 +368,9 @@ export default function InsuranceDashboard() {
     }).sort(sortByExpiry);
     const overdue = filtered.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').sort(sortByExpiry);
     const renewed = filtered.filter(c => c.status.trim().toLowerCase() === 'renewed').sort(sortByExpiry);
+    const inProcess = filtered.filter(c => c.status.trim().toLowerCase() === 'inprocess').sort(sortByExpiry);
     
-    return { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed };
+    return { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed, inProcess };
   };
 
   const handleBulkStatusUpdate = async (newStatus: string) => {
@@ -1038,7 +1080,7 @@ export default function InsuranceDashboard() {
               <Input
                 placeholder="Search customers..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange('customerSearch', e.target.value)}
                 className="w-full sm:max-w-md"
               />
               <select
@@ -1191,7 +1233,7 @@ export default function InsuranceDashboard() {
 
 
   const renderRenewalsTab = () => {
-    const { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed } = categorizeCustomers();
+    const { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed, inProcess } = categorizeCustomers();
     
     return (
       <div className="space-y-6">
@@ -1200,12 +1242,12 @@ export default function InsuranceDashboard() {
           <Input
             placeholder="Search by name, mobile, vehicle, company, policy no, G code..."
             value={renewalSearchTerm}
-            onChange={(e) => setRenewalSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange('renewalSearch', e.target.value)}
             className="w-full"
           />
 
           {/* Statistics - Fixed */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => document.getElementById('today-section')?.scrollIntoView({ behavior: 'smooth' })}>
             <h4 className="text-xs text-red-300 mb-1">Expiring Today</h4>
             <p className="text-2xl font-bold text-red-400">{expiringToday.length}</p>
@@ -1217,6 +1259,10 @@ export default function InsuranceDashboard() {
           <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg cursor-pointer hover:bg-yellow-500/20 transition-all" onClick={() => document.getElementById('expiring7-section')?.scrollIntoView({ behavior: 'smooth' })}>
             <h4 className="text-xs text-yellow-300 mb-1">Within 7 Days</h4>
             <p className="text-2xl font-bold text-yellow-400">{expiring7.length}</p>
+          </div>
+          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer hover:bg-blue-500/20 transition-all" onClick={() => document.getElementById('inprocess-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <h4 className="text-xs text-blue-300 mb-1">In Process</h4>
+            <p className="text-2xl font-bold text-blue-400">{inProcess.length}</p>
           </div>
           <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg cursor-pointer hover:bg-green-500/20 transition-all" onClick={() => document.getElementById('renewed-section')?.scrollIntoView({ behavior: 'smooth' })}>
             <h4 className="text-xs text-green-300 mb-1">Renewed</h4>
@@ -1268,7 +1314,7 @@ export default function InsuranceDashboard() {
         )}
 
         {/* Show message if no renewals at all */}
-        {expiringToday.length === 0 && expiring1Day.length === 0 && expiring3.length === 0 && expiring7.length === 0 && expiring15.length === 0 && expiring30.length === 0 && overdue.length === 0 && renewed.length === 0 && (
+        {expiringToday.length === 0 && expiring1Day.length === 0 && expiring3.length === 0 && expiring7.length === 0 && expiring15.length === 0 && expiring30.length === 0 && overdue.length === 0 && renewed.length === 0 && inProcess.length === 0 && (
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-12 text-center">
             <p className="text-2xl text-slate-400">✅ No renewals to display</p>
             <p className="text-sm text-slate-500 mt-2">All customers are up to date!</p>
@@ -1405,6 +1451,23 @@ export default function InsuranceDashboard() {
               <div className="text-center mt-4">
                 <Button variant="outline" onClick={() => setShowAllRenewed(!showAllRenewed)}>
                   {showAllRenewed ? 'Show Less' : `Show All (${renewed.length - 5} more)`}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* In Process */}
+        {inProcess.length > 0 && (
+          <div id="inprocess-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-blue-400">🔵 In Process ({inProcess.length})</h3>
+            <div className="space-y-3">
+              {inProcess.slice(0, showAllInProcess ? inProcess.length : 5).map(c => renderRenewalCard(c, 'In Process', 'border-blue-500/50', false))}
+            </div>
+            {inProcess.length > 5 && (
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAllInProcess(!showAllInProcess)}>
+                  {showAllInProcess ? 'Show Less' : `Show All (${inProcess.length - 5} more)`}
                 </Button>
               </div>
             )}
@@ -1658,7 +1721,7 @@ export default function InsuranceDashboard() {
             <Input
               placeholder="Search by name, mobile, G CODE, vehicle, etc..."
               value={modalSearchTerm}
-              onChange={(e) => setModalSearchTerm(e.target.value)}
+              onChange={(e) => handleSearchChange('modalSearch', e.target.value)}
               className="w-full"
             />
           )}
