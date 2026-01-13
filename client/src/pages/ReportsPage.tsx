@@ -69,7 +69,9 @@ interface ReportData {
 
 export default function ReportsPage() {
   const [verticalFilter, setVerticalFilter] = useState(() => {
-    return localStorage.getItem('insuranceVertical') || 'all';
+    // Clear old cached value and default to 'general' for insurance clients
+    localStorage.removeItem('insuranceVertical');
+    return 'general';
   });
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<ReportData | null>(null);
@@ -95,7 +97,7 @@ export default function ReportsPage() {
   const loadReports = async () => {
     try {
       setLoading(true);
-      const verticalParam = `?vertical=${verticalFilter}`;
+      const verticalParam = `?vertical=${verticalFilter}&_t=${Date.now()}`;
       const response = await api.get(`/api/insurance/reports${verticalParam}`);
       setReportData(response.data);
     } catch (error) {
