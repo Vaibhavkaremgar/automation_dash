@@ -69,7 +69,7 @@ interface ReportData {
 
 export default function ReportsPage() {
   const [verticalFilter, setVerticalFilter] = useState(() => {
-    return localStorage.getItem('insuranceVertical') || 'motor';
+    return localStorage.getItem('insuranceVertical') || 'all';
   });
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<ReportData | null>(null);
