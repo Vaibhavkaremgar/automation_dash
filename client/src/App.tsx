@@ -23,6 +23,7 @@ const ClaimsManagement = retryImport(() => import('./pages/ClaimsManagement'))
 const ReportsPage = retryImport(() => import('./pages/ReportsPage'))
 const MessagesHistory = retryImport(() => import('./pages/MessagesHistory'))
 const UpsellCrossSell = retryImport(() => import('./pages/UpsellCrossSell'))
+const LeadManagement = retryImport(() => import('./pages/LeadManagement'))
 const JobsPage = retryImport(() => import('./pages/Jobs'))
 const CandidatesPage = retryImport(() => import('./pages/Candidates'))
 const ResumeUploadPage = retryImport(() => import('./pages/ResumeUploadNew'))
@@ -103,6 +104,7 @@ export default function App() {
               <Route path="/insurance/claims" element={<ClaimsManagement />} />
               <Route path="/insurance/messages" element={<MessagesHistory />} />
               <Route path="/insurance/reports" element={<ReportsPage />} />
+              <Route path="/insurance/leads" element={<LeadManagement />} />
               
               {/* Shared Routes */}
               <Route path="/wallet" element={<WalletPage />} />

@@ -9,7 +9,7 @@ export default function DataSyncStatus() {
       const response = await api.get('/api/debug/data-check')
       return response.data
     },
-    refetchInterval: 5000,
+    refetchInterval: 60000,
     retry: false
   })
 

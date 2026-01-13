@@ -479,6 +479,28 @@ async function runMigrations() {
       console.log('Claims column migration check:', e.message);
     }
 
+    // Create insurance_leads table
+    await run(`
+      CREATE TABLE IF NOT EXISTS insurance_leads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        s_no TEXT,
+        name TEXT NOT NULL,
+        mobile_number TEXT NOT NULL,
+        email TEXT,
+        interested_in TEXT,
+        policy_expiry_date TEXT,
+        follow_up_date TEXT,
+        lead_status TEXT DEFAULT 'new',
+        priority TEXT DEFAULT 'warm',
+        notes TEXT,
+        referral_by TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
     // Create sessions table
     await run(`
       CREATE TABLE IF NOT EXISTS sessions (

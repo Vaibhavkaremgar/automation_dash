@@ -5,7 +5,6 @@ const morgan = require('morgan');
 const config = require('./config/env');
 const { runMigrations } = require('./db/connection');
 const { errorHandler, notFoundHandler } = require('./middleware/error');
-const { initBackupScheduler, stopBackupScheduler } = require('./services/backupScheduler');
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -18,8 +17,6 @@ const candidatesRoutes = require('./routes/candidates');
 const resumesRoutes = require('./routes/resumes');
 const emailRoutes = require('./routes/email');
 const analyticsRoutes = require('./routes/analytics');
-const testSheetsRoutes = require('./routes/test-sheets');
-const testConnectionRoutes = require('./routes/testConnection');
 const clientAnalyticsRoutes = require('./routes/client-analytics');
 
 const adminCandidatesRoutes = require('./routes/admin-candidates');
@@ -31,6 +28,7 @@ const insuranceConfigRoutes = require('./routes/insuranceConfig');
 const messageWebhooksRoutes = require('./routes/messageWebhooks');
 const profilesRoutes = require('./routes/profiles');
 const backupRoutes = require('./routes/backup');
+const leadsRoutes = require('./routes/leads');
 
 
 const app = express();
@@ -39,11 +37,7 @@ app.use(cors({
   origin: config.nodeEnv === 'production' 
     // Railway Production URLs
     ? ['https://vbautomations.up.railway.app', config.frontendUrl].filter(Boolean)
-    : ['http://localhost:5173', 'https://vbautomations.up.railway.app', config.frontendUrl].filter(Boolean),
-    
-    // Local Development URLs (Commented for production)
-    // ? [config.frontendUrl].filter(Boolean)
-    // : ['http://localhost:5173', config.frontendUrl].filter(Boolean),
+    : ['http://localhost:5173', config.frontendUrl].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-profile-id'],
@@ -66,63 +60,8 @@ async function initializeDatabase() {
   try {
     await runMigrations();
     
-    // Run insurance company name migration
-    const migration004 = require('../migrations/004-set-insurance-company-names');
-    await migration004.up();
-    console.log('✅ Insurance company names migration completed');
-    
-    // Run client message tables migration
-    const migration005 = require('../migrations/005-create-client-message-tables');
-    await migration005.up();
-    console.log('✅ Client message tables migration completed');
-    
-    // Run missing columns migration
-    const migration006 = require('../migrations/006-add-missing-columns');
-    await migration006.up();
-    
-    // Run renewal reminders fix migration
-    const migration007 = require('../migrations/007-fix-renewal-reminders');
-    await migration007.up();
-    
-    // Run notes column migration
-    const migration008 = require('../migrations/008-add-notes-column');
-    await migration008.up();
-    
-    // Run message logs fix migration
-    const migration009 = require('../migrations/009-fix-message-logs');
-    await migration009.up();
-    
-    // Run claims table fix migration
-    const migration010 = require('../migrations/010-fix-claims-table');
-    await migration010.up();
-    
-    // Run claim status history migration
-    const migration011 = require('../migrations/011-add-claim-status-history');
-    await migration011.up();
-    
-    // Run message logs columns fix migration
-    const migration012 = require('../migrations/012-fix-message-logs-columns');
-    await migration012.up();
-    
-    // Run client key migration
-    const migration013 = require('../migrations/013-add-client-key-to-message-logs');
-    await migration013.up();
-    
-    // Run profiles and activity migration
-    const migration014 = require('../migrations/014-create-profiles-and-activity');
-    await migration014.up();
-    
-    // Run profile security migration
-    const migration015 = require('../migrations/015-add-profile-security');
-    await migration015.up();
-    
-    // Run source and client_key migration for message tables
-    const migration016 = require('../migrations/016-add-source-client-key-to-message-tables');
-    await migration016.up();
-    
-    // Run message_logs client_key migration
-    const migration017 = require('../migrations/017-add-client-key-to-message-logs');
-    await migration017.up();
+    // Migrations are now tracked and only run once
+    // Manual migrations removed from startup to improve performance
     
     // Seed admin user
     await seedAdminUser();
@@ -230,24 +169,19 @@ app.use('/api/candidates', candidatesRoutes);
 app.use('/api/resumes', resumesRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/test-sheets', testSheetsRoutes);
 app.use('/api/client-analytics', clientAnalyticsRoutes);
-app.use('/api/test-connection', testConnectionRoutes);
-app.use('/api/test', require('./routes/test-sync'));
 app.use('/api/admin/candidates', adminCandidatesRoutes);
 app.use('/api/voice', voiceRoutes);
 app.use('/api/applications', applicationsRoutes);
 app.use('/api/resume-parser', resumeParserRoutes);
-app.use('/api/debug-sheets', require('./routes/debugSheets'));
-app.use('/api/debug-sheet', require('./routes/debug-sheet'));
 app.use('/api/insurance', insuranceRoutes);
 app.use('/api/insurance-config', insuranceConfigRoutes);
 app.use('/api/policies', require('./routes/policies'));
 app.use('/api/webhooks', messageWebhooksRoutes);
 app.use('/api/profiles', profilesRoutes);
 app.use('/api/reset-passwords', require('./routes/reset-passwords'));
-app.use('/api/debug-railway', require('./routes/debug-railway'));
 app.use('/api/backup', require('./routes/backup'));
+app.use('/api/leads', leadsRoutes);
 
 // Serve index.html for all non-API routes in production
 if (config.nodeEnv === 'production') {
@@ -263,24 +197,21 @@ app.use(errorHandler);
 
 // Start server
 app.listen(config.port, () => {
-  console.log(`🚀 Viral Bug Automations server running on http://localhost:${config.port}`);
+  console.log(`🚀 Viral Bug Automations server running on port ${config.port}`);
   console.log(`📝 Environment: ${config.nodeEnv}`);
   console.log(`🔗 Frontend URL: ${config.frontendUrl}`);
   
-  // Initialize backup scheduler (non-blocking)
-  initBackupScheduler();
+  // Backup scheduler disabled - no action needed
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('🛑 SIGTERM received, shutting down gracefully...');
-  stopBackupScheduler();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   console.log('🛑 SIGINT received, shutting down gracefully...');
-  stopBackupScheduler();
   process.exit(0);
 });
 

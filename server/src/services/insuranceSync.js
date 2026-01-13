@@ -284,17 +284,20 @@ class InsuranceSyncService {
     return { imported, updated: 0 };
   }
 
-  async syncToSheet(userId, spreadsheetId, tabName = 'updating_input', verticalFilter = null) {
+  async syncToSheet(userId, spreadsheetId, tabName = 'updating_input', verticalFilter = null, deletedCustomers = []) {
     this.initAuth();
     if (!this.sheets) {
       throw new Error('Google Sheets not configured');
     }
 
     try {
-      console.log(`🔄 Syncing TO sheet - User: ${userId}, Tab: ${tabName}`);
+      console.log(`🔄 SMART SYNC TO SHEET - User: ${userId}, Tab: ${tabName}`);
+      console.log(`📋 Strategy: Delete specific rows, update modified rows, preserve all other sheet data`);
+      
       const user = await get('SELECT email FROM users WHERE id = ?', [userId]);
       const clientConfig = getClientConfig(user?.email);
       
+      // Get customers from DB with updated_at timestamp
       let query = 'SELECT * FROM insurance_customers WHERE user_id = ?';
       const params = [userId];
       
@@ -305,17 +308,31 @@ class InsuranceSyncService {
       }
       
       const customers = await all(query + ' ORDER BY id', params);
-      console.log(`📊 Found ${customers.length} customers to sync`);
-      
-      if (customers.length === 0) {
-        console.log('✅ No customers to sync');
-        return { success: true, exported: 0, updated: 0, added: 0 };
-      }
+      console.log(`📊 Found ${customers.length} customers in DB`);
+      console.log(`🗑️ Deleted customers to remove: ${deletedCustomers.length}`);
       
       const isLifeTab = verticalFilter && verticalFilter.includes('life') && !verticalFilter.includes('motor');
       const schema = isLifeTab ? clientConfig.tabs.life.schema : clientConfig.tabs.general.schema;
       
-      // Read current sheet
+      // STEP 1: Get sheet metadata to find the correct sheetId (gid)
+      const spreadsheetMetadata = await this.sheets.spreadsheets.get({
+        spreadsheetId,
+        fields: 'sheets.properties'
+      });
+      
+      const targetSheet = spreadsheetMetadata.data.sheets.find(
+        sheet => sheet.properties.title === tabName
+      );
+      
+      if (!targetSheet) {
+        throw new Error(`Sheet tab "${tabName}" not found in spreadsheet`);
+      }
+      
+      const sheetId = targetSheet.properties.sheetId;
+      console.log(`📋 Found sheet "${tabName}" with ID: ${sheetId}`);
+      
+      // STEP 2: Read current sheet data
+      console.log(`📖 Reading existing sheet data...`);
       const sheetResponse = await this.sheets.spreadsheets.values.get({
         spreadsheetId,
         range: `${tabName}!A:ZZ`
@@ -323,7 +340,10 @@ class InsuranceSyncService {
       const sheetData = sheetResponse.data.values || [];
       const headers = sheetData[0] || [];
       const existingRows = sheetData.slice(1);
+      console.log(`📊 Sheet has ${existingRows.length} existing rows`);
       
+      // Build column index map
+      const policyColIndex = headers.findIndex(h => h === schema.current_policy_no);
       const nameColIndex = headers.findIndex(h => h === schema.name);
       const mobileColIndex = headers.findIndex(h => h === schema.mobile_number);
       
@@ -332,48 +352,257 @@ class InsuranceSyncService {
         reverseSchema[colName] = field;
       });
       
-      // Map existing rows by mobile AND store row number
+      // STEP 3: Build lookup map
       const sheetRowMap = new Map();
       existingRows.forEach((row, index) => {
-        const mobile = row[mobileColIndex] || '';
-        if (mobile) {
-          sheetRowMap.set(mobile.trim(), { row, rowNumber: index + 2, sheetIndex: index });
+        const policyNo = row[policyColIndex] ? row[policyColIndex].trim() : '';
+        const name = row[nameColIndex] ? row[nameColIndex].trim().toLowerCase() : '';
+        const mobile = row[mobileColIndex] ? row[mobileColIndex].trim() : '';
+        
+        const rowInfo = { row, rowNumber: index + 2, sheetIndex: index };
+        
+        if (policyNo) {
+          sheetRowMap.set(`policy:${policyNo}`, rowInfo);
+        }
+        
+        if (name && mobile) {
+          sheetRowMap.set(`name_mobile:${name}:${mobile}`, rowInfo);
         }
       });
       
+      console.log(`🔑 Built lookup map with ${sheetRowMap.size} unique keys`);
+      
+      // STEP 4: Handle deletions FIRST (before updates/adds)
+      let deleted = 0;
+      if (deletedCustomers.length > 0) {
+        console.log(`🗑️ Processing ${deletedCustomers.length} deletions...`);
+        
+        const rowsToDelete = [];
+        
+        for (const delCustomer of deletedCustomers) {
+          let matchedRow = null;
+          
+          // Try Policy Number first
+          if (delCustomer.current_policy_no) {
+            const key = `policy:${delCustomer.current_policy_no.trim()}`;
+            matchedRow = sheetRowMap.get(key);
+          }
+          
+          // Fallback to Registration Number
+          if (!matchedRow && delCustomer.registration_no) {
+            const regColIndex = headers.findIndex(h => h === schema.registration_no);
+            if (regColIndex !== -1) {
+              const regKey = `reg:${delCustomer.registration_no.trim()}`;
+              if (!sheetRowMap.has(regKey)) {
+                existingRows.forEach((row, index) => {
+                  const regNo = row[regColIndex] ? row[regColIndex].trim() : '';
+                  if (regNo) {
+                    sheetRowMap.set(`reg:${regNo}`, { row, rowNumber: index + 2, sheetIndex: index });
+                  }
+                });
+              }
+              matchedRow = sheetRowMap.get(regKey);
+            }
+          }
+          
+          if (matchedRow) {
+            rowsToDelete.push(matchedRow);
+            console.log(`✓ Found row ${matchedRow.rowNumber} for deletion: ${delCustomer.name}`);
+          } else {
+            console.log(`⚠️ No match found for deleted customer: ${delCustomer.name}`);
+          }
+        }
+        
+        if (rowsToDelete.length > 0) {
+          // Sort by row number descending
+          rowsToDelete.sort((a, b) => b.rowNumber - a.rowNumber);
+          
+          const snoColIndex = headers.findIndex(h => 
+            h.toUpperCase().replace(/[\s\.]/g, '') === 'SNO' || 
+            h.toUpperCase().replace(/[\s\.]/g, '') === 'SERIALNO'
+          );
+          
+          // Find highest row number to determine consecutive last rows
+          const maxRowNumber = existingRows.length + 1; // +1 for header
+          const rowNumbers = rowsToDelete.map(r => r.rowNumber).sort((a, b) => b - a);
+          
+          // Identify consecutive last rows (e.g., if max is 440 and we have 435,436,437,438,439,440)
+          let consecutiveLastRows = [];
+          for (let i = 0; i < rowNumbers.length; i++) {
+            if (rowNumbers[i] === maxRowNumber - i) {
+              consecutiveLastRows.push(rowNumbers[i]);
+            } else {
+              break;
+            }
+          }
+          
+          const deleteRequests = [];
+          const clearRequests = [];
+          
+          for (const rowInfo of rowsToDelete) {
+            if (consecutiveLastRows.includes(rowInfo.rowNumber)) {
+              // Delete entire row if it's part of consecutive last rows
+              console.log(`🗑️ Deleting last row ${rowInfo.rowNumber}`);
+              deleteRequests.push({
+                deleteDimension: {
+                  range: {
+                    sheetId: sheetId,
+                    dimension: 'ROWS',
+                    startIndex: rowInfo.rowNumber - 1,
+                    endIndex: rowInfo.rowNumber
+                  }
+                }
+              });
+            } else {
+              // Clear row data but keep structure for middle rows
+              console.log(`🧹 Clearing middle row ${rowInfo.rowNumber}`);
+              const clearedRow = headers.map((header, colIndex) => {
+                if (colIndex === snoColIndex && snoColIndex !== -1) {
+                  return rowInfo.row[colIndex] || '';
+                }
+                return '';
+              });
+              
+              const endCol = this.getColumnLetter(headers.length);
+              clearRequests.push({
+                range: `${tabName}!A${rowInfo.rowNumber}:${endCol}${rowInfo.rowNumber}`,
+                values: [clearedRow]
+              });
+            }
+          }
+          
+          // Execute deletions (for last rows)
+          if (deleteRequests.length > 0) {
+            await this.sheets.spreadsheets.batchUpdate({
+              spreadsheetId,
+              resource: { requests: deleteRequests }
+            });
+            console.log(`✅ Deleted ${deleteRequests.length} last row(s)`);
+          }
+          
+          // Execute clears (for middle rows)
+          if (clearRequests.length > 0) {
+            await this.sheets.spreadsheets.values.batchUpdate({
+              spreadsheetId,
+              resource: {
+                valueInputOption: 'RAW',
+                data: clearRequests
+              }
+            });
+            console.log(`✅ Cleared ${clearRequests.length} middle row(s)`);
+          }
+          
+          deleted = rowsToDelete.length;
+          
+          // Rebuild sheet data and lookup map
+          const updatedSheetResponse = await this.sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: `${tabName}!A:ZZ`
+          });
+          const updatedSheetData = updatedSheetResponse.data.values || [];
+          const updatedExistingRows = updatedSheetData.slice(1);
+          
+          sheetRowMap.clear();
+          updatedExistingRows.forEach((row, index) => {
+            const policyNo = row[policyColIndex] ? row[policyColIndex].trim() : '';
+            const name = row[nameColIndex] ? row[nameColIndex].trim().toLowerCase() : '';
+            const mobile = row[mobileColIndex] ? row[mobileColIndex].trim() : '';
+            
+            const rowInfo = { row, rowNumber: index + 2, sheetIndex: index };
+            
+            if (policyNo) {
+              sheetRowMap.set(`policy:${policyNo}`, rowInfo);
+            }
+            
+            if (name && mobile) {
+              sheetRowMap.set(`name_mobile:${name}:${mobile}`, rowInfo);
+            }
+          });
+          
+          console.log(`🔄 Rebuilt lookup map after deletion`);
+        }
+      }
+      
       let updated = 0;
       let added = 0;
-      
-      // Batch updates
       const batchUpdates = [];
       const appendRows = [];
       
+      // STEP 5: Process each customer from DB
       for (const customer of customers) {
-        const customerKey = customer.mobile_number ? customer.mobile_number.trim() : null;
-        if (!customerKey) continue;
-        
-        // Try to find by sheet_row_number first (exact match), then by mobile
+        // Try to find matching row in sheet - ONLY by unique identifiers
         let existingEntry = null;
-        if (customer.sheet_row_number && customer.sheet_row_number >= 2) {
-          const sheetIndex = customer.sheet_row_number - 2;
-          if (sheetIndex >= 0 && sheetIndex < existingRows.length) {
-            existingEntry = { row: existingRows[sheetIndex], rowNumber: customer.sheet_row_number, sheetIndex };
+        
+        // Try Policy Number first (exact match)
+        if (customer.current_policy_no && customer.current_policy_no.trim()) {
+          const key = `policy:${customer.current_policy_no.trim()}`;
+          existingEntry = sheetRowMap.get(key);
+        }
+        
+        // If no policy match, try Registration Number (for vehicles)
+        if (!existingEntry && customer.registration_no && customer.registration_no.trim()) {
+          const regKey = `reg:${customer.registration_no.trim()}`;
+          // Build reg lookup if not exists
+          if (!sheetRowMap.has(regKey)) {
+            existingRows.forEach((row, index) => {
+              const regColIndex = headers.findIndex(h => h === schema.registration_no);
+              if (regColIndex !== -1) {
+                const regNo = row[regColIndex] ? row[regColIndex].trim() : '';
+                if (regNo) {
+                  sheetRowMap.set(`reg:${regNo}`, { row, rowNumber: index + 2, sheetIndex: index });
+                }
+              }
+            });
+          }
+          existingEntry = sheetRowMap.get(regKey);
+        }
+        
+        // If no match by unique identifiers, this is a NEW customer (add as new row)
+        
+        // Calculate S.NO for new rows (find max S.NO + 1)
+        let nextSNo = '';
+        if (!existingEntry) {
+          const snoColIndex = headers.findIndex(h => 
+            h.toUpperCase().replace(/[\s\.]/g, '') === 'SNO' || 
+            h.toUpperCase().replace(/[\s\.]/g, '') === 'SERIALNO'
+          );
+          
+          if (snoColIndex !== -1) {
+            // Find max S.NO from existing rows
+            let maxSNo = 0;
+            existingRows.forEach(row => {
+              const snoValue = row[snoColIndex];
+              if (snoValue) {
+                const num = parseInt(String(snoValue).trim());
+                if (!isNaN(num) && num > maxSNo) {
+                  maxSNo = num;
+                }
+              }
+            });
+            nextSNo = String(maxSNo + 1);
+            console.log(`🔢 Assigning S.NO ${nextSNo} to new customer: ${customer.name}`);
           }
         }
-        if (!existingEntry) {
-          existingEntry = sheetRowMap.get(customerKey);
-        }
         
-        const rowData = headers.map((header) => {
+        // Build row data - PRESERVE existing sheet values for unmapped columns
+        const rowData = headers.map((header, colIndex) => {
           const fieldName = reverseSchema[header];
           
-          // Preserve S.NO from existing sheet or database
-          if (header === 'S NO') {
-            return customer.s_no || (existingEntry ? existingEntry.row[headers.indexOf(header)] : '');
+          // Handle S.NO: preserve for existing, assign next for new
+          if (header === 'S NO' || header === 'S.NO' || header === 'S_NO') {
+            if (existingEntry) {
+              return existingEntry.row[colIndex] || '';
+            } else {
+              return nextSNo;
+            }
           }
           
-          if (!fieldName) return existingEntry ? (existingEntry.row[headers.indexOf(header)] || '') : '';
+          // If column not in schema, PRESERVE existing sheet value
+          if (!fieldName) {
+            return existingEntry ? (existingEntry.row[colIndex] || '') : '';
+          }
           
+          // Map DB fields to sheet columns - COMPLETE MAPPING
           const fieldMap = {
             name: customer.name,
             mobile_number: customer.mobile_number,
@@ -395,6 +624,7 @@ class InsuranceSyncService {
             product_type: customer.product_type,
             product_model: customer.product_model,
             vertical: customer.vertical,
+            product: customer.product,
             notes: customer.notes,
             cheque_no: customer.cheque_no,
             bank_name: customer.bank_name,
@@ -406,31 +636,64 @@ class InsuranceSyncService {
             g_code: customer.g_code,
             paid_by: customer.paid_by,
             policy_start_date: customer.policy_start_date,
+            insurance_activated_date: customer.insurance_activated_date,
+            policy_doc_link: customer.policy_doc_link,
+            reason: customer.reason,
+            cheque_hold: customer.cheque_hold,
+            cheque_bounce: customer.cheque_bounce,
+            owner_alert_sent: customer.owner_alert_sent,
+            veh_type: customer.veh_type,
+            modified_expiry_date: customer.modified_expiry_date,
             s_no: customer.s_no
           };
           
           const dbValue = fieldMap[fieldName];
-          return dbValue !== null && dbValue !== undefined ? dbValue : '';
+          
+          // Always write email field even if empty (don't preserve old value)
+          if (fieldName === 'email') {
+            return dbValue || '';
+          }
+          
+          // If DB has value, use it; otherwise preserve sheet value
+          if (dbValue !== null && dbValue !== undefined && dbValue !== '') {
+            return String(dbValue);
+          } else if (existingEntry) {
+            return existingEntry.row[colIndex] || '';
+          }
+          return '';
         });
         
         if (existingEntry) {
-          const endCol = headers.length > 26 
-            ? String.fromCharCode(64 + Math.floor((headers.length - 1) / 26)) + String.fromCharCode(65 + ((headers.length - 1) % 26))
-            : String.fromCharCode(64 + headers.length);
-          
-          batchUpdates.push({
-            range: `${tabName}!A${existingEntry.rowNumber}:${endCol}${existingEntry.rowNumber}`,
-            values: [rowData]
+          // Check if row actually changed
+          const hasChanges = rowData.some((newVal, idx) => {
+            const oldVal = existingEntry.row[idx] || '';
+            return String(newVal).trim() !== String(oldVal).trim();
           });
-          updated++;
+          
+          if (hasChanges) {
+            const endCol = this.getColumnLetter(headers.length);
+            batchUpdates.push({
+              range: `${tabName}!A${existingEntry.rowNumber}:${endCol}${existingEntry.rowNumber}`,
+              values: [rowData]
+            });
+            updated++;
+          }
         } else {
+          // ADD new row
           appendRows.push(rowData);
           added++;
         }
       }
       
-      // Execute batch update
+      // Check if there are any changes
+      if (batchUpdates.length === 0 && appendRows.length === 0 && deleted === 0) {
+        console.log('ℹ️ No changes detected - sheet is already up to date');
+        return { success: true, exported: 0, updated: 0, added: 0, deleted: 0, message: 'No changes to sync' };
+      }
+      
+      // STEP 6: Execute batch update (only changed rows)
       if (batchUpdates.length > 0) {
+        console.log(`📝 Updating ${batchUpdates.length} changed rows...`);
         await this.sheets.spreadsheets.values.batchUpdate({
           spreadsheetId,
           resource: {
@@ -438,24 +701,37 @@ class InsuranceSyncService {
             data: batchUpdates
           }
         });
+        console.log(`✅ Updated ${updated} rows`);
       }
       
-      // Append new rows
+      // STEP 7: Append new rows
       if (appendRows.length > 0) {
+        console.log(`➕ Adding ${appendRows.length} new rows...`);
         await this.sheets.spreadsheets.values.append({
           spreadsheetId,
           range: `${tabName}!A:A`,
           valueInputOption: 'RAW',
           resource: { values: appendRows }
         });
+        console.log(`✅ Added ${added} new rows`);
       }
       
-      console.log(`✅ Sync complete: ${updated} updated, ${added} added`);
-      return { success: true, exported: customers.length, updated, added };
+      console.log(`✅ SMART SYNC COMPLETE: ${deleted} deleted, ${updated} updated, ${added} added`);
+      return { success: true, exported: customers.length, deleted, updated, added };
     } catch (error) {
-      console.error('Sync to sheet failed:', error);
+      console.error('❌ Sync to sheet failed:', error);
       throw error;
     }
+  }
+
+  getColumnLetter(columnNumber) {
+    let letter = '';
+    while (columnNumber > 0) {
+      const remainder = (columnNumber - 1) % 26;
+      letter = String.fromCharCode(65 + remainder) + letter;
+      columnNumber = Math.floor((columnNumber - 1) / 26);
+    }
+    return letter;
   }
 
   formatDate(dateStr) {
@@ -473,6 +749,129 @@ class InsuranceSyncService {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
+  }
+
+  async syncLeadsFromSheet(userId, spreadsheetId, tabName) {
+    this.initAuth();
+    const user = await get('SELECT email FROM users WHERE id = ?', [userId]);
+    const clientConfig = getClientConfig(user?.email);
+    const schema = clientConfig.tabs.leads.schema;
+
+    const response = await this.sheets.spreadsheets.values.get({ spreadsheetId, range: `${tabName}!A:ZZ` });
+    const rows = response.data.values || [];
+    if (rows.length <= 1) return { imported: 0 };
+
+    await run('DELETE FROM insurance_leads WHERE user_id = ?', [userId]);
+    
+    const headers = rows[0];
+    const columnMap = {};
+    headers.forEach((col, idx) => { columnMap[col] = idx; });
+    
+    const getCell = (row, field) => {
+      const colName = schema[field];
+      const idx = columnMap[colName];
+      return idx !== undefined ? (row[idx] || '') : '';
+    };
+
+    let imported = 0;
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.every(c => !c || c.trim() === '')) continue;
+
+      await run(`INSERT INTO insurance_leads (user_id, s_no, name, mobile_number, email, interested_in, policy_expiry_date, follow_up_date, lead_status, priority, notes, referral_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, getCell(row, 's_no'), getCell(row, 'name'), getCell(row, 'mobile_number'), getCell(row, 'email'), getCell(row, 'interested_in'), this.formatDate(getCell(row, 'policy_expiry_date')), this.formatDate(getCell(row, 'follow_up_date')), getCell(row, 'lead_status') || 'new', getCell(row, 'priority') || 'warm', getCell(row, 'notes'), getCell(row, 'referral_by')]);
+      imported++;
+    }
+    return { imported };
+  }
+
+  async syncLeadsToSheet(userId, spreadsheetId, tabName, deletedLeads = []) {
+    this.initAuth();
+    const user = await get('SELECT email FROM users WHERE id = ?', [userId]);
+    const clientConfig = getClientConfig(user?.email);
+    const schema = clientConfig.tabs.leads.schema;
+
+    const leads = await all('SELECT * FROM insurance_leads WHERE user_id = ? ORDER BY id', [userId]);
+    
+    const sheetResponse = await this.sheets.spreadsheets.values.get({ spreadsheetId, range: `${tabName}!A:ZZ` });
+    const sheetData = sheetResponse.data.values || [];
+    const headers = sheetData[0] || [];
+    const existingRows = sheetData.slice(1);
+
+    const mobileColIndex = headers.findIndex(h => h === schema.mobile_number);
+    const reverseSchema = {};
+    Object.entries(schema).forEach(([field, colName]) => { reverseSchema[colName] = field; });
+
+    const sheetRowMap = new Map();
+    existingRows.forEach((row, index) => {
+      const mobile = row[mobileColIndex] ? row[mobileColIndex].trim() : '';
+      if (mobile) sheetRowMap.set(`mobile:${mobile}`, { row, rowNumber: index + 2 });
+    });
+
+    let deleted = 0, updated = 0, added = 0;
+    const batchUpdates = [];
+    const appendRows = [];
+
+    for (const lead of leads) {
+      const existingEntry = sheetRowMap.get(`mobile:${lead.mobile_number.trim()}`);
+      
+      let nextSNo = '';
+      if (!existingEntry) {
+        const snoColIndex = headers.findIndex(h => h.toUpperCase().replace(/[\s\.]/g, '') === 'SNO');
+        if (snoColIndex !== -1) {
+          let maxSNo = 0;
+          existingRows.forEach(row => {
+            const snoValue = row[snoColIndex];
+            if (snoValue) {
+              const num = parseInt(String(snoValue).trim());
+              if (!isNaN(num) && num > maxSNo) maxSNo = num;
+            }
+          });
+          nextSNo = String(maxSNo + 1);
+        }
+      }
+
+      const rowData = headers.map((header, colIndex) => {
+        const fieldName = reverseSchema[header];
+        if (header === 'S NO' || header === 'S.NO') {
+          return existingEntry ? (existingEntry.row[colIndex] || '') : nextSNo;
+        }
+        if (!fieldName) return existingEntry ? (existingEntry.row[colIndex] || '') : '';
+
+        const fieldMap = {
+          name: lead.name,
+          mobile_number: lead.mobile_number,
+          email: lead.email,
+          interested_in: lead.interested_in,
+          policy_expiry_date: lead.policy_expiry_date,
+          follow_up_date: lead.follow_up_date,
+          lead_status: lead.lead_status,
+          priority: lead.priority,
+          notes: lead.notes,
+          referral_by: lead.referral_by
+        };
+        const dbValue = fieldMap[fieldName];
+        return (dbValue !== null && dbValue !== undefined && dbValue !== '') ? String(dbValue) : (existingEntry ? (existingEntry.row[colIndex] || '') : '');
+      });
+
+      if (existingEntry) {
+        const endCol = this.getColumnLetter(headers.length);
+        batchUpdates.push({ range: `${tabName}!A${existingEntry.rowNumber}:${endCol}${existingEntry.rowNumber}`, values: [rowData] });
+        updated++;
+      } else {
+        appendRows.push(rowData);
+        added++;
+      }
+    }
+
+    if (batchUpdates.length > 0) {
+      await this.sheets.spreadsheets.values.batchUpdate({ spreadsheetId, resource: { valueInputOption: 'RAW', data: batchUpdates } });
+    }
+    if (appendRows.length > 0) {
+      await this.sheets.spreadsheets.values.append({ spreadsheetId, range: `${tabName}!A:A`, valueInputOption: 'RAW', resource: { values: appendRows } });
+    }
+
+    return { success: true, deleted, updated, added };
   }
 }
 

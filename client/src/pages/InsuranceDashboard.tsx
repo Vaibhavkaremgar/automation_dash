@@ -82,8 +82,7 @@ export default function InsuranceDashboard() {
   const [syncing, setSyncing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [renewalStats, setRenewalStats] = useState({ reminders_today: 0, customers_reminded: 0 });
-  const [renewalFilter, setRenewalFilter] = useState({ name: '', company: '', dateFrom: '', dateTo: '' });
-  const [showRenewalFilter, setShowRenewalFilter] = useState(false);
+  const [renewalSearchTerm, setRenewalSearchTerm] = useState('');
   const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteCustomerId, setNoteCustomerId] = useState<number | null>(null);
@@ -115,6 +114,20 @@ export default function InsuranceDashboard() {
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
   const [showRenewalUpdateModal, setShowRenewalUpdateModal] = useState(false);
   const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { amount: string; new_company: string; new_policy_no: string; paid_by: string; remarks: string }>>({});
+  const [deletedCustomers, setDeletedCustomers] = useState<Customer[]>([]); // Track deleted customers for sync
+
+  // Field name mapping helper
+  const mapFieldNameToBackend = (key: string): string => {
+    const mappings: Record<string, string> = {
+      'email_id': 'email',
+      'mobile_no': 'mobile_number',
+      'policy_no': 'current_policy_no',
+      'veh_no': 'registration_no',
+      'type': 'vertical',
+      'chq_no_&_date': 'cheque_no'
+    };
+    return mappings[key] || key;
+  };
 
   const getCurrentTab = () => {
     const path = location.pathname;
@@ -276,31 +289,14 @@ export default function InsuranceDashboard() {
   const categorizeCustomers = () => {
     let filtered = customers;
     
-    if (renewalFilter.name) {
-      filtered = filtered.filter(c => c.name.toLowerCase().includes(renewalFilter.name.toLowerCase()));
-    }
-    if (renewalFilter.company) {
-      filtered = filtered.filter(c => c.company.toLowerCase().includes(renewalFilter.company.toLowerCase()));
-    }
-    if (renewalFilter.dateFrom) {
-      filtered = filtered.filter(c => {
-        const renewalDate = getDisplayDate(c);
-        if (!renewalDate) return false;
-        const [d, m, y] = renewalDate.split('/');
-        const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-        const from = new Date(renewalFilter.dateFrom);
-        return date >= from;
-      });
-    }
-    if (renewalFilter.dateTo) {
-      filtered = filtered.filter(c => {
-        const renewalDate = getDisplayDate(c);
-        if (!renewalDate) return false;
-        const [d, m, y] = renewalDate.split('/');
-        const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-        const to = new Date(renewalFilter.dateTo);
-        return date <= to;
-      });
+    if (renewalSearchTerm) {
+      const searchLower = renewalSearchTerm.toLowerCase();
+      filtered = filtered.filter(c => 
+        Object.values(c).some(value => {
+          if (value === null || value === undefined) return false;
+          return String(value).toLowerCase().includes(searchLower);
+        })
+      );
     }
     
     const sortByExpiry = (a: Customer, b: Customer) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b);
@@ -380,14 +376,15 @@ export default function InsuranceDashboard() {
     try {
       await api.post(`/api/insurance/customers/${noteCustomerId}/notes`, { note });
       
-      // Sync to Google Sheets
-      // try {
-      //   await api.post('/api/insurance/sync/to-sheet', {
-      //     tabName: SHEET_TAB_NAME
-      //   });
-      // } catch (syncError) {
-      //   console.error('Sync to sheet failed:', syncError);
-      // }
+      // Auto-sync to sheet
+      try {
+        const syncResult = await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+        if (syncResult.data.message !== 'No changes to sync') {
+          console.log('Auto-synced note update to sheet');
+        }
+      } catch (syncError) {
+        console.error('Auto-sync failed:', syncError);
+      }
       
       setShowNoteModal(false);
       setNote('');
@@ -614,9 +611,38 @@ export default function InsuranceDashboard() {
   };
 
   const handleAddCustomer = async () => {
-    if (!dynamicFormData.name || !dynamicFormData.mobile_number) {
+    const nameField = sheetFields.find(f => f.toLowerCase().replace(/\s+/g, '_') === 'name');
+    const mobileField = sheetFields.find(f => f.toLowerCase().replace(/\s+/g, '_').includes('mobile'));
+    const policyField = sheetFields.find(f => f.toLowerCase().replace(/\s+/g, '_').includes('policy'));
+    
+    const nameKey = nameField?.toLowerCase().replace(/\s+/g, '_');
+    const mobileKey = mobileField?.toLowerCase().replace(/\s+/g, '_');
+    const policyKey = policyField?.toLowerCase().replace(/\s+/g, '_');
+    
+    if (!dynamicFormData[nameKey] || !dynamicFormData[mobileKey]) {
       alert('Name and Mobile Number are required!');
       return;
+    }
+    
+    // Check for duplicates by unique identifiers only
+    const checkRes = await api.post('/api/insurance/customers/check-duplicate', {
+      name: dynamicFormData[nameKey],
+      mobile_number: dynamicFormData[mobileKey],
+      current_policy_no: dynamicFormData[policyKey] || '',
+      registration_no: dynamicFormData['veh_no'] || dynamicFormData['registration_no'] || '',
+      g_code: dynamicFormData['g_code'] || ''
+    });
+    
+    if (checkRes.data.isDuplicate) {
+      const existing = checkRes.data.existing;
+      const matchDetails = [];
+      if (existing.current_policy_no) matchDetails.push(`Policy: ${existing.current_policy_no}`);
+      if (existing.registration_no) matchDetails.push(`Vehicle: ${existing.registration_no}`);
+      if (existing.g_code) matchDetails.push(`G Code: ${existing.g_code}`);
+      
+      if (!confirm(`⚠️ Duplicate found!\n\nName: ${existing.name}\nMobile: ${existing.mobile_number}\n${matchDetails.join('\n')}\n\nThis appears to be the SAME policy/vehicle.\n\nClick OK to add anyway (not recommended), or Cancel to go back.`)) {
+        return;
+      }
     }
     
     try {
@@ -633,25 +659,41 @@ export default function InsuranceDashboard() {
       sheetFields.forEach(field => {
         const key = field.toLowerCase().replace(/\s+/g, '_');
         if (dynamicFormData[key] !== undefined) {
+          const backendKey = mapFieldNameToBackend(key);
+          
           if (key.includes('date') || key.includes('expiry')) {
-            payload[key] = convertDate(dynamicFormData[key]);
-          } else if (key === 'premium' || key.includes('amount')) {
-            payload[key] = parseFloat(dynamicFormData[key]) || 0;
+            payload[backendKey] = convertDate(dynamicFormData[key]);
+          } else if (key === 'premium' || key === 'amount') {
+            payload[backendKey] = parseFloat(dynamicFormData[key]) || 0;
           } else {
-            payload[key] = dynamicFormData[key];
+            payload[backendKey] = dynamicFormData[key];
           }
         }
       });
       
+      // Ensure backend required fields are present
+      if (!payload.name) payload.name = dynamicFormData[nameKey];
+      if (!payload.mobile_number) payload.mobile_number = dynamicFormData[mobileKey];
+      
       await api.post('/api/insurance/customers', payload);
-      // await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+      
+      // Auto-sync to sheet
+      const syncResult = await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+      console.log('Sync result:', syncResult.data);
+      
+      if (syncResult.data.message === 'No changes to sync') {
+        alert('✅ Customer added to database successfully!\n\nNote: Sheet already up to date.');
+      } else {
+        alert(`✅ Customer added and synced to sheet!\n\nUpdated: ${syncResult.data.updated || 0} rows\nAdded: ${syncResult.data.added || 0} rows`);
+      }
       
       setShowAddModal(false);
       setDynamicFormData({});
       loadData();
     } catch (error) {
       console.error('Failed to add customer:', error);
-      alert('Failed to add customer');
+      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
+      alert('Failed to add customer: ' + errorMsg);
     }
   };
 
@@ -668,15 +710,32 @@ export default function InsuranceDashboard() {
         return date;
       };
       
-      const payload: any = { ...editingCustomer };
-      Object.keys(payload).forEach(key => {
+      // Apply field name mapping to editingCustomer
+      const payload: any = {};
+      Object.keys(editingCustomer).forEach(key => {
+        const backendKey = mapFieldNameToBackend(key);
+        const value = editingCustomer[key];
+        
         if (key.includes('date') || key.includes('expiry')) {
-          payload[key] = convertDate(payload[key]);
+          payload[backendKey] = convertDate(value);
+        } else if (key === 'amount') {
+          payload['premium'] = value;
+        } else {
+          payload[backendKey] = value;
         }
       });
       
       await api.put(`/api/insurance/customers/${editingCustomer.id}`, payload);
-      // await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+      
+      // Auto-sync to sheet
+      try {
+        const syncResult = await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+        if (syncResult.data.message !== 'No changes to sync') {
+          console.log('Auto-synced updated customer to sheet');
+        }
+      } catch (syncError) {
+        console.error('Auto-sync failed:', syncError);
+      }
       
       setEditingCustomer(null);
       loadData();
@@ -690,13 +749,42 @@ export default function InsuranceDashboard() {
     if (!confirm('Are you sure you want to delete this customer?')) return;
     
     try {
-      await api.delete(`/api/insurance/customers/${id}`);
-      // await api.post('/api/insurance/sync/to-sheet', {
-      //   tabName: SHEET_TAB_NAME
-      // });
+      // Get customer data before deletion
+      const customerToDelete = customers.find(c => c.id === id);
+      
+      const response = await api.delete(`/api/insurance/customers/${id}`);
+      
+      // Track deleted customer
+      if (customerToDelete && response.data.deletedCustomer) {
+        setDeletedCustomers(prev => [...prev, response.data.deletedCustomer]);
+      }
+      
       loadData();
+      
+      // Auto-sync to sheet with deleted customer info
+      if (customerToDelete) {
+        try {
+          const syncResult = await api.post('/api/insurance/sync/to-sheet', { 
+            tabName: SHEET_TAB_NAME,
+            deletedCustomers: [response.data.deletedCustomer || customerToDelete]
+          });
+          
+          if (syncResult.data.deleted > 0) {
+            alert(`✅ Customer deleted from database and sheet!\n\nDeleted: ${syncResult.data.deleted} row(s)`);
+          } else {
+            alert('✅ Customer deleted from database!\n\nNote: No matching row found in sheet.');
+          }
+          
+          // Clear deleted customers after successful sync
+          setDeletedCustomers([]);
+        } catch (syncError) {
+          console.error('Auto-sync failed:', syncError);
+          alert('✅ Customer deleted from database!\n\n⚠️ Failed to sync deletion to sheet. Please sync manually.');
+        }
+      }
     } catch (error) {
       console.error('Failed to delete customer:', error);
+      alert('❌ Failed to delete customer: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -772,13 +860,13 @@ export default function InsuranceDashboard() {
               <h3 className="text-xs text-slate-400">Expired Policies</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">{analytics.expiredPolicies || 0}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { if (c.status.trim().toLowerCase() !== 'renewed') return false; const dateStr = getDisplayDate(c); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Year Renewed Policies'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase(); if (status !== 'renewed' && status !== 'inprocess') return false; const dateStr = c.od_expiry_date?.trim(); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Year Renewed/InProcess Policies'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">This Year Premium</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { if (c.status.trim().toLowerCase() !== 'renewed') return false; const dateStr = getDisplayDate(c); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase(); if (status !== 'renewed' && status !== 'inprocess') return false; const dateStr = c.od_expiry_date?.trim(); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { if (c.status.trim().toLowerCase() !== 'renewed') return false; const dateStr = getDisplayDate(c); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Month Renewed Policies'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase(); if (status !== 'renewed' && status !== 'inprocess') return false; const dateStr = c.od_expiry_date?.trim(); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Month Renewed/InProcess Policies'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">This Month Premium</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { if (c.status.trim().toLowerCase() !== 'renewed') return false; const dateStr = getDisplayDate(c); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase(); if (status !== 'renewed' && status !== 'inprocess') return false; const dateStr = c.od_expiry_date?.trim(); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </div>
           </div>
         )}
@@ -973,9 +1061,23 @@ export default function InsuranceDashboard() {
     try {
       setSyncing(true);
       const result = await api.post('/api/insurance/sync/to-sheet', {
-        tabName: SHEET_TAB_NAME
+        tabName: SHEET_TAB_NAME,
+        deletedCustomers: deletedCustomers // Include any pending deletions
       });
-      alert(`✅ Sync to sheet completed! Exported: ${result.data.exported} customers`);
+      
+      if (result.data.message === 'No changes to sync') {
+        alert('ℹ️ No changes detected - Sheet is already up to date!');
+      } else {
+        const parts = [];
+        if (result.data.deleted > 0) parts.push(`Deleted: ${result.data.deleted}`);
+        if (result.data.updated > 0) parts.push(`Updated: ${result.data.updated}`);
+        if (result.data.added > 0) parts.push(`Added: ${result.data.added}`);
+        
+        alert(`✅ Sync completed!\n\n${parts.join('\n')}`);
+        
+        // Clear deleted customers after successful sync
+        setDeletedCustomers([]);
+      }
     } catch (error) {
       console.error('Failed to sync to sheets:', error);
       alert(`❌ Sync to sheet failed: ${error.response?.data?.error || error.message}`);
@@ -1020,7 +1122,7 @@ export default function InsuranceDashboard() {
               >
                 {syncing ? 'Syncing...' : '🔄 Sync from Sheets'}
               </Button>
-              {/* <Button 
+              <Button 
                 onClick={syncToSheets} 
                 disabled={syncing}
                 variant="outline"
@@ -1028,7 +1130,7 @@ export default function InsuranceDashboard() {
                 size="sm"
               >
                 {syncing ? 'Syncing...' : '📤 Sync to Sheets'}
-              </Button> */}
+              </Button>
               <Button 
                 onClick={() => {
                   if (clientConfig?.spreadsheetId) {
@@ -1154,49 +1256,12 @@ export default function InsuranceDashboard() {
       <div className="space-y-6">
         {/* Filter and Stats Section */}
         <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4 space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => setShowRenewalFilter(!showRenewalFilter)} variant="outline">
-              {showRenewalFilter ? '✕ Hide Filters' : '🔍 Show Filters'}
-            </Button>
-          </div>
-
-          {showRenewalFilter && (
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <Input
-                  placeholder="Filter by name"
-                  value={renewalFilter.name}
-                  onChange={(e) => setRenewalFilter({...renewalFilter, name: e.target.value})}
-                  className="text-sm"
-                />
-                <Input
-                  placeholder="Filter by company"
-                  value={renewalFilter.company}
-                  onChange={(e) => setRenewalFilter({...renewalFilter, company: e.target.value})}
-                  className="text-sm"
-                />
-                <Input
-                  type="date"
-                  placeholder="From date"
-                  value={renewalFilter.dateFrom}
-                  onChange={(e) => setRenewalFilter({...renewalFilter, dateFrom: e.target.value})}
-                  className="text-sm"
-                />
-                <Input
-                  type="date"
-                  placeholder="To date"
-                  value={renewalFilter.dateTo}
-                  onChange={(e) => setRenewalFilter({...renewalFilter, dateTo: e.target.value})}
-                  className="text-sm"
-                />
-              </div>
-              <div className="flex gap-2 mt-3">
-                <Button size="sm" onClick={() => setRenewalFilter({ name: '', company: '', dateFrom: '', dateTo: '' })}>
-                  Clear Filters
-                </Button>
-              </div>
-            </div>
-          )}
+          <Input
+            placeholder="Search by name, mobile, vehicle, company, policy no, G code..."
+            value={renewalSearchTerm}
+            onChange={(e) => setRenewalSearchTerm(e.target.value)}
+            className="w-full"
+          />
 
           {/* Statistics - Fixed */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1526,6 +1591,7 @@ export default function InsuranceDashboard() {
               const isTextarea = key === 'notes' || key === 'remarks';
               const isSelect = key === 'status';
               const isTypeField = key === 'vertical' || key === 'type';
+              const isProductType = key === 'product_type';
               
               if (isTextarea) {
                 return (
@@ -1549,11 +1615,41 @@ export default function InsuranceDashboard() {
                     <select
                       className="w-full p-2 border rounded bg-slate-700 text-white"
                       value={dynamicFormData[key] || 'motor'}
-                      onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
+                      onChange={(e) => {
+                        setDynamicFormData({...dynamicFormData, [key]: e.target.value, product_type: ''});
+                      }}
                     >
                       <option value="motor">Motor</option>
                       <option value="health">Health</option>
                       <option value="non-motor">Non-Motor</option>
+                    </select>
+                  </div>
+                );
+              }
+              
+              if (isProductType) {
+                const selectedType = dynamicFormData['vertical'] || dynamicFormData['type'] || 'motor';
+                return (
+                  <div key={key}>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}</label>
+                    <select
+                      className="w-full p-2 border rounded bg-slate-700 text-white"
+                      value={dynamicFormData[key] || ''}
+                      onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
+                    >
+                      <option value="">Select...</option>
+                      {selectedType.toLowerCase() === 'motor' && (
+                        <>
+                          <option value="2WH">2 Wheeler</option>
+                          <option value="4WH">4 Wheeler</option>
+                        </>
+                      )}
+                      {selectedType.toLowerCase() === 'health' && (
+                        <>
+                          <option value="Base">Base</option>
+                          <option value="Topup">Topup</option>
+                        </>
+                      )}
                     </select>
                   </div>
                 );
@@ -1590,7 +1686,7 @@ export default function InsuranceDashboard() {
                 );
               }
               
-              const inputType = key.includes('email') ? 'email' : key.includes('premium') || key.includes('amount') ? 'number' : 'text';
+              const inputType = key.includes('email') ? 'email' : (key === 'premium' || key === 'amount') ? 'number' : 'text';
               
               return (
                 <div key={key}>
@@ -1948,7 +2044,7 @@ export default function InsuranceDashboard() {
                   );
                 }
                 
-                const inputType = key.includes('email') ? 'email' : key.includes('premium') || key.includes('amount') ? 'number' : 'text';
+                const inputType = key.includes('email') ? 'email' : (key === 'premium' || key === 'amount') ? 'number' : 'text';
                 
                 return (
                   <div key={key}>
@@ -1957,7 +2053,7 @@ export default function InsuranceDashboard() {
                       type={inputType}
                       placeholder={field}
                       value={editingCustomer[key] || ''}
-                      onChange={(e) => setEditingCustomer({...editingCustomer, [key]: inputType === 'number' ? parseFloat(e.target.value) : e.target.value})}
+                      onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
                       required={isRequired}
                     />
                   </div>

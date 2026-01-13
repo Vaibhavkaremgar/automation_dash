@@ -1,12 +1,12 @@
 import { memo, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { LayoutDashboard, Briefcase, Users, Upload, Wallet, BarChart3, Mail, Settings, Receipt, Shield, MessageSquare } from 'lucide-react'
+import { LayoutDashboard, Briefcase, Users, Upload, Wallet, BarChart3, Mail, Settings, Receipt, Shield, MessageSquare, UserPlus } from 'lucide-react'
 import AIBackground from '../ui/AIBackground'
 import AICube from '../ui/AICube'
 
 const linkCls = ({ isActive }: { isActive: boolean }) =>
-  `group flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800/50 transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-indigo-600/20 to-cyan-600/20 border border-indigo-500/30 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`
+  `group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-800/50 transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-indigo-600/20 to-cyan-600/20 border border-indigo-500/30 text-white shadow-lg' : 'text-slate-300 hover:text-white'}`
 
 export default memo(function Sidebar() {
   const { user } = useAuth()
@@ -32,6 +32,7 @@ export default memo(function Sidebar() {
         { to: '/insurance/messages', icon: Mail, label: 'Messages', emoji: '💬' },
         { to: '/insurance/claims', icon: Briefcase, label: 'Claims', emoji: '📝' },
         { to: '/insurance/reports', icon: BarChart3, label: 'Reports', emoji: '📊' },
+        { to: '/insurance/leads', icon: UserPlus, label: 'Lead Management', emoji: '🎯' },
         { to: '#', icon: Wallet, label: 'Wallet 🔒', emoji: '💰', disabled: true },
       ]
     }
@@ -60,30 +61,30 @@ export default memo(function Sidebar() {
   const sidebarTitle = getSidebarTitle()
   
   return (
-    <aside className="hidden md:block w-[var(--sidebar-width)] border-r border-slate-800/50 bg-slate-900/40 backdrop-blur-xl relative z-10">
+    <aside className="hidden md:flex md:flex-col w-[var(--sidebar-width)] h-screen border-r border-slate-800/50 bg-slate-900/40 backdrop-blur-xl relative z-10">
       <AIBackground />
-      <div className="p-4 border-b border-slate-800/50">
+      <div className="p-3 border-b border-slate-800/50 flex-shrink-0">
         {/* Client Logo at Top */}
         {user?.client_type === 'insurance' && (
-          <div className="mb-3 flex justify-center">
+          <div className="mb-2 flex justify-center">
             <img 
               src={user?.email?.toLowerCase().includes('joban') 
                 ? '/logos/joban_putra.jpg'
                 : '/logos/KMG_enhanced_logo.png'
               }
               alt="Company Logo" 
-              className={`h-16 w-auto object-contain max-w-full ${
+              className={`h-14 w-auto object-contain max-w-full ${
                 user?.email?.toLowerCase().includes('joban') 
-                  ? 'bg-white rounded-lg p-2' 
+                  ? 'bg-white rounded-lg p-1.5' 
                   : ''
               }`}
             />
           </div>
         )}
-        <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-600 to-transparent mb-4"></div>
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-600 to-transparent mb-2"></div>
         
         {sidebarTitle && (
-          <div className="text-lg font-semibold text-center">
+          <div className="text-base font-semibold text-center">
             {user?.email?.toLowerCase().includes('joban') ? (
               <>
                 <span className="text-blue-500">Jobanputra's</span>
@@ -102,20 +103,21 @@ export default memo(function Sidebar() {
           </div>
         )}
         {user?.client_type && (
-          <div className="text-xs text-indigo-300 mt-1 text-center">
+          <div className="text-xs text-indigo-300 mt-0.5 text-center">
             {user?.email?.toLowerCase().includes('kmg') ? 'Certified Insurance & Mutual Funds Distributor' : user.client_type === 'insurance' ? 'Insurance Agency' : 'HR Agency'}
           </div>
         )}
-        <div className="text-xs text-slate-400 truncate mt-1 text-center" title={user?.email || ''}>
+        <div className="text-xs text-slate-400 truncate mt-0.5 text-center" title={user?.email || ''}>
           {user?.email}
         </div>
       </div>
-      <nav className="p-3 space-y-1">
+      <nav className="p-3 flex-1 flex flex-col justify-between">
+        <div className="space-y-1">
         {menuItems.map((item) => (
           <div key={item.to}>
             {(item as any).disabled ? (
               <div 
-                className="group flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 opacity-50 cursor-not-allowed"
+                className="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-500 opacity-50 cursor-not-allowed"
                 title="Coming Soon - Premium Feature"
                 onClick={() => alert('🔒 Premium Feature\n\nWallet feature coming soon for insurance agencies.\n\nContact support for more info.')}
               >
@@ -134,6 +136,7 @@ export default memo(function Sidebar() {
             )}
           </div>
         ))}
+        </div>
       </nav>
     </aside>
   )

@@ -63,6 +63,12 @@ router.get('/customers', (req, res) => {
       } else if (vertical === 'health') {
         query += ' AND LOWER(product) = ?';
         params.push('health');
+      } else if (vertical === 'health-base') {
+        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
+        params.push('health', 'base');
+      } else if (vertical === 'health-topup') {
+        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
+        params.push('health', 'topup');
       } else if (vertical === 'non-motor') {
         query += ' AND (LOWER(REPLACE(product, " ", "")) = ? OR LOWER(REPLACE(product, "-", "")) = ?)';
         params.push('nonmotor', 'nonmotor');
@@ -92,6 +98,54 @@ router.get('/customers', (req, res) => {
   }
 });
 
+// Check for duplicate customer
+router.post('/customers/check-duplicate', (req, res) => {
+  try {
+    const { name, mobile_number, current_policy_no, registration_no, g_code } = req.body;
+    
+    // Only check by exact policy number OR registration number OR G code
+    // Don't check by name+mobile alone (same person can have multiple policies)
+    let query = 'SELECT * FROM insurance_customers WHERE user_id = ? AND (';
+    const params = [req.user.id];
+    const conditions = [];
+    
+    // Check by policy number (exact match)
+    if (current_policy_no && current_policy_no.trim()) {
+      conditions.push('current_policy_no = ?');
+      params.push(current_policy_no.trim());
+    }
+    
+    // Check by registration number (exact match for vehicles)
+    if (registration_no && registration_no.trim()) {
+      conditions.push('registration_no = ?');
+      params.push(registration_no.trim());
+    }
+    
+    // Check by G code (exact match)
+    if (g_code && g_code.trim()) {
+      conditions.push('g_code = ?');
+      params.push(g_code.trim());
+    }
+    
+    if (conditions.length === 0) {
+      // No unique identifiers provided - allow adding
+      return res.json({ isDuplicate: false });
+    }
+    
+    query += conditions.join(' OR ') + ') LIMIT 1';
+    
+    db.get(query, params, (err, existing) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ 
+        isDuplicate: !!existing,
+        existing: existing || null
+      });
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Create new insurance customer
 router.post('/customers', activityLogger, (req, res) => {
   try {
@@ -104,7 +158,7 @@ router.post('/customers', activityLogger, (req, res) => {
     db.run(`
       INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [req.user.id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status || 'pending', new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code], function(err) {
+    `, [req.user.id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status || 'due', new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code], function(err) {
       if (err) return res.status(500).json({ error: err.message });
       
       db.get('SELECT * FROM insurance_customers WHERE id = ?', [this.lastID], (err, customer) => {
@@ -142,12 +196,34 @@ router.put('/customers/:id', validateCustomerOwnership, activityLogger, (req, re
 });
 
 // Delete insurance customer
-router.delete('/customers/:id', validateCustomerOwnership, activityLogger, (req, res) => {
+router.delete('/customers/:id', validateCustomerOwnership, activityLogger, async (req, res) => {
   try {
-    db.run('DELETE FROM insurance_customers WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      req.logActivity('customer_delete', `Deleted customer ID: ${req.params.id}`);
-      res.json({ message: 'Customer deleted successfully' });
+    // Get customer data before deletion for sync purposes
+    const customer = await new Promise((resolve, reject) => {
+      db.get('SELECT * FROM insurance_customers WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
+    
+    if (!customer) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+    
+    // Delete from database
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM insurance_customers WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    
+    req.logActivity('customer_delete', `Deleted customer: ${customer.name}`);
+    
+    // Return deleted customer data for sync
+    res.json({ 
+      message: 'Customer deleted successfully',
+      deletedCustomer: customer
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -331,6 +407,7 @@ router.post('/sync/from-sheet', activityLogger, async (req, res) => {
 // Sync to Google Sheets
 router.post('/sync/to-sheet', activityLogger, async (req, res) => {
   try {
+    const { deletedCustomers = [] } = req.body; // Accept deleted customers array
     const { get } = require('../db/connection');
     const { getClientConfig } = require('../config/insuranceClients');
     
@@ -346,26 +423,41 @@ router.post('/sync/to-sheet', activityLogger, async (req, res) => {
     if (clientConfig.tabs) {
       console.log(`🔄 Syncing to multiple tabs for ${clientConfig.name}`);
       let totalExported = 0;
+      let totalDeleted = 0;
+      let totalUpdated = 0;
+      let totalAdded = 0;
       
       // Sync general insurance (motor, health, non-motor)
       const generalTab = clientConfig.tabs.general.tab;
       console.log(`📊 Syncing general insurance to tab: ${generalTab}`);
-      const generalResult = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, generalTab, ['motor', 'health', 'non-motor', '2-wheeler', 'general']);
+      const generalResult = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, generalTab, ['motor', 'health', 'non-motor', '2-wheeler', 'general'], deletedCustomers);
       totalExported += generalResult.exported || 0;
+      totalDeleted += generalResult.deleted || 0;
+      totalUpdated += generalResult.updated || 0;
+      totalAdded += generalResult.added || 0;
       
       // Sync life insurance
       const lifeTab = clientConfig.tabs.life.tab;
       console.log(`📊 Syncing life insurance to tab: ${lifeTab}`);
-      const lifeResult = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, lifeTab, ['life']);
+      const lifeResult = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, lifeTab, ['life'], deletedCustomers);
       totalExported += lifeResult.exported || 0;
+      totalDeleted += lifeResult.deleted || 0;
+      totalUpdated += lifeResult.updated || 0;
+      totalAdded += lifeResult.added || 0;
       
       req.logActivity('sync_to_sheet', `Synced ${totalExported} customers to Google Sheets`);
-      res.json({ success: true, exported: totalExported });
+      res.json({ 
+        success: true, 
+        exported: totalExported,
+        deleted: totalDeleted,
+        updated: totalUpdated,
+        added: totalAdded
+      });
     } else {
       // Fallback for old single-tab structure
       const tabName = clientConfig.tabName;
       console.log('Syncing to sheet - User:', req.user.id, 'Email:', user.email, 'Sheet:', spreadsheetId, 'Tab:', tabName);
-      const result = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, tabName);
+      const result = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, tabName, null, deletedCustomers);
       console.log('Sync result:', result);
       req.logActivity('sync_to_sheet', `Synced ${result.exported || 0} customers to Google Sheets`);
       res.json(result);
@@ -980,13 +1072,21 @@ router.get('/reports', async (req, res) => {
       return isDue && isExpired(renewalDate);
     }).length;
     
-    // Calculate premium
-    const totalPremium = allCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
+    // Calculate premium - use AMOUNT for renewed, LAST YEAR PREMIUM for due/pending
+    const totalPremium = allCustomers.reduce((sum, c) => {
+      const status = c.status?.toLowerCase().trim();
+      // For renewed customers, use current premium (AMOUNT)
+      // For due/pending customers, use last year premium
+      const amount = status === 'renewed' 
+        ? (parseFloat(c.premium) || 0)
+        : (parseFloat(c.last_year_premium) || parseFloat(c.premium) || 0);
+      return sum + amount;
+    }, 0);
     
     // Get all renewed customers
     const renewedCustomers = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'renewed');
     
-    // Collected this month: customers with status='renewed' (simplified - no date filter for now)
+    // Collected this month: customers with status='renewed' - use AMOUNT column
     const collectedThisMonth = renewedCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
     
     // Collected this year: same as month for now (can be refined later)

@@ -3,7 +3,7 @@ const insuranceClients = {
   kmg: {
     identifier: ['kmg', 'kmginsurance'],
     name: 'KMG Insurance Agency',
-    spreadsheetId: '1qV6K3t7zpQl2pild6q2i1iS6ga9Zd6QQgu3nvyIEmN0',
+    spreadsheetId: '1eg0JT8a1SR7PcwS3EnuVQlFUUwTRPdEfQtfLynpJfNg',
     tabs: {
       general: {
         tab: 'kmg_general_ins',
@@ -59,13 +59,30 @@ const insuranceClients = {
           thank_you_sent: 'THANKYOU MESSAGE SENT',
           notes: 'REMARKS'
         }
+      },
+      leads: {
+        tab: 'Lead_Management',
+        tabName: 'Lead_Management',
+        schema: {
+          s_no: 'S No',
+          name: 'Name',
+          mobile_number: 'Mobile No',
+          email: 'Email ID',
+          interested_in: 'Interested In',
+          policy_expiry_date: 'Policy Expiry Date',
+          follow_up_date: 'Follow Up Date',
+          lead_status: 'Lead Status',
+          priority: 'Priority',
+          notes: 'Notes',
+          referral_by: 'Referral By'
+        }
       }
     }
   },
   joban: {
     identifier: ['joban', 'jobanputra', 'joban putra'],
     name: 'Joban Putra Insurance',
-    spreadsheetId: '1SJY8rPUbhr1NUhKELpuLPU9dhlhz86ZWQ0AI5s4dj40',
+    spreadsheetId: '1CE5TFC5bFx7WixVLoVOzdiMntwgRISO9YVR_cWZhku4',
     tabs: {
       general: {
         tab: 'general_ins',
@@ -91,7 +108,7 @@ const insuranceClients = {
           new_policy_no: 'NEW POLICY NO',
           new_company: 'NEW POLICY COMPANY',
           product_type: 'Product Type',
-          product: 'Product Model',
+          product_model: 'Product Model',
           registration_no: 'VEH NO',
           tp_expiry_date: 'TP Expiry Date',
           premium_mode: 'Premium mode',
@@ -137,6 +154,23 @@ const insuranceClients = {
           fam_earliest: '_FAMEARLIEST',
           notes: 'REMARKS',
           fc: 'FC'
+        }
+      },
+      leads: {
+        tab: 'Lead_Management',
+        tabName: 'Lead_Management',
+        schema: {
+          s_no: 'S No',
+          name: 'Name',
+          mobile_number: 'Mobile No',
+          email: 'Email ID',
+          interested_in: 'Interested In',
+          policy_expiry_date: 'Policy Expiry Date',
+          follow_up_date: 'Follow Up Date',
+          lead_status: 'Lead Status',
+          priority: 'Priority',
+          notes: 'Notes',
+          referral_by: 'Referral By'
         }
       }
     }

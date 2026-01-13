@@ -36,6 +36,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const [showMainDropdown, setShowMainDropdown] = useState(false)
   const [showGeneralDropdown, setShowGeneralDropdown] = useState(false)
   const [showMotorDropdown, setShowMotorDropdown] = useState(false)
+  const [showHealthDropdown, setShowHealthDropdown] = useState(false)
 
   const handleSync = async () => {
     try {
@@ -309,19 +310,63 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
                     </div>
                     )}
                   </div>
-                  <button
-                    className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                    onClick={() => {
-                      setSelectedVertical('health');
-                      localStorage.setItem('insuranceVerticalFilter', 'health');
-                      window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health' }));
-                      setShowMainDropdown(false);
-                      setShowGeneralDropdown(false);
-                      setShowMotorDropdown(false);
-                    }}
-                  >
-                    🏥 Health
-                  </button>
+                  <div className="relative">
+                    <button 
+                      onClick={() => setShowHealthDropdown(!showHealthDropdown)}
+                      className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm flex items-center justify-between"
+                    >
+                      🏥 Health <span>▼</span>
+                    </button>
+                    {showHealthDropdown && (
+                    <div className="absolute top-full left-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl min-w-[140px] w-full z-50">
+                      <button
+                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
+                        onClick={() => {
+                          setSelectedVertical('health-base');
+                          localStorage.setItem('insuranceVerticalFilter', 'health-base');
+                          localStorage.setItem('insuranceGeneralSubFilter', 'health-base');
+                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health-base' }));
+                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health-base' }));
+                          setShowMainDropdown(false);
+                          setShowGeneralDropdown(false);
+                          setShowHealthDropdown(false);
+                        }}
+                      >
+                        🏥 Base
+                      </button>
+                      <button
+                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
+                        onClick={() => {
+                          setSelectedVertical('health-topup');
+                          localStorage.setItem('insuranceVerticalFilter', 'health-topup');
+                          localStorage.setItem('insuranceGeneralSubFilter', 'health-topup');
+                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health-topup' }));
+                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health-topup' }));
+                          setShowMainDropdown(false);
+                          setShowGeneralDropdown(false);
+                          setShowHealthDropdown(false);
+                        }}
+                      >
+                        🏥 Topup
+                      </button>
+                      <button
+                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
+                        onClick={() => {
+                          setSelectedVertical('health');
+                          localStorage.setItem('insuranceVerticalFilter', 'health');
+                          localStorage.setItem('insuranceGeneralSubFilter', 'health');
+                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health' }));
+                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health' }));
+                          setShowMainDropdown(false);
+                          setShowGeneralDropdown(false);
+                          setShowHealthDropdown(false);
+                        }}
+                      >
+                        🏥 All Health
+                      </button>
+                    </div>
+                    )}
+                  </div>
                   <button
                     className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
                     onClick={() => {
@@ -422,16 +467,49 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
                       </button>
                     </div>
                   </div>
-                  <button
-                    className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                    onClick={() => {
-                      setSelectedVertical('health');
-                      localStorage.setItem('insuranceVerticalFilter', 'health');
-                      window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health' }));
-                    }}
-                  >
-                    🏥 Health
-                  </button>
+                  <div className="relative group/health">
+                    <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm flex items-center justify-between">
+                      🏥 Health <span>›</span>
+                    </button>
+                    <div className="opacity-0 invisible group-hover/health:opacity-100 group-hover/health:visible transition-all absolute left-full top-0 ml-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl min-w-[140px] z-50">
+                      <button
+                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
+                        onClick={() => {
+                          setSelectedVertical('health-base');
+                          localStorage.setItem('insuranceVerticalFilter', 'health-base');
+                          localStorage.setItem('insuranceGeneralSubFilter', 'health-base');
+                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health-base' }));
+                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health-base' }));
+                        }}
+                      >
+                        🏥 Base
+                      </button>
+                      <button
+                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
+                        onClick={() => {
+                          setSelectedVertical('health-topup');
+                          localStorage.setItem('insuranceVerticalFilter', 'health-topup');
+                          localStorage.setItem('insuranceGeneralSubFilter', 'health-topup');
+                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health-topup' }));
+                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health-topup' }));
+                        }}
+                      >
+                        🏥 Topup
+                      </button>
+                      <button
+                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
+                        onClick={() => {
+                          setSelectedVertical('health');
+                          localStorage.setItem('insuranceVerticalFilter', 'health');
+                          localStorage.setItem('insuranceGeneralSubFilter', 'health');
+                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health' }));
+                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health' }));
+                        }}
+                      >
+                        🏥 All Health
+                      </button>
+                    </div>
+                  </div>
                   <button
                     className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
                     onClick={() => {

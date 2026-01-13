@@ -18,7 +18,7 @@ export default function AnalyticsPage() {
       const response = await api.get('/api/candidates')
       return response.data.candidates || []
     },
-    refetchInterval: 5000
+    refetchInterval: 30000
   })
 
   const { data: jobsData } = useQuery({
@@ -27,7 +27,7 @@ export default function AnalyticsPage() {
       const response = await api.get('/api/jobs')
       return response.data.jobs || []
     },
-    refetchInterval: 5000
+    refetchInterval: 30000
   })
 
   // Calculate analytics from candidates data
