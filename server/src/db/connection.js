@@ -399,8 +399,8 @@ async function runMigrations() {
       if (!colNames.includes('s_no')) {
         await run(`ALTER TABLE insurance_customers ADD COLUMN s_no TEXT`);
       }
-      if (!colNames.includes('sheet_row_number')) {
-        await run(`ALTER TABLE insurance_customers ADD COLUMN sheet_row_number INTEGER`);
+      if (!colNames.includes('amount')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN amount REAL`);
       }
     } catch (e) {
       console.log('Column migration check:', e.message);
