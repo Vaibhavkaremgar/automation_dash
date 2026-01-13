@@ -515,7 +515,7 @@ export default function InsuranceDashboard() {
                 <span className="text-orange-400 font-medium">{getDisplayDate(customer)}</span>
               </div>
             </div>
-            <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
+            <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.amount || customer.premium).toLocaleString()}</span>
           </div>
         </div>
       );
@@ -543,7 +543,7 @@ export default function InsuranceDashboard() {
               )}
               <span className="text-cyan-400 font-medium">• Pol: {customer.current_policy_no || '-'}</span>
               <span className="text-orange-400 font-medium">• {getDisplayDate(customer)}</span>
-              <span className="font-bold text-white text-base">• ₹{parseAmount(customer.premium).toLocaleString()}</span>
+              <span className="font-bold text-white text-base">• ₹{parseAmount(customer.amount || customer.premium).toLocaleString()}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {isSelected && (
@@ -938,11 +938,11 @@ export default function InsuranceDashboard() {
             </div>
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase(); if (status !== 'renewed' && status !== 'inprocess') return false; const dateStr = c.od_expiry_date?.trim(); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Year Renewed/InProcess Policies'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">This Year Premium</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase(); if (status !== 'renewed' && status !== 'inprocess') return false; const dateStr = c.od_expiry_date?.trim(); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase(); if (status !== 'renewed' && status !== 'inprocess') return false; const dateStr = c.od_expiry_date?.trim(); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.amount || c.premium), 0).toLocaleString(); })()}</p>
             </div>
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase(); if (status !== 'renewed' && status !== 'inprocess') return false; const dateStr = c.od_expiry_date?.trim(); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Month Renewed/InProcess Policies'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">This Month Premium</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase(); if (status !== 'renewed' && status !== 'inprocess') return false; const dateStr = c.od_expiry_date?.trim(); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase(); if (status !== 'renewed' && status !== 'inprocess') return false; const dateStr = c.od_expiry_date?.trim(); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.amount || c.premium), 0).toLocaleString(); })()}</p>
             </div>
           </div>
         )}
@@ -1201,7 +1201,7 @@ export default function InsuranceDashboard() {
         {/* Total Amount Card */}
         <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg cursor-pointer hover:bg-purple-500/20 transition-all" onClick={() => { setDetailsModalTitle('All Policies - Total Premium'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
           <h4 className="text-sm font-medium text-purple-300 mb-1">Total Premium (All Companies)</h4>
-          <p className="text-3xl font-bold text-purple-400">₹{customers.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString()}</p>
+          <p className="text-3xl font-bold text-purple-400">₹{customers.reduce((sum, c) => sum + parseAmount(c.amount || c.premium), 0).toLocaleString()}</p>
           <p className="text-xs text-slate-300 mt-1">{customers.length} total policies</p>
         </div>
         
@@ -1211,7 +1211,7 @@ export default function InsuranceDashboard() {
               const company = customer.company || 'Unknown';
               if (!acc[company]) acc[company] = { count: 0, premium: 0, renewed: 0, due: 0, customers: [] };
               acc[company].count++;
-              acc[company].premium += parseAmount(customer.premium);
+              acc[company].premium += parseAmount(customer.amount || customer.premium);
               if (customer.status.trim().toLowerCase() === 'renewed') acc[company].renewed++;
               if (customer.status.trim().toLowerCase() === 'due') acc[company].due++;
               acc[company].customers.push(customer);
@@ -1787,7 +1787,7 @@ export default function InsuranceDashboard() {
                     </div>
                     <div>
                       <span className="text-slate-400">Premium:</span>
-                      <p className="text-white font-bold">₹{parseAmount(customer.premium).toLocaleString()}</p>
+                      <p className="text-white font-bold">₹{parseAmount(customer.amount || customer.premium).toLocaleString()}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">

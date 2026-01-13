@@ -1059,36 +1059,35 @@ router.get('/reports', async (req, res) => {
     const inprocessCount = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'inprocess').length;
     const notRenewedCount = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'not renewed').length;
     
-    // Expiring this month = due customers with renewal date in current month
+    // Expiring this month = due customers with MODIFIED EXPIRY DATE or Policy Expiry Date in current month
     const expiringThisMonth = allCustomers.filter(c => {
       const isDue = c.status?.toLowerCase().trim() === 'due';
-      const renewalDate = c.renewal_date || c.od_expiry_date;
+      // Prioritize MODIFIED EXPIRY DATE (renewal_date) over Policy Expiry Date (od_expiry_date)
+      const renewalDate = c.renewal_date?.trim() || c.od_expiry_date?.trim();
       return isDue && isInCurrentMonth(renewalDate);
     }).length;
     
     const expiredCount = allCustomers.filter(c => {
       const isDue = c.status?.toLowerCase().trim() === 'due';
-      const renewalDate = c.renewal_date || c.od_expiry_date;
+      // Prioritize MODIFIED EXPIRY DATE (renewal_date) over Policy Expiry Date (od_expiry_date)
+      const renewalDate = c.renewal_date?.trim() || c.od_expiry_date?.trim();
       return isDue && isExpired(renewalDate);
     }).length;
     
-    // Calculate premium - use AMOUNT for renewed, LAST YEAR PREMIUM for due/pending
+    // Calculate premium - use AMOUNT column for all calculations
     const totalPremium = allCustomers.reduce((sum, c) => {
-      const status = c.status?.toLowerCase().trim();
-      // For renewed customers, use current premium (AMOUNT)
-      // For due/pending customers, use last year premium
-      const amount = status === 'renewed' 
-        ? (parseFloat(c.premium) || 0)
-        : (parseFloat(c.last_year_premium) || parseFloat(c.premium) || 0);
+      // Use AMOUNT column (mapped to 'amount' field) for all premium calculations
+      const amount = parseFloat(c.amount) || parseFloat(c.premium) || 0;
       return sum + amount;
     }, 0);
     
-    // THIS MONTH PREMIUM: Renewed/InProcess customers with od_expiry_date in current month (SAME AS DASHBOARD)
+    // THIS MONTH PREMIUM: Renewed/InProcess customers with MODIFIED EXPIRY DATE or Policy Expiry Date in current month
     const now = new Date();
     const thisMonthCustomers = allCustomers.filter(c => {
       const status = c.status?.toLowerCase().trim();
       if (status !== 'renewed' && status !== 'inprocess') return false;
-      const dateStr = c.od_expiry_date?.trim();
+      // Prioritize MODIFIED EXPIRY DATE (renewal_date) over Policy Expiry Date (od_expiry_date)
+      const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim());
       if (!dateStr) return false;
       try {
         const [d, m, y] = dateStr.split('/');
@@ -1098,14 +1097,15 @@ router.get('/reports', async (req, res) => {
         return false;
       }
     });
-    const collectedThisMonth = thisMonthCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
+    const collectedThisMonth = thisMonthCustomers.reduce((sum, c) => sum + (parseFloat(c.amount) || parseFloat(c.premium) || 0), 0);
     console.log(`📊 This Month: ${thisMonthCustomers.length} customers, Total: ₹${collectedThisMonth}`);
     
-    // THIS YEAR PREMIUM: Renewed/InProcess customers with od_expiry_date in current year (SAME AS DASHBOARD)
+    // THIS YEAR PREMIUM: Renewed/InProcess customers with MODIFIED EXPIRY DATE or Policy Expiry Date in current year
     const thisYearCustomers = allCustomers.filter(c => {
       const status = c.status?.toLowerCase().trim();
       if (status !== 'renewed' && status !== 'inprocess') return false;
-      const dateStr = c.od_expiry_date?.trim();
+      // Prioritize MODIFIED EXPIRY DATE (renewal_date) over Policy Expiry Date (od_expiry_date)
+      const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim());
       if (!dateStr) return false;
       try {
         const [d, m, y] = dateStr.split('/');
@@ -1115,7 +1115,7 @@ router.get('/reports', async (req, res) => {
         return false;
       }
     });
-    const collectedThisYear = thisYearCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
+    const collectedThisYear = thisYearCustomers.reduce((sum, c) => sum + (parseFloat(c.amount) || parseFloat(c.premium) || 0), 0);
     console.log(`📊 This Year: ${thisYearCustomers.length} customers, Total: ₹${collectedThisYear}`);
     
     // New customers this month (based on created_at or insurance_activated_date)
@@ -1132,15 +1132,15 @@ router.get('/reports', async (req, res) => {
     
     // HIGHEST PREMIUM CUSTOMER: Only RENEWED customers, highest AMOUNT
     const renewedCustomers = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'renewed');
-    const sortedByPremium = [...renewedCustomers].sort((a, b) => (parseFloat(b.premium) || 0) - (parseFloat(a.premium) || 0));
-    const topCustomer = sortedByPremium[0] || { name: 'N/A', premium: 0 };
-    console.log(`📊 Highest Premium Customer: ${topCustomer.name} - ₹${topCustomer.premium}`);
+    const sortedByPremium = [...renewedCustomers].sort((a, b) => (parseFloat(b.amount) || parseFloat(b.premium) || 0) - (parseFloat(a.amount) || parseFloat(a.premium) || 0));
+    const topCustomer = sortedByPremium[0] || { name: 'N/A', amount: 0, premium: 0 };
+    console.log(`📊 Highest Premium Customer: ${topCustomer.name} - ₹${topCustomer.amount || topCustomer.premium}`);
     
     // TOP INSURANCE COMPANY: Group by company, sum AMOUNT for ALL customers
     const companyTotals = {};
     allCustomers.forEach(c => {
       const company = c.company || 'Unknown';
-      companyTotals[company] = (companyTotals[company] || 0) + (parseFloat(c.premium) || 0);
+      companyTotals[company] = (companyTotals[company] || 0) + (parseFloat(c.amount) || parseFloat(c.premium) || 0);
     });
     const topCompany = Object.entries(companyTotals).sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
     console.log(`📊 Top Company: ${topCompany[0]} - ₹${topCompany[1]}`);
@@ -1197,7 +1197,7 @@ router.get('/reports', async (req, res) => {
       premiumCollection: {
         collectedThisMonth: collectedThisMonth,
         collectedThisYear: collectedThisYear,
-        highestCustomer: { name: topCustomer.name, premium: topCustomer.premium || 0 },
+        highestCustomer: { name: topCustomer.name, premium: topCustomer.amount || topCustomer.premium || 0 },
         highestCompany: { name: topCompany[0], premium: topCompany[1] },
         monthlyPremium: [{ month: 'Current', amount: collectedThisMonth }],
         byCompany: byCompany,

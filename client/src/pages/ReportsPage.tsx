@@ -214,8 +214,8 @@ export default function ReportsPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Customer</span><span className="md:hidden">Cust</span></th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Vehicle</span><span className="md:hidden">Veh</span></th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Renewal Date</span><span className="md:hidden">Renew</span></th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Premium</span><span className="md:hidden">Amt</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Expiry Date</span><span className="md:hidden">Expiry</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Amount</span><span className="md:hidden">Amt</span></th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Status</span><span className="md:hidden">Sts</span></th>
                 </tr>
               </thead>
@@ -224,8 +224,8 @@ export default function ReportsPage() {
                   <tr key={idx} className="hover:bg-slate-700/30">
                     <td className="px-6 py-4 text-sm text-white">{customer.name}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.registration_no}</td>
-                    <td className="px-6 py-4 text-sm text-slate-100">{customer.renewal_date}</td>
-                    <td className="px-6 py-4 text-sm text-slate-100">₹{customer.premium}</td>
+                    <td className="px-6 py-4 text-sm text-slate-100">{customer.renewal_date || customer.od_expiry_date}</td>
+                    <td className="px-6 py-4 text-sm text-slate-100">₹{customer.amount || customer.premium}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.status}</td>
                   </tr>
                 ))}
@@ -298,8 +298,8 @@ export default function ReportsPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Customer</span><span className="md:hidden">Cust</span></th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Company</span><span className="md:hidden">Co</span></th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Premium</span><span className="md:hidden">Amt</span></th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Renewal Date</span><span className="md:hidden">Renew</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Amount</span><span className="md:hidden">Amt</span></th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Expiry Date</span><span className="md:hidden">Expiry</span></th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-slate-100 uppercase"><span className="hidden md:inline">Status</span><span className="md:hidden">Sts</span></th>
                 </tr>
               </thead>
@@ -308,8 +308,8 @@ export default function ReportsPage() {
                   <tr key={idx} className="hover:bg-slate-700/30">
                     <td className="px-6 py-4 text-sm text-white">{customer.name}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.company}</td>
-                    <td className="px-6 py-4 text-sm text-slate-100">₹{customer.premium}</td>
-                    <td className="px-6 py-4 text-sm text-slate-100">{customer.renewal_date}</td>
+                    <td className="px-6 py-4 text-sm text-slate-100">₹{customer.amount || customer.premium}</td>
+                    <td className="px-6 py-4 text-sm text-slate-100">{customer.renewal_date || customer.od_expiry_date}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.status}</td>
                   </tr>
                 ))}
