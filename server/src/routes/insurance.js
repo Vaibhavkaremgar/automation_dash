@@ -1099,6 +1099,7 @@ router.get('/reports', async (req, res) => {
       }
     });
     const collectedThisMonth = thisMonthCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
+    console.log(`📊 This Month: ${thisMonthCustomers.length} customers, Total: ₹${collectedThisMonth}`);
     
     // THIS YEAR PREMIUM: Renewed/InProcess customers with od_expiry_date in current year (SAME AS DASHBOARD)
     const thisYearCustomers = allCustomers.filter(c => {
@@ -1115,6 +1116,7 @@ router.get('/reports', async (req, res) => {
       }
     });
     const collectedThisYear = thisYearCustomers.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
+    console.log(`📊 This Year: ${thisYearCustomers.length} customers, Total: ₹${collectedThisYear}`);
     
     // New customers this month (based on created_at or insurance_activated_date)
     const newThisMonth = allCustomers.filter(c => {
@@ -1130,8 +1132,9 @@ router.get('/reports', async (req, res) => {
     
     // HIGHEST PREMIUM CUSTOMER: Only RENEWED customers, highest AMOUNT
     const renewedCustomers = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'renewed');
-    const sortedByPremium = [...renewedCustomers].sort((a, b) => (b.premium || 0) - (a.premium || 0));
+    const sortedByPremium = [...renewedCustomers].sort((a, b) => (parseFloat(b.premium) || 0) - (parseFloat(a.premium) || 0));
     const topCustomer = sortedByPremium[0] || { name: 'N/A', premium: 0 };
+    console.log(`📊 Highest Premium Customer: ${topCustomer.name} - ₹${topCustomer.premium}`);
     
     // TOP INSURANCE COMPANY: Group by company, sum AMOUNT for ALL customers
     const companyTotals = {};
@@ -1140,6 +1143,7 @@ router.get('/reports', async (req, res) => {
       companyTotals[company] = (companyTotals[company] || 0) + (parseFloat(c.premium) || 0);
     });
     const topCompany = Object.entries(companyTotals).sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
+    console.log(`📊 Top Company: ${topCompany[0]} - ₹${topCompany[1]}`);
     
     const byCompany = Object.entries(companyTotals).map(([company, amount]) => ({ company, amount })).sort((a, b) => b.amount - a.amount);
 
