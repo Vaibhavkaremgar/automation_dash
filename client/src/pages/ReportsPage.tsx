@@ -225,7 +225,7 @@ export default function ReportsPage() {
                     <td className="px-6 py-4 text-sm text-white">{customer.name}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.registration_no}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.renewal_date || customer.od_expiry_date}</td>
-                    <td className="px-6 py-4 text-sm text-slate-100">₹{customer.last_year_premium}</td>
+                    <td className="px-6 py-4 text-sm text-slate-100">₹{customer.premium}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.status}</td>
                   </tr>
                 ))}
@@ -308,7 +308,7 @@ export default function ReportsPage() {
                   <tr key={idx} className="hover:bg-slate-700/30">
                     <td className="px-6 py-4 text-sm text-white">{customer.name}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.company}</td>
-                    <td className="px-6 py-4 text-sm text-slate-100">₹{customer.last_year_premium}</td>
+                    <td className="px-6 py-4 text-sm text-slate-100">₹{customer.premium}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.renewal_date || customer.od_expiry_date}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.status}</td>
                   </tr>
@@ -415,7 +415,7 @@ export default function ReportsPage() {
                     {item.vehicle_number && <p className="text-sm text-slate-400">Vehicle: {item.vehicle_number}</p>}
                     {item.company && <p className="text-sm text-slate-400">Company: {item.company}</p>}
                     {item.insurance_company && <p className="text-sm text-slate-400">Company: {item.insurance_company}</p>}
-                    {item.last_year_premium && <p className="text-sm text-slate-400">Premium: ₹{item.last_year_premium}</p>}
+                    {item.premium && <p className="text-sm text-slate-400">Premium: ₹{item.premium}</p>}
                     {item.renewal_date && <p className="text-sm text-slate-400">Renewal: {item.renewal_date}</p>}
                     {item.claim_type && <p className="text-sm text-slate-400">Type: {getClaimTypeLabel(item.claim_type)}</p>}
                     {item.claim_status && <span className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${
@@ -431,7 +431,7 @@ export default function ReportsPage() {
                     }`}>{item.status}</span>}
                   </div>
                   {item.mobile_number && <Button size="sm" onClick={() => {
-                    const message = `Dear ${item.name},\n\nPolicy Details:\nVehicle: ${item.registration_no}\nCompany: ${item.company}\nPremium: ₹${item.last_year_premium}\nRenewal Date: ${item.renewal_date}\nStatus: ${item.status}\n\nThank you!`;
+                    const message = `Dear ${item.name},\n\nPolicy Details:\nVehicle: ${item.registration_no}\nCompany: ${item.company}\nPremium: ₹${item.premium}\nRenewal Date: ${item.renewal_date}\nStatus: ${item.status}\n\nThank you!`;
                     window.open(`https://wa.me/${item.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
                   }}>💬</Button>}
                 </div>
