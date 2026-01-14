@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { X, LayoutDashboard, Briefcase, Users, Upload, Cpu, Wallet, BarChart3, Mail, Settings, Shield, Receipt, MessageSquare } from 'lucide-react'
+import { X, LayoutDashboard, Briefcase, Users, Upload, Cpu, Wallet, BarChart3, Mail, Settings, Shield, Receipt, MessageSquare, UserPlus } from 'lucide-react'
 
 export default function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useAuth()
@@ -42,6 +42,7 @@ export default function MobileSidebar({ open, onClose }: { open: boolean; onClos
               <Item to="/insurance/upsell" icon={<MessageSquare className="w-4 h-4"/>} onClose={onClose}>Upsell & Cross-sell</Item>
               <Item to="/insurance/messages" icon={<Mail className="w-4 h-4"/>} onClose={onClose}>Messages</Item>
               <Item to="/insurance/claims" icon={<Briefcase className="w-4 h-4"/>} onClose={onClose}>Claims</Item>
+              <Item to="/insurance/leads" icon={<UserPlus className="w-4 h-4"/>} onClose={onClose}>Lead Management</Item>
               <Item to="/insurance/reports" icon={<BarChart3 className="w-4 h-4"/>} onClose={onClose}>Reports</Item>
               <LockedItem icon={<Wallet className="w-4 h-4"/>}>Wallet 🔒</LockedItem>
             </>

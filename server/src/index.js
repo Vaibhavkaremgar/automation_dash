@@ -58,16 +58,20 @@ app.use(express.urlencoded({ extended: true }));
 // Initialize database and run migrations
 async function initializeDatabase() {
   try {
+    console.log('⏳ Initializing database...');
     await runMigrations();
-    
-    // Migrations are now tracked and only run once
-    // Manual migrations removed from startup to improve performance
+    console.log('✅ Database migrations completed');
     
     // Seed admin user
     await seedAdminUser();
+    console.log('✅ Database initialization complete');
   } catch (err) {
     console.error('❌ Failed to initialize database:', err);
-    process.exit(1);
+    console.error('   Stack:', err.stack);
+    
+    // Don't exit immediately - let Railway retry
+    console.error('⚠️ Server will continue but database may not be ready');
+    // process.exit(1); // Commented out to prevent crash loop
   }
 }
 

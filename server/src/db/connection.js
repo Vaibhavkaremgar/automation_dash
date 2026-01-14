@@ -3,20 +3,32 @@ const path = require('path');
 const fs = require('fs');
 const config = require('../config/env');
 
-// Use DB_PATH from env, resolve relative to server directory
-const dbPath = path.resolve(__dirname, '../../', config.dbPath);
+// Use DB_PATH from env - support both absolute and relative paths
+const dbPath = path.isAbsolute(config.dbPath) 
+  ? config.dbPath 
+  : path.resolve(__dirname, '../../', config.dbPath);
 const dbDir = path.dirname(dbPath);
 
 // Ensure data directory exists
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+try {
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+    console.log(`✅ Created database directory: ${dbDir}`);
+  }
+} catch (err) {
+  console.error(`❌ Failed to create database directory: ${err.message}`);
+  console.error(`   Path: ${dbDir}`);
+  console.error(`   Tip: Ensure Railway volume is mounted at /data`);
 }
 
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('❌ Database connection error:', err.message);
+    console.error(`   Path: ${dbPath}`);
+    console.error(`   Directory: ${dbDir}`);
   } else {
     console.log('✅ Connected to SQLite database');
+    console.log(`   Path: ${dbPath}`);
     
     // Enable WAL mode for better concurrent access
     db.run('PRAGMA journal_mode = WAL', (err) => {

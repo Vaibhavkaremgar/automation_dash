@@ -124,7 +124,7 @@ export default function LeadManagement() {
 
   const getSheetUrl = () => {
     const isKMG = user?.email?.toLowerCase().includes('kmg');
-    const spreadsheetId = isKMG ? '1eg0JT8a1SR7PcwS3EnuVQlFUUwTRPdEfQtfLynpJfNg' : '1CE5TFC5bFx7WixVLoVOzdiMntwgRISO9YVR_cWZhku4';
+    const spreadsheetId = isKMG ? '1qV6K3t7zpQl2pild6q2i1iS6ga9Zd6QQgu3nvyIEmN0' : '1SJY8rPUbhr1NUhKELpuLPU9dhlhz86ZWQ0AI5s4dj40';
     return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit#gid=0`;
   };
 

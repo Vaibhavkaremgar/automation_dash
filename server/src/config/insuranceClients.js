@@ -3,7 +3,7 @@ const insuranceClients = {
   kmg: {
     identifier: ['kmg', 'kmginsurance'],
     name: 'KMG Insurance Agency',
-    spreadsheetId: '1eg0JT8a1SR7PcwS3EnuVQlFUUwTRPdEfQtfLynpJfNg',
+    spreadsheetId: '1qV6K3t7zpQl2pild6q2i1iS6ga9Zd6QQgu3nvyIEmN0',
     tabs: {
       general: {
         tab: 'kmg_general_ins',
@@ -82,7 +82,7 @@ const insuranceClients = {
   joban: {
     identifier: ['joban', 'jobanputra', 'joban putra'],
     name: 'Joban Putra Insurance',
-    spreadsheetId: '1CE5TFC5bFx7WixVLoVOzdiMntwgRISO9YVR_cWZhku4',
+    spreadsheetId: '1SJY8rPUbhr1NUhKELpuLPU9dhlhz86ZWQ0AI5s4dj40',
     tabs: {
       general: {
         tab: 'general_ins',
