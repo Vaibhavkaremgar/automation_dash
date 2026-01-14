@@ -52,8 +52,8 @@ router.get('/customers', (req, res) => {
     }
 
     if (status) {
-      query += ' AND LOWER(status) = ?';
-      params.push(status.toLowerCase());
+      query += ' AND LOWER(TRIM(status)) = ?';
+      params.push(status.toLowerCase().trim());
     }
 
     if (vertical && vertical !== 'all') {
@@ -1366,10 +1366,10 @@ router.get('/analytics', (req, res) => {
         whereClause += ' AND LOWER(vertical) IN (?, ?, ?)';
         params.push('motor', 'health', 'non-motor');
       } else if (vertical === '2-wheeler') {
-        whereClause += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ?)';
+        whereClause += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%2wh%');
       } else if (vertical === '4-wheeler') {
-        whereClause += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ?)';
+        whereClause += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(product_type, "")), " ", ""), "-", ""), "_", "")) LIKE ?)';
         params.push('motor', '%4wh%');
       } else if (vertical === 'motor') {
         whereClause += ' AND LOWER(vertical) = ?';
@@ -1380,26 +1380,27 @@ router.get('/analytics', (req, res) => {
       }
     }
     
-    db.get(`SELECT COUNT(*) as count FROM insurance_customers ${whereClause}`, params, (err, totalCustomers) => {
+    // Single optimized query to get all counts
+    db.get(`
+      SELECT 
+        COUNT(*) as totalCustomers,
+        SUM(CASE 
+          WHEN LOWER(TRIM(status)) = 'due'
+          AND renewal_date IS NOT NULL 
+          AND renewal_date != '' 
+          AND length(renewal_date) = 10
+          AND date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) >= date('now', '+1 day')
+          THEN 1 ELSE 0 
+        END) as upcomingRenewals
+      FROM insurance_customers ${whereClause}
+    `, params, (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
       
-      db.get(`
-        SELECT COUNT(*) as count FROM insurance_customers 
-        ${whereClause} 
-        AND LOWER(TRIM(status)) = 'due'
-        AND renewal_date IS NOT NULL 
-        AND renewal_date != '' 
-        AND length(renewal_date) = 10
-        AND date(substr(renewal_date, 7, 4) || '-' || substr(renewal_date, 4, 2) || '-' || substr(renewal_date, 1, 2)) >= date('now', '+1 day')
-      `, params, (err, upcomingRenewals) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        res.json({
-          totalCustomers: totalCustomers.count || 0,
-          upcomingRenewals: upcomingRenewals.count || 0,
-          messagesSent: 0,
-          totalSpent: 0
-        });
+      res.json({
+        totalCustomers: result.totalCustomers || 0,
+        upcomingRenewals: result.upcomingRenewals || 0,
+        messagesSent: 0,
+        totalSpent: 0
       });
     });
   } catch (error) {
