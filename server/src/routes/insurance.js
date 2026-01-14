@@ -52,13 +52,13 @@ router.get('/customers', (req, res) => {
     }
 
     if (status) {
-      query += ' AND status = ?';
-      params.push(status);
+      query += ' AND LOWER(status) = ?';
+      params.push(status.toLowerCase());
     }
 
     if (vertical && vertical !== 'all') {
       if (vertical === 'general') {
-        query += ' AND vertical IN (?, ?, ?)';
+        query += ' AND LOWER(vertical) IN (?, ?, ?)';
         params.push('motor', 'health', 'non-motor');
       } else if (vertical === 'health') {
         query += ' AND LOWER(product) = ?';
@@ -82,8 +82,8 @@ router.get('/customers', (req, res) => {
         query += ' AND LOWER(vertical) = ?';
         params.push('motor');
       } else {
-        query += ' AND vertical = ?';
-        params.push(vertical);
+        query += ' AND LOWER(vertical) = ?';
+        params.push(vertical.toLowerCase());
       }
     }
 
@@ -173,20 +173,93 @@ router.post('/customers', activityLogger, (req, res) => {
 });
 
 // Update insurance customer
-router.put('/customers/:id', validateCustomerOwnership, activityLogger, (req, res) => {
+router.put('/customers/:id', activityLogger, async (req, res) => {
   try {
-    const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code } = req.body;
+    const incidentMetrics = require('../utils/incidentMetrics');
+    const { name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, sheet_row_number, s_no } = req.body;
+    
+    // AUTO-HEAL: If ID doesn't exist, try to find by unique identifiers
+    let targetId = req.params.id;
+    const customerCheck = await new Promise((resolve) => {
+      db.get('SELECT id FROM insurance_customers WHERE id = ? AND user_id = ?', [targetId, req.user.id], (err, row) => {
+        resolve(row);
+      });
+    });
+    
+    if (!customerCheck) {
+      console.log(`⚠️ Customer ID ${targetId} not found, attempting auto-heal...`);
+      
+      // Try to find by sheet_row_number (most reliable after sync)
+      if (sheet_row_number) {
+        const found = await new Promise((resolve) => {
+          db.get('SELECT id FROM insurance_customers WHERE sheet_row_number = ? AND user_id = ?', [sheet_row_number, req.user.id], (err, row) => {
+            resolve(row);
+          });
+        });
+        if (found) {
+          incidentMetrics.recordAutoHeal(targetId, found.id, 'PUT /customers/:id');
+          targetId = found.id;
+        }
+      }
+      
+      // Fallback: Try by policy number or registration number
+      if (!customerCheck && (current_policy_no || registration_no)) {
+        let query = 'SELECT id FROM insurance_customers WHERE user_id = ? AND (';
+        const params = [req.user.id];
+        const conditions = [];
+        
+        if (current_policy_no) {
+          conditions.push('current_policy_no = ?');
+          params.push(current_policy_no);
+        }
+        if (registration_no) {
+          conditions.push('registration_no = ?');
+          params.push(registration_no);
+        }
+        
+        query += conditions.join(' OR ') + ') LIMIT 1';
+        
+        const found = await new Promise((resolve) => {
+          db.get(query, params, (err, row) => {
+            resolve(row);
+          });
+        });
+        
+        if (found) {
+          incidentMetrics.recordAutoHeal(targetId, found.id, 'PUT /customers/:id');
+          targetId = found.id;
+        }
+      }
+      
+      // If still not found, return 404 with helpful message
+      if (targetId === req.params.id) {
+        incidentMetrics.recordTrue404(targetId, req.user.id, 'PUT /customers/:id');
+        return res.status(404).json({ 
+          error: 'Customer not found',
+          hint: 'Customer ID may have changed after sync. Please refresh the page.',
+          shouldRefresh: true
+        });
+      }
+    }
     
     db.run(`
       UPDATE insurance_customers 
       SET name = ?, mobile_number = ?, insurance_activated_date = ?, renewal_date = ?, od_expiry_date = ?, tp_expiry_date = ?, premium_mode = ?, premium = ?, last_year_premium = ?, vertical = ?, product = ?, registration_no = ?, current_policy_no = ?, company = ?, status = ?, new_policy_no = ?, new_company = ?, policy_doc_link = ?, thank_you_sent = ?, reason = ?, email = ?, cheque_hold = ?, payment_date = ?, cheque_no = ?, cheque_bounce = ?, owner_alert_sent = ?, product_type = ?, product_model = ?, notes = ?, modified_expiry_date = ?, bank_name = ?, customer_id = ?, agent_code = ?, pancard = ?, aadhar_card = ?, others_doc = ?, g_code = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
-    `, [name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, req.params.id, req.user.id], (err) => {
+    `, [name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, targetId, req.user.id], (err) => {
       if (err) return res.status(500).json({ error: err.message });
       
-      db.get('SELECT * FROM insurance_customers WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, customer) => {
+      db.get('SELECT * FROM insurance_customers WHERE id = ? AND user_id = ?', [targetId, req.user.id], (err, customer) => {
         if (err) return res.status(500).json({ error: err.message });
         req.logActivity('customer_update', `Updated customer: ${name}`);
+        
+        // If ID changed, inform frontend
+        if (targetId !== parseInt(req.params.id)) {
+          customer._idChanged = true;
+          customer._oldId = req.params.id;
+          customer._newId = targetId;
+        }
+        
         res.json(customer);
       });
     });
@@ -196,23 +269,42 @@ router.put('/customers/:id', validateCustomerOwnership, activityLogger, (req, re
 });
 
 // Delete insurance customer
-router.delete('/customers/:id', validateCustomerOwnership, activityLogger, async (req, res) => {
+router.delete('/customers/:id', activityLogger, async (req, res) => {
   try {
+    const incidentMetrics = require('../utils/incidentMetrics');
     // Get customer data before deletion for sync purposes
-    const customer = await new Promise((resolve, reject) => {
+    let customer = await new Promise((resolve, reject) => {
       db.get('SELECT * FROM insurance_customers WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err, row) => {
         if (err) reject(err);
         else resolve(row);
       });
     });
     
-    if (!customer) {
-      return res.status(404).json({ error: 'Customer not found' });
+    // AUTO-HEAL: Try to find by sheet_row_number if not found
+    if (!customer && req.body.sheet_row_number) {
+      customer = await new Promise((resolve, reject) => {
+        db.get('SELECT * FROM insurance_customers WHERE sheet_row_number = ? AND user_id = ?', [req.body.sheet_row_number, req.user.id], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+      if (customer) {
+        incidentMetrics.recordAutoHeal(req.params.id, customer.id, 'DELETE /customers/:id');
+      }
     }
     
-    // Delete from database
+    if (!customer) {
+      incidentMetrics.recordTrue404(req.params.id, req.user.id, 'DELETE /customers/:id');
+      return res.status(404).json({ 
+        error: 'Customer not found',
+        hint: 'Customer may have been deleted or ID changed after sync',
+        shouldRefresh: true
+      });
+    }
+    
+    // Delete from database (use actual customer.id, not req.params.id)
     await new Promise((resolve, reject) => {
-      db.run('DELETE FROM insurance_customers WHERE id = ? AND user_id = ?', [req.params.id, req.user.id], (err) => {
+      db.run('DELETE FROM insurance_customers WHERE id = ? AND user_id = ?', [customer.id, req.user.id], (err) => {
         if (err) reject(err);
         else resolve();
       });
@@ -998,11 +1090,11 @@ router.get('/reports', async (req, res) => {
     
     if (vertical && vertical !== 'all') {
       if (vertical === 'general') {
-        whereClause += ' AND vertical IN (?, ?, ?)';
+        whereClause += ' AND LOWER(vertical) IN (?, ?, ?)';
         params.push('motor', 'health', 'non-motor');
       } else {
-        whereClause += ' AND vertical = ?';
-        params.push(vertical);
+        whereClause += ' AND LOWER(vertical) = ?';
+        params.push(vertical.toLowerCase());
       }
     }
 
@@ -1243,7 +1335,7 @@ router.get('/analytics', (req, res) => {
     
     if (vertical && vertical !== 'all') {
       if (vertical === 'general') {
-        whereClause += ' AND vertical IN (?, ?, ?)';
+        whereClause += ' AND LOWER(vertical) IN (?, ?, ?)';
         params.push('motor', 'health', 'non-motor');
       } else if (vertical === '2-wheeler') {
         whereClause += ' AND LOWER(vertical) = ? AND (LOWER(REPLACE(REPLACE(REPLACE(TRIM(product_type), " ", ""), "-", ""), "_", "")) LIKE ?)';
@@ -1255,8 +1347,8 @@ router.get('/analytics', (req, res) => {
         whereClause += ' AND LOWER(vertical) = ?';
         params.push('motor');
       } else {
-        whereClause += ' AND vertical = ?';
-        params.push(vertical);
+        whereClause += ' AND LOWER(vertical) = ?';
+        params.push(vertical.toLowerCase());
       }
     }
     
@@ -1282,6 +1374,16 @@ router.get('/analytics', (req, res) => {
         });
       });
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get incident metrics (admin only)
+router.get('/incident-metrics', (req, res) => {
+  try {
+    const incidentMetrics = require('../utils/incidentMetrics');
+    res.json(incidentMetrics.getStats());
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

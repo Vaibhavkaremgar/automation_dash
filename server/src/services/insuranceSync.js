@@ -66,6 +66,12 @@ class InsuranceSyncService {
     this.initAuth();
     console.log(`🔄 Syncing insurance customers for user ${userId} from sheet ${spreadsheetId}, tab ${tabName}`);
 
+    // SAFETY GUARD: Prevent accidental DELETE ALL operations
+    const SYNC_MODE = 'UPDATE_OR_INSERT'; // NEVER change this to 'DELETE_ALL'
+    if (SYNC_MODE !== 'UPDATE_OR_INSERT') {
+      throw new Error('SAFETY VIOLATION: DELETE_ALL sync mode is permanently disabled');
+    }
+
     // Get user email to determine client config
     const user = await get('SELECT email FROM users WHERE id = ?', [userId]);
     const clientConfig = getClientConfig(user?.email);
@@ -112,14 +118,39 @@ class InsuranceSyncService {
       }
     }
 
-    // STEP 1: DELETE ALL EXISTING DATA FOR THIS USER (ONLY FOR THIS TAB TYPE)
-    console.log(`🗑️  Deleting existing ${tabType} customers for user ${userId}...`);
+    // STEP 1: SMART SYNC - UPDATE existing, INSERT new (NO DELETE ALL)
+    console.log(`🔄 Smart syncing ${tabType} customers for user ${userId}...`);
+    
+    // Get existing customers from DB to build lookup map
+    let existingQuery = 'SELECT * FROM insurance_customers WHERE user_id = ?';
+    const existingParams = [userId];
     if (tabType === 'life') {
-      await run('DELETE FROM insurance_customers WHERE user_id = ? AND vertical = ?', [userId, 'life']);
+      existingQuery += ' AND vertical = ?';
+      existingParams.push('life');
     } else {
-      await run('DELETE FROM insurance_customers WHERE user_id = ? AND vertical IN (?, ?, ?, ?)', [userId, 'motor', 'health', 'non-motor', '2-wheeler']);
+      existingQuery += ' AND vertical IN (?, ?, ?, ?)';
+      existingParams.push('motor', 'health', 'non-motor', '2-wheeler');
     }
-    console.log(`✅ Existing ${tabType} data cleared`);
+    
+    const existingCustomers = await all(existingQuery, existingParams);
+    console.log(`📊 Found ${existingCustomers.length} existing ${tabType} customers in DB`);
+    
+    // Build lookup map by sheet_row_number (most reliable)
+    const dbRowMap = new Map();
+    existingCustomers.forEach(c => {
+      if (c.sheet_row_number) {
+        dbRowMap.set(`row:${c.sheet_row_number}`, c);
+      }
+      // Also index by policy number as fallback
+      if (c.current_policy_no) {
+        dbRowMap.set(`policy:${c.current_policy_no.trim()}`, c);
+      }
+      // Also index by registration number for vehicles
+      if (c.registration_no) {
+        dbRowMap.set(`reg:${c.registration_no.trim()}`, c);
+      }
+    });
+    console.log(`🔑 Built DB lookup map with ${dbRowMap.size} keys`);
     
     if (!rows || rows.length <= 1) {
       console.log('⚠️  No data in sheet or only header row - all data deleted');
@@ -149,9 +180,13 @@ class InsuranceSyncService {
     
     const data = rows.slice(1); // Skip header
     let imported = 0;
+    let updated = 0;
     let skipped = 0;
     
-    // STEP 2: INSERT ALL ROWS FROM SHEET
+    // Track which DB customers were seen in sheet (for deletion detection)
+    const seenDbIds = new Set();
+    
+    // STEP 2: UPDATE existing or INSERT new rows from sheet
     for (let i = 0; i < data.length; i++) {
       const row = data[i];
       
@@ -167,8 +202,8 @@ class InsuranceSyncService {
         let rawStatus = (getCell(row, 'status') || 'due').toLowerCase().trim();
         if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
         else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
-        else if (rawStatus === 'not renewed' || rawStatus === 'lost') rawStatus = 'not renewed';
-        else if (rawStatus === 'inprocess' || rawStatus === 'in process') rawStatus = 'inprocess';
+        else if (rawStatus === 'not renewed' || rawStatus === 'lost' || rawStatus === 'notrenewed') rawStatus = 'not renewed';
+        else if (rawStatus === 'inprocess' || rawStatus === 'in process' || rawStatus === 'in-process') rawStatus = 'inprocess';
         
         customer = {
           name: getCell(row, 'name'),
@@ -198,15 +233,15 @@ class InsuranceSyncService {
         let rawStatus = (getCell(row, 'status') || 'due').toLowerCase().trim();
         if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
         else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
-        else if (rawStatus === 'not renewed' || rawStatus === 'lost') rawStatus = 'not renewed';
-        else if (rawStatus === 'inprocess' || rawStatus === 'in process') rawStatus = 'inprocess';
+        else if (rawStatus === 'not renewed' || rawStatus === 'lost' || rawStatus === 'notrenewed') rawStatus = 'not renewed';
+        else if (rawStatus === 'inprocess' || rawStatus === 'in process' || rawStatus === 'in-process') rawStatus = 'inprocess';
         
         const originalType = getCell(row, 'vertical');
-        const sheetVertical = originalType.toLowerCase().trim();
+        const sheetVertical = originalType.toLowerCase().trim().replace(/[\s-_]/g, '');
         let vertical = 'non-motor';
         if (sheetVertical === 'motor') vertical = 'motor';
         else if (sheetVertical === 'health') vertical = 'health';
-        else if (sheetVertical === 'non-motor') vertical = 'non-motor';
+        else if (sheetVertical === 'nonmotor') vertical = 'non-motor';
         else if (sheetVertical.includes('motor') && !sheetVertical.includes('non')) vertical = 'motor';
         else if (sheetVertical.includes('health')) vertical = 'health';
         else vertical = 'non-motor';
@@ -261,27 +296,73 @@ class InsuranceSyncService {
         continue;
       }
       
+      // Try to find existing customer in DB
+      const sheetRowNumber = i + 2;
+      let existingCustomer = dbRowMap.get(`row:${sheetRowNumber}`);
+      
+      // Fallback: try by policy number
+      if (!existingCustomer && customer.current_policy_no) {
+        existingCustomer = dbRowMap.get(`policy:${customer.current_policy_no.trim()}`);
+      }
+      
+      // Fallback: try by registration number
+      if (!existingCustomer && customer.registration_no) {
+        existingCustomer = dbRowMap.get(`reg:${customer.registration_no.trim()}`);
+      }
+      
       try {
-        await run(`
-          INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, payment_date, notes, product_type, product_model, modified_expiry_date, cheque_no, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, s_no, sheet_row_number)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [userId, customer.name, customer.mobile_number, customer.insurance_activated_date || '', customer.renewal_date, customer.od_expiry_date || '', customer.tp_expiry_date || '', customer.premium_mode || '', customer.premium, customer.last_year_premium || '', customer.vertical, customer.product || '', customer.registration_no || '', customer.current_policy_no || '', customer.company || '', customer.status, customer.new_policy_no || '', customer.new_company || '', customer.policy_doc_link || '', customer.thank_you_sent || '', customer.reason || '', customer.email || '', customer.payment_date || '', customer.notes || '', customer.product_type || '', customer.product_model || '', customer.modified_expiry_date || '', customer.cheque_no || '', customer.bank_name || '', customer.customer_id || '', customer.agent_code || '', customer.pancard || '', customer.aadhar_card || '', customer.others_doc || '', customer.g_code || '', customer.s_no || '', i + 2]);
-        imported++;
-        if (imported <= 2) {
-          console.log(`✅ Imported row ${i + 2}: ${customer.name} (${customer.vertical})`);
+        if (existingCustomer) {
+          // UPDATE existing customer (preserves ID)
+          seenDbIds.add(existingCustomer.id);
+          
+          await run(`
+            UPDATE insurance_customers 
+            SET name = ?, mobile_number = ?, insurance_activated_date = ?, renewal_date = ?, od_expiry_date = ?, tp_expiry_date = ?, premium_mode = ?, premium = ?, last_year_premium = ?, vertical = ?, product = ?, registration_no = ?, current_policy_no = ?, company = ?, status = ?, new_policy_no = ?, new_company = ?, policy_doc_link = ?, thank_you_sent = ?, reason = ?, email = ?, payment_date = ?, notes = ?, product_type = ?, product_model = ?, modified_expiry_date = ?, cheque_no = ?, bank_name = ?, customer_id = ?, agent_code = ?, pancard = ?, aadhar_card = ?, others_doc = ?, g_code = ?, s_no = ?, sheet_row_number = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `, [customer.name, customer.mobile_number, customer.insurance_activated_date || '', customer.renewal_date, customer.od_expiry_date || '', customer.tp_expiry_date || '', customer.premium_mode || '', customer.premium, customer.last_year_premium || '', customer.vertical, customer.product || '', customer.registration_no || '', customer.current_policy_no || '', customer.company || '', customer.status, customer.new_policy_no || '', customer.new_company || '', customer.policy_doc_link || '', customer.thank_you_sent || '', customer.reason || '', customer.email || '', customer.payment_date || '', customer.notes || '', customer.product_type || '', customer.product_model || '', customer.modified_expiry_date || '', customer.cheque_no || '', customer.bank_name || '', customer.customer_id || '', customer.agent_code || '', customer.pancard || '', customer.aadhar_card || '', customer.others_doc || '', customer.g_code || '', customer.s_no || '', sheetRowNumber, existingCustomer.id]);
+          updated++;
+          if (updated <= 2) {
+            console.log(`✅ Updated row ${sheetRowNumber}: ${customer.name} (ID: ${existingCustomer.id})`);
+          }
+        } else {
+          // INSERT new customer
+          await run(`
+            INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, payment_date, notes, product_type, product_model, modified_expiry_date, cheque_no, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, s_no, sheet_row_number)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [userId, customer.name, customer.mobile_number, customer.insurance_activated_date || '', customer.renewal_date, customer.od_expiry_date || '', customer.tp_expiry_date || '', customer.premium_mode || '', customer.premium, customer.last_year_premium || '', customer.vertical, customer.product || '', customer.registration_no || '', customer.current_policy_no || '', customer.company || '', customer.status, customer.new_policy_no || '', customer.new_company || '', customer.policy_doc_link || '', customer.thank_you_sent || '', customer.reason || '', customer.email || '', customer.payment_date || '', customer.notes || '', customer.product_type || '', customer.product_model || '', customer.modified_expiry_date || '', customer.cheque_no || '', customer.bank_name || '', customer.customer_id || '', customer.agent_code || '', customer.pancard || '', customer.aadhar_card || '', customer.others_doc || '', customer.g_code || '', customer.s_no || '', sheetRowNumber]);
+          imported++;
+          if (imported <= 2) {
+            console.log(`✅ Inserted row ${sheetRowNumber}: ${customer.name}`);
+          }
         }
       } catch (err) {
-        console.error(`❌ Error inserting customer row ${i + 2}:`, err.message);
+        console.error(`❌ Error syncing customer row ${i + 2}:`, err.message);
         console.error('Customer data:', customer);
         skipped++;
+      }
+    }
+    
+    // STEP 3: Delete customers that are no longer in sheet
+    let deleted = 0;
+    // SAFETY: Only delete if explicitly removed from sheet (not bulk delete)
+    for (const existingCustomer of existingCustomers) {
+      if (!seenDbIds.has(existingCustomer.id)) {
+        // GUARD: Prevent accidental mass deletion
+        if (deleted >= 50) {
+          console.error(`⚠️ SAFETY STOP: Attempted to delete ${deleted} customers. Manual review required.`);
+          break;
+        }
+        console.log(`🗑️ Deleting customer not in sheet: ${existingCustomer.name} (ID: ${existingCustomer.id})`);
+        await run('DELETE FROM insurance_customers WHERE id = ?', [existingCustomer.id]);
+        deleted++;
       }
     }
     
     // Store sync time
     this.lastSyncTime[`${userId}_${tabName}`] = new Date().toISOString();
     
-    console.log(`✅ Sync completed: ${imported} imported, ${skipped} skipped`);
-    return { imported, updated: 0 };
+    console.log(`✅ Smart sync completed: ${imported} new, ${updated} updated, ${deleted} deleted, ${skipped} skipped`);
+    return { imported, updated, deleted };
   }
 
   async syncToSheet(userId, spreadsheetId, tabName = 'updating_input', verticalFilter = null, deletedCustomers = []) {
