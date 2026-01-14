@@ -155,10 +155,14 @@ router.post('/customers', activityLogger, (req, res) => {
       return res.status(400).json({ error: 'Name and mobile number are required' });
     }
     
+    // Convert STATUS and TYPE to uppercase to match sheet format
+    const upperStatus = status ? status.toUpperCase() : 'DUE';
+    const upperProduct = product ? product.toUpperCase() : product;
+    
     db.run(`
       INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `, [req.user.id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status || 'due', new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code], function(err) {
+    `, [req.user.id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', upperProduct, registration_no, current_policy_no, company, upperStatus, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code], function(err) {
       if (err) return res.status(500).json({ error: err.message });
       
       db.get('SELECT * FROM insurance_customers WHERE id = ?', [this.lastID], (err, customer) => {
@@ -242,11 +246,15 @@ router.put('/customers/:id', activityLogger, async (req, res) => {
       }
     }
     
+    // Convert STATUS and TYPE to uppercase to match sheet format
+    const upperStatus = status ? status.toUpperCase() : status;
+    const upperProduct = product ? product.toUpperCase() : product;
+    
     db.run(`
       UPDATE insurance_customers 
       SET name = ?, mobile_number = ?, insurance_activated_date = ?, renewal_date = ?, od_expiry_date = ?, tp_expiry_date = ?, premium_mode = ?, premium = ?, last_year_premium = ?, vertical = ?, product = ?, registration_no = ?, current_policy_no = ?, company = ?, status = ?, new_policy_no = ?, new_company = ?, policy_doc_link = ?, thank_you_sent = ?, reason = ?, email = ?, cheque_hold = ?, payment_date = ?, cheque_no = ?, cheque_bounce = ?, owner_alert_sent = ?, product_type = ?, product_model = ?, notes = ?, modified_expiry_date = ?, bank_name = ?, customer_id = ?, agent_code = ?, pancard = ?, aadhar_card = ?, others_doc = ?, g_code = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
-    `, [name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, targetId, req.user.id], (err) => {
+    `, [name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical || 'motor', upperProduct, registration_no, current_policy_no, company, upperStatus, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, cheque_hold, payment_date, cheque_no, cheque_bounce, owner_alert_sent, product_type, product_model, notes, modified_expiry_date, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, targetId, req.user.id], (err) => {
       if (err) return res.status(500).json({ error: err.message });
       
       db.get('SELECT * FROM insurance_customers WHERE id = ? AND user_id = ?', [targetId, req.user.id], (err, customer) => {
