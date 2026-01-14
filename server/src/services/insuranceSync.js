@@ -141,13 +141,13 @@ class InsuranceSyncService {
       if (c.sheet_row_number) {
         dbRowMap.set(`row:${c.sheet_row_number}`, c);
       }
-      // Also index by policy number as fallback
-      if (c.current_policy_no) {
-        dbRowMap.set(`policy:${c.current_policy_no.trim()}`, c);
+      // Also index by policy number as fallback (case-insensitive)
+      if (c.current_policy_no && c.current_policy_no.trim()) {
+        dbRowMap.set(`policy:${c.current_policy_no.trim().toLowerCase()}`, c);
       }
-      // Also index by registration number for vehicles
-      if (c.registration_no) {
-        dbRowMap.set(`reg:${c.registration_no.trim()}`, c);
+      // Also index by registration number for vehicles (case-insensitive)
+      if (c.registration_no && c.registration_no.trim()) {
+        dbRowMap.set(`reg:${c.registration_no.trim().toLowerCase()}`, c);
       }
     });
     console.log(`🔑 Built DB lookup map with ${dbRowMap.size} keys`);
@@ -304,14 +304,16 @@ class InsuranceSyncService {
       const sheetRowNumber = i + 2;
       let existingCustomer = dbRowMap.get(`row:${sheetRowNumber}`);
       
-      // Fallback: try by policy number
-      if (!existingCustomer && customer.current_policy_no) {
-        existingCustomer = dbRowMap.get(`policy:${customer.current_policy_no.trim()}`);
+      // Fallback: try by policy number (case-insensitive)
+      if (!existingCustomer && customer.current_policy_no && customer.current_policy_no.trim()) {
+        const policyKey = `policy:${customer.current_policy_no.trim().toLowerCase()}`;
+        existingCustomer = dbRowMap.get(policyKey);
       }
       
-      // Fallback: try by registration number
-      if (!existingCustomer && customer.registration_no) {
-        existingCustomer = dbRowMap.get(`reg:${customer.registration_no.trim()}`);
+      // Fallback: try by registration number (case-insensitive)
+      if (!existingCustomer && customer.registration_no && customer.registration_no.trim()) {
+        const regKey = `reg:${customer.registration_no.trim().toLowerCase()}`;
+        existingCustomer = dbRowMap.get(regKey);
       }
       
       try {
