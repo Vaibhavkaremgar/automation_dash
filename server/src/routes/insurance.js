@@ -101,45 +101,105 @@ router.get('/customers', (req, res) => {
 // Check for duplicate customer
 router.post('/customers/check-duplicate', (req, res) => {
   try {
-    const { name, mobile_number, current_policy_no, registration_no, g_code } = req.body;
+    const { name, mobile_number, current_policy_no, customer_id, vertical, product_type } = req.body;
     
-    // Only check by exact policy number OR registration number OR G code
-    // Don't check by name+mobile alone (same person can have multiple policies)
-    let query = 'SELECT * FROM insurance_customers WHERE user_id = ? AND (';
-    const params = [req.user.id];
-    const conditions = [];
-    
-    // Check by policy number (exact match)
-    if (current_policy_no && current_policy_no.trim()) {
-      conditions.push('current_policy_no = ?');
-      params.push(current_policy_no.trim());
-    }
-    
-    // Check by registration number (exact match for vehicles)
-    if (registration_no && registration_no.trim()) {
-      conditions.push('registration_no = ?');
-      params.push(registration_no.trim());
-    }
-    
-    // Check by G code (exact match)
-    if (g_code && g_code.trim()) {
-      conditions.push('g_code = ?');
-      params.push(g_code.trim());
-    }
-    
-    if (conditions.length === 0) {
-      // No unique identifiers provided - allow adding
-      return res.json({ isDuplicate: false });
-    }
-    
-    query += conditions.join(' OR ') + ') LIMIT 1';
-    
-    db.get(query, params, (err, existing) => {
+    // Get all customers for this user to calculate similarity
+    db.all('SELECT * FROM insurance_customers WHERE user_id = ?', [req.user.id], (err, customers) => {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ 
-        isDuplicate: !!existing,
-        existing: existing || null
+      
+      if (!customers || customers.length === 0) {
+        return res.json({ isDuplicate: false });
+      }
+      
+      // Calculate similarity for each customer
+      const similarities = customers.map(existing => {
+        let matchCount = 0;
+        let totalFields = 0;
+        const matches = [];
+        
+        // Check name (case-insensitive)
+        if (name && existing.name) {
+          totalFields++;
+          if (name.toLowerCase().trim() === existing.name.toLowerCase().trim()) {
+            matchCount++;
+            matches.push('name');
+          }
+        }
+        
+        // Check mobile number
+        if (mobile_number && existing.mobile_number) {
+          totalFields++;
+          if (mobile_number.trim() === existing.mobile_number.trim()) {
+            matchCount++;
+            matches.push('mobile_number');
+          }
+        }
+        
+        // Check policy number
+        if (current_policy_no && existing.current_policy_no) {
+          totalFields++;
+          if (current_policy_no.trim() === existing.current_policy_no.trim()) {
+            matchCount++;
+            matches.push('current_policy_no');
+          }
+        }
+        
+        // Check customer ID
+        if (customer_id && existing.customer_id) {
+          totalFields++;
+          if (customer_id.trim() === existing.customer_id.trim()) {
+            matchCount++;
+            matches.push('customer_id');
+          }
+        }
+        
+        // Check TYPE (vertical)
+        if (vertical && existing.vertical) {
+          totalFields++;
+          if (vertical.toLowerCase().trim() === existing.vertical.toLowerCase().trim()) {
+            matchCount++;
+            matches.push('vertical');
+          }
+        }
+        
+        // Check Product Type
+        if (product_type && existing.product_type) {
+          totalFields++;
+          if (product_type.toLowerCase().trim() === existing.product_type.toLowerCase().trim()) {
+            matchCount++;
+            matches.push('product_type');
+          }
+        }
+        
+        const similarityPercent = totalFields > 0 ? (matchCount / totalFields) * 100 : 0;
+        
+        return {
+          customer: existing,
+          similarityPercent,
+          matchCount,
+          totalFields,
+          matches
+        };
       });
+      
+      // Find customers with 60-70% or higher similarity
+      const potentialDuplicates = similarities.filter(s => s.similarityPercent >= 60);
+      
+      if (potentialDuplicates.length > 0) {
+        // Return the highest match
+        const bestMatch = potentialDuplicates.sort((a, b) => b.similarityPercent - a.similarityPercent)[0];
+        
+        res.json({
+          isDuplicate: true,
+          similarityPercent: Math.round(bestMatch.similarityPercent),
+          existing: bestMatch.customer,
+          matchedFields: bestMatch.matches,
+          matchCount: bestMatch.matchCount,
+          totalFields: bestMatch.totalFields
+        });
+      } else {
+        res.json({ isDuplicate: false });
+      }
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

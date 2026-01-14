@@ -884,31 +884,27 @@ class InsuranceSyncService {
     let deleted = 0, updated = 0, added = 0;
     const batchUpdates = [];
     const appendRows = [];
+    const rowsToDelete = [];
+
+    // Handle deletions
+    if (deletedLeads && deletedLeads.length > 0) {
+      for (const deletedLead of deletedLeads) {
+        const mobile = deletedLead.mobile_number?.trim();
+        if (mobile) {
+          const existingEntry = sheetRowMap.get(`mobile:${mobile}`);
+          if (existingEntry) {
+            rowsToDelete.push(existingEntry.rowNumber);
+            sheetRowMap.delete(`mobile:${mobile}`);
+          }
+        }
+      }
+    }
 
     for (const lead of leads) {
       const existingEntry = sheetRowMap.get(`mobile:${lead.mobile_number.trim()}`);
-      
-      let nextSNo = '';
-      if (!existingEntry) {
-        const snoColIndex = headers.findIndex(h => h.toUpperCase().replace(/[\s\.]/g, '') === 'SNO');
-        if (snoColIndex !== -1) {
-          let maxSNo = 0;
-          existingRows.forEach(row => {
-            const snoValue = row[snoColIndex];
-            if (snoValue) {
-              const num = parseInt(String(snoValue).trim());
-              if (!isNaN(num) && num > maxSNo) maxSNo = num;
-            }
-          });
-          nextSNo = String(maxSNo + 1);
-        }
-      }
 
       const rowData = headers.map((header, colIndex) => {
         const fieldName = reverseSchema[header];
-        if (header === 'S NO' || header === 'S.NO') {
-          return existingEntry ? (existingEntry.row[colIndex] || '') : nextSNo;
-        }
         if (!fieldName) return existingEntry ? (existingEntry.row[colIndex] || '') : '';
 
         const fieldMap = {
@@ -934,6 +930,19 @@ class InsuranceSyncService {
       } else {
         appendRows.push(rowData);
         added++;
+      }
+    }
+
+    // Delete rows (from bottom to top to avoid row number shifts)
+    if (rowsToDelete.length > 0) {
+      rowsToDelete.sort((a, b) => b - a);
+      for (const rowNumber of rowsToDelete) {
+        const endCol = this.getColumnLetter(headers.length);
+        await this.sheets.spreadsheets.values.clear({
+          spreadsheetId,
+          range: `${tabName}!A${rowNumber}:${endCol}${rowNumber}`
+        });
+        deleted++;
       }
     }
 

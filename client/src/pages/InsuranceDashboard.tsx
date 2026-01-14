@@ -116,7 +116,7 @@ export default function InsuranceDashboard() {
   const [quickActionsLimit, setQuickActionsLimit] = useState(5);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
   const [showRenewalUpdateModal, setShowRenewalUpdateModal] = useState(false);
-  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { amount: string; new_company: string; new_policy_no: string; paid_by: string; remarks: string }>>({});
+  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { payment_date: string; cheque_no: string; bank_name: string; customer_id: string; agent_code: string; amount: string; new_policy_no: string; new_company: string; paid_by: string; remarks: string }>>({});
   const [deletedCustomers, setDeletedCustomers] = useState<Customer[]>([]); // Track deleted customers for sync
 
   // Field name mapping helper
@@ -703,23 +703,31 @@ export default function InsuranceDashboard() {
       return;
     }
     
-    // Check for duplicates by unique identifiers only
+    // Check for duplicates with similarity matching
     const checkRes = await api.post('/api/insurance/customers/check-duplicate', {
       name: dynamicFormData[nameKey],
       mobile_number: dynamicFormData[mobileKey],
       current_policy_no: dynamicFormData[policyKey] || '',
-      registration_no: dynamicFormData['veh_no'] || dynamicFormData['registration_no'] || '',
-      g_code: dynamicFormData['g_code'] || ''
+      customer_id: dynamicFormData['customer_id'] || '',
+      vertical: dynamicFormData['vertical'] || dynamicFormData['type'] || '',
+      product_type: dynamicFormData['product_type'] || ''
     });
     
     if (checkRes.data.isDuplicate) {
-      const existing = checkRes.data.existing;
-      const matchDetails = [];
-      if (existing.current_policy_no) matchDetails.push(`Policy: ${existing.current_policy_no}`);
-      if (existing.registration_no) matchDetails.push(`Vehicle: ${existing.registration_no}`);
-      if (existing.g_code) matchDetails.push(`G Code: ${existing.g_code}`);
+      const { existing, similarityPercent, matchedFields, matchCount, totalFields } = checkRes.data;
       
-      if (!confirm(`⚠️ Duplicate found!\n\nName: ${existing.name}\nMobile: ${existing.mobile_number}\n${matchDetails.join('\n')}\n\nThis appears to be the SAME policy/vehicle.\n\nClick OK to add anyway (not recommended), or Cancel to go back.`)) {
+      const fieldLabels = {
+        name: 'Name',
+        mobile_number: 'Mobile Number',
+        current_policy_no: 'Policy Number',
+        customer_id: 'Customer ID',
+        vertical: 'TYPE',
+        product_type: 'Product Type'
+      };
+      
+      const matchedFieldNames = matchedFields.map(f => fieldLabels[f] || f).join(', ');
+      
+      if (!confirm(`⚠️ Potential Duplicate Found!\n\nSimilarity: ${similarityPercent}% (${matchCount}/${totalFields} fields match)\n\nExisting Customer:\nName: ${existing.name}\nMobile: ${existing.mobile_number}\nPolicy: ${existing.current_policy_no || 'N/A'}\n\nMatching Fields:\n${matchedFieldNames}\n\nClick OK to add as NEW customer anyway, or Cancel to go back.`)) {
         return;
       }
     }
@@ -1875,7 +1883,7 @@ export default function InsuranceDashboard() {
             const customer = customers.find(c => c.id === customerId);
             if (!customer) return null;
             
-            const data = bulkRenewalData[customerId] || { amount: '', new_company: '', new_policy_no: '', paid_by: '', remarks: '' };
+            const data = bulkRenewalData[customerId] || { payment_date: '', cheque_no: '', bank_name: '', customer_id: '', agent_code: '', amount: '', new_policy_no: '', new_company: '', paid_by: '', remarks: '' };
             
             return (
               <div key={customerId} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 space-y-3">
@@ -1889,7 +1897,56 @@ export default function InsuranceDashboard() {
                 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs text-slate-300 mb-1 block">Amount</label>
+                    <label className="text-xs text-slate-300 mb-1 block">DEPOSITED/PAYMENT DATE</label>
+                    <Input
+                      type="date"
+                      value={data.payment_date}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, payment_date: e.target.value}})}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">CHQ NO & DATE</label>
+                    <Input
+                      type="text"
+                      placeholder="Cheque number & date"
+                      value={data.cheque_no}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, cheque_no: e.target.value}})}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">BANK NAME</label>
+                    <Input
+                      type="text"
+                      placeholder="Bank name"
+                      value={data.bank_name}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, bank_name: e.target.value}})}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">CUSTOMER ID</label>
+                    <Input
+                      type="text"
+                      placeholder="Customer ID"
+                      value={data.customer_id}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, customer_id: e.target.value}})}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">AGENT CODE</label>
+                    <Input
+                      type="text"
+                      placeholder="Agent code"
+                      value={data.agent_code}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, agent_code: e.target.value}})}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">AMOUNT</label>
                     <Input
                       type="number"
                       placeholder={customer.premium?.toString() || '0'}
@@ -1899,22 +1956,22 @@ export default function InsuranceDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-300 mb-1 block">New Company</label>
+                    <label className="text-xs text-slate-300 mb-1 block">NEW POLICY NO</label>
+                    <Input
+                      type="text"
+                      placeholder="New policy number"
+                      value={data.new_policy_no}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, new_policy_no: e.target.value}})}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">New Policy Company</label>
                     <Input
                       type="text"
                       placeholder={customer.company || 'Company'}
                       value={data.new_company}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, new_company: e.target.value}})}
-                      className="text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-slate-300 mb-1 block">New Policy No</label>
-                    <Input
-                      type="text"
-                      placeholder="Policy number"
-                      value={data.new_policy_no}
-                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, new_policy_no: e.target.value}})}
                       className="text-sm"
                     />
                   </div>
@@ -1954,12 +2011,17 @@ export default function InsuranceDashboard() {
                   
                   await api.put(`/api/insurance/customers/${customerId}`, {
                     ...customer,
+                    payment_date: data.payment_date || customer.payment_date,
+                    cheque_no: data.cheque_no || customer.cheque_no,
+                    bank_name: data.bank_name || customer.bank_name,
+                    customer_id: data.customer_id || customer.customer_id,
+                    agent_code: data.agent_code || customer.agent_code,
                     premium: data.amount ? parseFloat(data.amount) : customer.premium,
-                    new_company: data.new_company || customer.new_company,
                     new_policy_no: data.new_policy_no || customer.new_policy_no,
+                    new_company: data.new_company || customer.new_company,
                     paid_by: data.paid_by || customer.paid_by,
-                    notes: data.remarks ? `${customer.notes || ''}\n${data.remarks} [${new Date().toLocaleString()}]` : customer.notes,
-                    status: 'renewed'
+                    reason: data.remarks ? `${customer.reason || ''}\n${data.remarks} [${new Date().toLocaleString()}]` : customer.reason,
+                    status: 'RENEWED'
                   });
                 }
                 
