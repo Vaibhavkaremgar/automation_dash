@@ -199,11 +199,13 @@ class InsuranceSyncService {
       let customer;
       
       if (tabType === 'life') {
-        let rawStatus = (getCell(row, 'status') || 'due').toLowerCase().trim();
-        if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
-        else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
-        else if (rawStatus === 'not renewed' || rawStatus === 'lost' || rawStatus === 'notrenewed') rawStatus = 'not renewed';
-        else if (rawStatus === 'inprocess' || rawStatus === 'in process' || rawStatus === 'in-process') rawStatus = 'inprocess';
+        let rawStatus = (getCell(row, 'status') || 'due').trim();
+        const statusLower = rawStatus.toLowerCase();
+        if (statusLower === 'due' || statusLower === 'pending') rawStatus = 'DUE';
+        else if (statusLower === 'renewed' || statusLower === 'done') rawStatus = 'RENEWED';
+        else if (statusLower === 'not renewed' || statusLower === 'lost' || statusLower === 'notrenewed') rawStatus = 'NOT RENEWED';
+        else if (statusLower === 'inprocess' || statusLower === 'in process' || statusLower === 'in-process') rawStatus = 'INPROCESS';
+        else rawStatus = rawStatus.toUpperCase();
         
         customer = {
           name: getCell(row, 'name'),
@@ -230,21 +232,23 @@ class InsuranceSyncService {
           reason: ''
         };
       } else {
-        let rawStatus = (getCell(row, 'status') || 'due').toLowerCase().trim();
-        if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
-        else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
-        else if (rawStatus === 'not renewed' || rawStatus === 'lost' || rawStatus === 'notrenewed') rawStatus = 'not renewed';
-        else if (rawStatus === 'inprocess' || rawStatus === 'in process' || rawStatus === 'in-process') rawStatus = 'inprocess';
+        let rawStatus = (getCell(row, 'status') || 'due').trim();
+        const statusLower = rawStatus.toLowerCase();
+        if (statusLower === 'due' || statusLower === 'pending') rawStatus = 'DUE';
+        else if (statusLower === 'renewed' || statusLower === 'done') rawStatus = 'RENEWED';
+        else if (statusLower === 'not renewed' || statusLower === 'lost' || statusLower === 'notrenewed') rawStatus = 'NOT RENEWED';
+        else if (statusLower === 'inprocess' || statusLower === 'in process' || statusLower === 'in-process') rawStatus = 'INPROCESS';
+        else rawStatus = rawStatus.toUpperCase();
         
         const originalType = getCell(row, 'vertical');
         const sheetVertical = originalType.toLowerCase().trim().replace(/[\s-_]/g, '');
-        let vertical = 'non-motor';
-        if (sheetVertical === 'motor') vertical = 'motor';
-        else if (sheetVertical === 'health') vertical = 'health';
-        else if (sheetVertical === 'nonmotor') vertical = 'non-motor';
-        else if (sheetVertical.includes('motor') && !sheetVertical.includes('non')) vertical = 'motor';
-        else if (sheetVertical.includes('health')) vertical = 'health';
-        else vertical = 'non-motor';
+        let vertical = 'NON-MOTOR';
+        if (sheetVertical === 'motor') vertical = 'MOTOR';
+        else if (sheetVertical === 'health') vertical = 'HEALTH';
+        else if (sheetVertical === 'nonmotor') vertical = 'NON-MOTOR';
+        else if (sheetVertical.includes('motor') && !sheetVertical.includes('non')) vertical = 'MOTOR';
+        else if (sheetVertical.includes('health')) vertical = 'HEALTH';
+        else vertical = 'NON-MOTOR';
         
         const modifiedExpiry = this.formatDate(getCell(row, 'renewal_date'));
         const dateOfExpiry = this.formatDate(getCell(row, 'od_expiry_date'));
