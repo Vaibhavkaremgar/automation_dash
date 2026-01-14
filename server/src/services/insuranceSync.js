@@ -135,35 +135,21 @@ class InsuranceSyncService {
     const existingCustomers = await all(existingQuery, existingParams);
     console.log(`📊 Found ${existingCustomers.length} existing ${tabType} customers in DB`);
     
-    // Build lookup map using STABLE business keys
-const dbRowMap = new Map();
-
-existingCustomers.forEach(c => {
-  // 1️⃣ Policy number (strongest)
-  if (c.current_policy_no && c.current_policy_no.trim()) {
-    dbRowMap.set(
-      `policy:${c.current_policy_no.trim().toLowerCase()}`,
-      c
-    );
-  }
-
-  // 2️⃣ Registration number (motor)
-  if (c.registration_no && c.registration_no.trim()) {
-    dbRowMap.set(
-      `reg:${c.registration_no.trim().toLowerCase()}`,
-      c
-    );
-  }
-
-  // 3️⃣ Mobile number (final fallback)
-  if (c.mobile_number && c.mobile_number.trim()) {
-    dbRowMap.set(
-      `mobile:${c.mobile_number.trim()}`,
-      c
-    );
-  }
-});
-
+    // Build lookup map by sheet_row_number (most reliable)
+    const dbRowMap = new Map();
+    existingCustomers.forEach(c => {
+      if (c.sheet_row_number) {
+        dbRowMap.set(`row:${c.sheet_row_number}`, c);
+      }
+      // Also index by policy number as fallback
+      if (c.current_policy_no) {
+        dbRowMap.set(`policy:${c.current_policy_no.trim()}`, c);
+      }
+      // Also index by registration number for vehicles
+      if (c.registration_no) {
+        dbRowMap.set(`reg:${c.registration_no.trim()}`, c);
+      }
+    });
     console.log(`🔑 Built DB lookup map with ${dbRowMap.size} keys`);
     
     if (!rows || rows.length <= 1) {
@@ -213,13 +199,11 @@ existingCustomers.forEach(c => {
       let customer;
       
       if (tabType === 'life') {
-        let rawStatus = (getCell(row, 'status') || 'due').trim();
-        const statusLower = rawStatus.toLowerCase();
-        if (statusLower === 'due' || statusLower === 'pending') rawStatus = 'DUE';
-        else if (statusLower === 'renewed' || statusLower === 'done') rawStatus = 'RENEWED';
-        else if (statusLower === 'not renewed' || statusLower === 'lost' || statusLower === 'notrenewed') rawStatus = 'NOT RENEWED';
-        else if (statusLower === 'inprocess' || statusLower === 'in process' || statusLower === 'in-process') rawStatus = 'INPROCESS';
-        else rawStatus = rawStatus.toUpperCase();
+        let rawStatus = (getCell(row, 'status') || 'due').toLowerCase().trim();
+        if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
+        else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
+        else if (rawStatus === 'not renewed' || rawStatus === 'lost' || rawStatus === 'notrenewed') rawStatus = 'not renewed';
+        else if (rawStatus === 'inprocess' || rawStatus === 'in process' || rawStatus === 'in-process') rawStatus = 'inprocess';
         
         customer = {
           name: getCell(row, 'name'),
@@ -246,23 +230,21 @@ existingCustomers.forEach(c => {
           reason: ''
         };
       } else {
-        let rawStatus = (getCell(row, 'status') || 'due').trim();
-        const statusLower = rawStatus.toLowerCase();
-        if (statusLower === 'due' || statusLower === 'pending') rawStatus = 'DUE';
-        else if (statusLower === 'renewed' || statusLower === 'done') rawStatus = 'RENEWED';
-        else if (statusLower === 'not renewed' || statusLower === 'lost' || statusLower === 'notrenewed') rawStatus = 'NOT RENEWED';
-        else if (statusLower === 'inprocess' || statusLower === 'in process' || statusLower === 'in-process') rawStatus = 'INPROCESS';
-        else rawStatus = rawStatus.toUpperCase();
+        let rawStatus = (getCell(row, 'status') || 'due').toLowerCase().trim();
+        if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
+        else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
+        else if (rawStatus === 'not renewed' || rawStatus === 'lost' || rawStatus === 'notrenewed') rawStatus = 'not renewed';
+        else if (rawStatus === 'inprocess' || rawStatus === 'in process' || rawStatus === 'in-process') rawStatus = 'inprocess';
         
         const originalType = getCell(row, 'vertical');
         const sheetVertical = originalType.toLowerCase().trim().replace(/[\s-_]/g, '');
-        let vertical = 'NON-MOTOR';
-        if (sheetVertical === 'motor') vertical = 'MOTOR';
-        else if (sheetVertical === 'health') vertical = 'HEALTH';
-        else if (sheetVertical === 'nonmotor') vertical = 'NON-MOTOR';
-        else if (sheetVertical.includes('motor') && !sheetVertical.includes('non')) vertical = 'MOTOR';
-        else if (sheetVertical.includes('health')) vertical = 'HEALTH';
-        else vertical = 'NON-MOTOR';
+        let vertical = 'non-motor';
+        if (sheetVertical === 'motor') vertical = 'motor';
+        else if (sheetVertical === 'health') vertical = 'health';
+        else if (sheetVertical === 'nonmotor') vertical = 'non-motor';
+        else if (sheetVertical.includes('motor') && !sheetVertical.includes('non')) vertical = 'motor';
+        else if (sheetVertical.includes('health')) vertical = 'health';
+        else vertical = 'non-motor';
         
         const modifiedExpiry = this.formatDate(getCell(row, 'renewal_date'));
         const dateOfExpiry = this.formatDate(getCell(row, 'od_expiry_date'));
@@ -316,38 +298,16 @@ existingCustomers.forEach(c => {
       
       // Try to find existing customer in DB
       const sheetRowNumber = i + 2;
-      let existingCustomer = null;
-
-// 1️⃣ Policy number
-if (customer.current_policy_no && customer.current_policy_no.trim()) {
-  existingCustomer = dbRowMap.get(
-    `policy:${customer.current_policy_no.trim().toLowerCase()}`
-  );
-}
-
-// 2️⃣ Registration number
-if (!existingCustomer && customer.registration_no && customer.registration_no.trim()) {
-  existingCustomer = dbRowMap.get(
-    `reg:${customer.registration_no.trim().toLowerCase()}`
-  );
-}
-
-// 3️⃣ Mobile number
-if (!existingCustomer && customer.mobile_number && customer.mobile_number.trim()) {
-  existingCustomer = dbRowMap.get(
-    `mobile:${customer.mobile_number.trim()}`
-  );
-}      
-      // Fallback: try by policy number (case-insensitive)
-      if (!existingCustomer && customer.current_policy_no && customer.current_policy_no.trim()) {
-        const policyKey = `policy:${customer.current_policy_no.trim().toLowerCase()}`;
-        existingCustomer = dbRowMap.get(policyKey);
+      let existingCustomer = dbRowMap.get(`row:${sheetRowNumber}`);
+      
+      // Fallback: try by policy number
+      if (!existingCustomer && customer.current_policy_no) {
+        existingCustomer = dbRowMap.get(`policy:${customer.current_policy_no.trim()}`);
       }
       
-      // Fallback: try by registration number (case-insensitive)
-      if (!existingCustomer && customer.registration_no && customer.registration_no.trim()) {
-        const regKey = `reg:${customer.registration_no.trim().toLowerCase()}`;
-        existingCustomer = dbRowMap.get(regKey);
+      // Fallback: try by registration number
+      if (!existingCustomer && customer.registration_no) {
+        existingCustomer = dbRowMap.get(`reg:${customer.registration_no.trim()}`);
       }
       
       try {
