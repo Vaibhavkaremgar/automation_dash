@@ -199,11 +199,12 @@ class InsuranceSyncService {
       let customer;
       
       if (tabType === 'life') {
-        let rawStatus = (getCell(row, 'status') || 'due').toLowerCase().trim();
-        if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
-        else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
-        else if (rawStatus === 'not renewed' || rawStatus === 'lost' || rawStatus === 'notrenewed') rawStatus = 'not renewed';
-        else if (rawStatus === 'inprocess' || rawStatus === 'in process' || rawStatus === 'in-process') rawStatus = 'inprocess';
+        const originalStatus = getCell(row, 'status') || 'due';
+        let normalizedStatus = originalStatus.toLowerCase().trim();
+        if (normalizedStatus === 'due' || normalizedStatus === 'pending') normalizedStatus = 'due';
+        else if (normalizedStatus === 'renewed' || normalizedStatus === 'done') normalizedStatus = 'renewed';
+        else if (normalizedStatus === 'not renewed' || normalizedStatus === 'lost' || normalizedStatus === 'notrenewed') normalizedStatus = 'not renewed';
+        else if (normalizedStatus === 'inprocess' || normalizedStatus === 'in process' || normalizedStatus === 'in-process') normalizedStatus = 'inprocess';
         
         customer = {
           name: getCell(row, 'name'),
@@ -215,7 +216,7 @@ class InsuranceSyncService {
           premium_mode: getCell(row, 'premium_mode'),
           renewal_date: this.formatDate(getCell(row, 'renewal_date')),
           payment_date: this.formatDate(getCell(row, 'payment_date')),
-          status: rawStatus,
+          status: originalStatus,
           thank_you_sent: getCell(row, 'thank_you_sent'),
           vertical: 'life',
           notes: getCell(row, 'notes'),
@@ -230,11 +231,12 @@ class InsuranceSyncService {
           reason: ''
         };
       } else {
-        let rawStatus = (getCell(row, 'status') || 'due').toLowerCase().trim();
-        if (rawStatus === 'due' || rawStatus === 'pending') rawStatus = 'due';
-        else if (rawStatus === 'renewed' || rawStatus === 'done') rawStatus = 'renewed';
-        else if (rawStatus === 'not renewed' || rawStatus === 'lost' || rawStatus === 'notrenewed') rawStatus = 'not renewed';
-        else if (rawStatus === 'inprocess' || rawStatus === 'in process' || rawStatus === 'in-process') rawStatus = 'inprocess';
+        const originalStatus = getCell(row, 'status') || 'due';
+        let normalizedStatus = originalStatus.toLowerCase().trim();
+        if (normalizedStatus === 'due' || normalizedStatus === 'pending') normalizedStatus = 'due';
+        else if (normalizedStatus === 'renewed' || normalizedStatus === 'done') normalizedStatus = 'renewed';
+        else if (normalizedStatus === 'not renewed' || normalizedStatus === 'lost' || normalizedStatus === 'notrenewed') normalizedStatus = 'not renewed';
+        else if (normalizedStatus === 'inprocess' || normalizedStatus === 'in process' || normalizedStatus === 'in-process') normalizedStatus = 'inprocess';
         
         const originalType = getCell(row, 'vertical');
         const sheetVertical = originalType.toLowerCase().trim().replace(/[\s-_]/g, '');
@@ -265,7 +267,7 @@ class InsuranceSyncService {
           od_expiry_date: dateOfExpiry,
           tp_expiry_date: this.formatDate(getCell(row, 'tp_expiry_date')),
           payment_date: this.formatDate(getCell(row, 'payment_date')),
-          status: rawStatus,
+          status: originalStatus,
           thank_you_sent: getCell(row, 'thank_you_sent'),
           new_policy_no: getCell(row, 'new_policy_no'),
           new_company: getCell(row, 'new_company'),
@@ -704,7 +706,7 @@ class InsuranceSyncService {
             new_company: customer.new_company,
             product_type: customer.product_type,
             product_model: customer.product_model,
-            vertical: customer.vertical,
+            vertical: customer.product || customer.vertical,
             product: customer.product,
             notes: customer.notes,
             cheque_no: customer.cheque_no,
