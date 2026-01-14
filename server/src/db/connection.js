@@ -17,6 +17,18 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.error('❌ Database connection error:', err.message);
   } else {
     console.log('✅ Connected to SQLite database');
+    
+    // Enable WAL mode for better concurrent access
+    db.run('PRAGMA journal_mode = WAL', (err) => {
+      if (err) {
+        console.error('⚠️ Could not enable WAL mode:', err.message);
+      } else {
+        console.log('✅ WAL mode enabled for better concurrency');
+      }
+    });
+    
+    // Set busy timeout to 5 seconds (handles concurrent writes)
+    db.run('PRAGMA busy_timeout = 5000');
   }
 });
 
@@ -399,6 +411,10 @@ async function runMigrations() {
       if (!colNames.includes('s_no')) {
         await run(`ALTER TABLE insurance_customers ADD COLUMN s_no TEXT`);
       }
+      if (!colNames.includes('sheet_row_number')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN sheet_row_number INTEGER`);
+        console.log('✅ Added sheet_row_number column for stable ID mapping');
+      }
       if (!colNames.includes('amount')) {
         await run(`ALTER TABLE insurance_customers ADD COLUMN amount REAL`);
       }
@@ -541,6 +557,7 @@ async function runMigrations() {
     await run('CREATE INDEX IF NOT EXISTS idx_insurance_customers_user_vertical ON insurance_customers(user_id, vertical)');
     await run('CREATE INDEX IF NOT EXISTS idx_insurance_customers_status ON insurance_customers(status)');
     await run('CREATE INDEX IF NOT EXISTS idx_insurance_customers_renewal_date ON insurance_customers(renewal_date)');
+    await run('CREATE INDEX IF NOT EXISTS idx_insurance_customers_sheet_row ON insurance_customers(user_id, sheet_row_number)');
     console.log('✅ Database indexes created');
   } catch (error) {
     console.error('❌ Migration error:', error.message);

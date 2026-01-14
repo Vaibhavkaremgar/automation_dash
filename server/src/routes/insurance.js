@@ -427,6 +427,18 @@ router.get('/messages', (req, res) => {
 
 // Sync from Google Sheets
 router.post('/sync/from-sheet', activityLogger, async (req, res) => {
+  const syncMutex = require('../utils/syncMutex');
+  
+  // Check if sync already in progress for this user
+  if (syncMutex.isLocked(req.user.id)) {
+    return res.status(409).json({ 
+      error: 'Sync already in progress',
+      message: 'Please wait for the current sync to complete'
+    });
+  }
+  
+  const release = await syncMutex.acquire(req.user.id);
+  
   try {
     console.log('\n========== SYNC FROM SHEET STARTED ==========');
     console.log('User ID:', req.user.id);
@@ -493,11 +505,25 @@ router.post('/sync/from-sheet', activityLogger, async (req, res) => {
     console.error('Error stack:', error.stack);
     console.log('========== SYNC FROM SHEET FAILED ==========\n');
     res.status(500).json({ error: error.message });
+  } finally {
+    release(); // Always release lock
   }
 });
 
 // Sync to Google Sheets
 router.post('/sync/to-sheet', activityLogger, async (req, res) => {
+  const syncMutex = require('../utils/syncMutex');
+  
+  // Check if sync already in progress for this user
+  if (syncMutex.isLocked(req.user.id)) {
+    return res.status(409).json({ 
+      error: 'Sync already in progress',
+      message: 'Please wait for the current sync to complete'
+    });
+  }
+  
+  const release = await syncMutex.acquire(req.user.id);
+  
   try {
     const { deletedCustomers = [] } = req.body; // Accept deleted customers array
     const { get } = require('../db/connection');
@@ -557,6 +583,8 @@ router.post('/sync/to-sheet', activityLogger, async (req, res) => {
   } catch (error) {
     console.error('Sync to sheet error:', error.message);
     res.status(500).json({ error: error.message });
+  } finally {
+    release(); // Always release lock
   }
 });
 
