@@ -368,7 +368,10 @@ export default function InsuranceDashboard() {
     }).sort(sortByExpiry);
     const overdue = filtered.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').sort(sortByExpiry);
     const renewed = filtered.filter(c => c.status.trim().toLowerCase() === 'renewed').sort(sortByExpiry);
-    const inProcess = filtered.filter(c => c.status.trim().toLowerCase() === 'inprocess').sort(sortByExpiry);
+    const inProcess = filtered.filter(c => {
+      const status = c.status.trim().toLowerCase().replace(/[\s-]/g, '');
+      return status === 'inprocess' || status === 'inprogress';
+    }).sort(sortByExpiry);
     
     return { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed, inProcess };
   };

@@ -199,12 +199,7 @@ class InsuranceSyncService {
       let customer;
       
       if (tabType === 'life') {
-        const originalStatus = getCell(row, 'status') || 'due';
-        let normalizedStatus = originalStatus.toLowerCase().trim();
-        if (normalizedStatus === 'due' || normalizedStatus === 'pending') normalizedStatus = 'due';
-        else if (normalizedStatus === 'renewed' || normalizedStatus === 'done') normalizedStatus = 'renewed';
-        else if (normalizedStatus === 'not renewed' || normalizedStatus === 'lost' || normalizedStatus === 'notrenewed') normalizedStatus = 'not renewed';
-        else if (normalizedStatus === 'inprocess' || normalizedStatus === 'in process' || normalizedStatus === 'in-process') normalizedStatus = 'inprocess';
+        const originalStatus = (getCell(row, 'status') || 'due').trim();
         
         customer = {
           name: getCell(row, 'name'),
@@ -231,12 +226,7 @@ class InsuranceSyncService {
           reason: ''
         };
       } else {
-        const originalStatus = getCell(row, 'status') || 'due';
-        let normalizedStatus = originalStatus.toLowerCase().trim();
-        if (normalizedStatus === 'due' || normalizedStatus === 'pending') normalizedStatus = 'due';
-        else if (normalizedStatus === 'renewed' || normalizedStatus === 'done') normalizedStatus = 'renewed';
-        else if (normalizedStatus === 'not renewed' || normalizedStatus === 'lost' || normalizedStatus === 'notrenewed') normalizedStatus = 'not renewed';
-        else if (normalizedStatus === 'inprocess' || normalizedStatus === 'in process' || normalizedStatus === 'in-process') normalizedStatus = 'inprocess';
+        const originalStatus = (getCell(row, 'status') || 'due').trim();
         
         const originalType = getCell(row, 'vertical');
         const sheetVertical = originalType.toLowerCase().trim().replace(/[\s-_]/g, '');

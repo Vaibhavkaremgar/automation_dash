@@ -1176,7 +1176,10 @@ router.get('/reports', async (req, res) => {
     // Count by status (using actual status values: renewed, due, inprocess, not renewed)
     const renewedCount = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'renewed').length;
     const dueCount = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'due').length;
-    const inprocessCount = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'inprocess').length;
+    const inprocessCount = allCustomers.filter(c => {
+      const status = c.status?.toLowerCase().trim().replace(/[\s-]/g, '');
+      return status === 'inprocess' || status === 'inprogress';
+    }).length;
     const notRenewedCount = allCustomers.filter(c => c.status?.toLowerCase().trim() === 'not renewed').length;
     
     // Expiring this month = due customers with MODIFIED EXPIRY DATE or Policy Expiry Date in current month
@@ -1204,8 +1207,8 @@ router.get('/reports', async (req, res) => {
     // THIS MONTH PREMIUM: Renewed/InProcess customers with MODIFIED EXPIRY DATE or Policy Expiry Date in current month
     const now = new Date();
     const thisMonthCustomers = allCustomers.filter(c => {
-      const status = c.status?.toLowerCase().trim();
-      if (status !== 'renewed' && status !== 'inprocess') return false;
+      const status = c.status?.toLowerCase().trim().replace(/[\s-]/g, '');
+      if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false;
       // Prioritize MODIFIED EXPIRY DATE (renewal_date) over Policy Expiry Date (od_expiry_date)
       const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim());
       if (!dateStr) return false;
@@ -1222,8 +1225,8 @@ router.get('/reports', async (req, res) => {
     
     // THIS YEAR PREMIUM: Renewed/InProcess customers with MODIFIED EXPIRY DATE or Policy Expiry Date in current year
     const thisYearCustomers = allCustomers.filter(c => {
-      const status = c.status?.toLowerCase().trim();
-      if (status !== 'renewed' && status !== 'inprocess') return false;
+      const status = c.status?.toLowerCase().trim().replace(/[\s-]/g, '');
+      if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false;
       // Prioritize MODIFIED EXPIRY DATE (renewal_date) over Policy Expiry Date (od_expiry_date)
       const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim());
       if (!dateStr) return false;
