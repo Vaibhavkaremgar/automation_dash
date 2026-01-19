@@ -116,7 +116,7 @@ export default function InsuranceDashboard() {
   const [quickActionsLimit, setQuickActionsLimit] = useState(5);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
   const [showRenewalUpdateModal, setShowRenewalUpdateModal] = useState(false);
-  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { payment_date: string; cheque_no: string; bank_name: string; customer_id: string; agent_code: string; amount: string; new_policy_no: string; new_company: string; paid_by: string; remarks: string }>>({});
+  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { payment_date: string; cheque_no: string; bank_name: string; customer_id: string; agent_code: string; amount: string; new_policy_no: string; new_company: string; paid_by: string; remarks: string; status: string }>>({});
   const [deletedCustomers, setDeletedCustomers] = useState<Customer[]>([]); // Track deleted customers for sync
 
   // Field name mapping helper
@@ -934,7 +934,7 @@ export default function InsuranceDashboard() {
       <div className="space-y-4">
         {/* Stats */}
         {analytics && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Total Policies</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{analytics.totalCustomers}</p>
@@ -943,9 +943,9 @@ export default function InsuranceDashboard() {
               <h3 className="text-xs text-slate-400">Upcoming Renewals</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">{analytics.upcomingRenewals}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const renewed = customers.filter(c => c.status.trim().toLowerCase() === 'renewed'); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Renewed Policies</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{analytics.totalCustomers}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{customers.filter(c => c.status.trim().toLowerCase() === 'renewed').length}</p>
             </div>
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const expired = customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due'); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Expired Policies</h3>
@@ -1887,19 +1887,55 @@ export default function InsuranceDashboard() {
             const customer = customers.find(c => c.id === customerId);
             if (!customer) return null;
             
-            const data = bulkRenewalData[customerId] || { payment_date: '', cheque_no: '', bank_name: '', customer_id: '', agent_code: '', amount: '', new_policy_no: '', new_company: '', paid_by: '', remarks: '' };
+            const data = bulkRenewalData[customerId] || { payment_date: '', cheque_no: '', bank_name: '', customer_id: '', agent_code: '', amount: '', new_policy_no: '', new_company: '', paid_by: '', remarks: '', status: 'RENEWED' };
             
             return (
               <div key={customerId} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 space-y-3">
-                <div className="flex justify-between items-center border-b border-slate-600 pb-2">
-                  <div>
-                    <h4 className="font-bold text-white">{customer.name}</h4>
-                    <p className="text-xs text-slate-300">{customer.registration_no} - {customer.company}</p>
+                <div className="border-b border-slate-600 pb-3 mb-3">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-bold text-white text-lg">{customer.name}</h4>
+                      <p className="text-xs text-slate-300 mt-1">{customer.mobile_number}</p>
+                    </div>
+                    <p className="text-sm text-cyan-400 font-bold">₹{customer.premium?.toLocaleString()}</p>
                   </div>
-                  <p className="text-sm text-cyan-400 font-bold">Current: ₹{customer.premium?.toLocaleString()}</p>
+                  {(() => {
+                    const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
+                    if (isRenewed && (customer.new_policy_no || customer.new_company)) {
+                      return (
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div><span className="text-slate-400">New Policy No:</span> <span className="text-green-400 font-medium">{customer.new_policy_no || 'N/A'}</span></div>
+                          <div><span className="text-slate-400">New Company:</span> <span className="text-green-400 font-medium">{customer.new_company || 'N/A'}</span></div>
+                          <div><span className="text-slate-400">G Code:</span> <span className="text-cyan-400 font-medium">{customer.g_code || 'N/A'}</span></div>
+                          <div><span className="text-slate-400">Vehicle:</span> <span className="text-white font-medium">{customer.registration_no || 'N/A'}</span></div>
+                          <div className="col-span-2"><span className="text-slate-400">Old Policy:</span> <span className="text-slate-500 text-[10px]">{customer.current_policy_no || 'N/A'} ({customer.company || 'N/A'})</span></div>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div><span className="text-slate-400">Policy No:</span> <span className="text-white font-medium">{customer.current_policy_no || 'N/A'}</span></div>
+                          <div><span className="text-slate-400">Company:</span> <span className="text-white font-medium">{customer.company || 'N/A'}</span></div>
+                          <div><span className="text-slate-400">Vehicle:</span> <span className="text-white font-medium">{customer.registration_no || 'N/A'}</span></div>
+                          <div><span className="text-slate-400">G Code:</span> <span className="text-cyan-400 font-medium">{customer.g_code || 'N/A'}</span></div>
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">Status *</label>
+                    <select
+                      className="w-full p-2 border rounded bg-slate-700 text-white text-sm"
+                      value={data.status}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, status: e.target.value}})}
+                    >
+                      <option value="RENEWED">RENEWED</option>
+                      <option value="INPROCESS">INPROCESS</option>
+                    </select>
+                  </div>
                   <div>
                     <label className="text-xs text-slate-300 mb-1 block">DEPOSITED/PAYMENT DATE</label>
                     <Input
@@ -1970,7 +2006,7 @@ export default function InsuranceDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-slate-300 mb-1 block">New Policy Company</label>
+                    <label className="text-xs text-slate-300 mb-1 block">NEW POLICY COMPANY</label>
                     <Input
                       type="text"
                       placeholder={customer.company || 'Company'}
@@ -2007,13 +2043,15 @@ export default function InsuranceDashboard() {
           <div className="flex gap-3 pt-4 border-t border-slate-600 sticky bottom-0 bg-slate-800 p-3 -mx-1">
             <Button onClick={async () => {
               try {
+                console.log('Starting bulk update for', selectedCustomers.length, 'customers');
+                
                 for (const customerId of selectedCustomers) {
                   const customer = customers.find(c => c.id === customerId);
                   if (!customer) continue;
                   
                   const data = bulkRenewalData[customerId] || {};
                   
-                  await api.put(`/api/insurance/customers/${customerId}`, {
+                  const updatePayload = {
                     ...customer,
                     payment_date: data.payment_date || customer.payment_date,
                     cheque_no: data.cheque_no || customer.cheque_no,
@@ -2025,20 +2063,30 @@ export default function InsuranceDashboard() {
                     new_company: data.new_company || customer.new_company,
                     paid_by: data.paid_by || customer.paid_by,
                     reason: data.remarks ? `${customer.reason || ''}\n${data.remarks} [${new Date().toLocaleString()}]` : customer.reason,
-                    status: 'RENEWED'
-                  });
+                    status: data.status || 'RENEWED'
+                  };
+                  
+                  console.log(`Updating customer ${customerId}:`, updatePayload);
+                  await api.put(`/api/insurance/customers/${customerId}`, updatePayload);
                 }
                 
-                // await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+                console.log('All customers updated, now syncing to sheet...');
+                const syncResult = await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+                console.log('Sync result:', syncResult.data);
                 
                 setShowRenewalUpdateModal(false);
                 setBulkRenewalData({});
                 setSelectedCustomers([]);
-                loadData();
-                alert(`✅ Updated and synced ${selectedCustomers.length} customer(s) successfully!`);
+                await loadData();
+                
+                if (syncResult.data.message === 'No changes to sync') {
+                  alert(`✅ Updated ${selectedCustomers.length} customer(s) in database!\n\nNote: Sheet already up to date.`);
+                } else {
+                  alert(`✅ Updated and synced ${selectedCustomers.length} customer(s)!\n\nSheet Updates:\n- Updated: ${syncResult.data.updated || 0}\n- Added: ${syncResult.data.added || 0}`);
+                }
               } catch (error) {
                 console.error('Update failed:', error);
-                alert('❌ Failed to update customers');
+                alert(`❌ Failed to update customers: ${error.response?.data?.error || error.message}`);
               }
             }}>Update All & Sync to Sheet</Button>
             <Button variant="outline" onClick={() => { setShowRenewalUpdateModal(false); setBulkRenewalData({}); }}>Cancel</Button>
