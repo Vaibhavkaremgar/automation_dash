@@ -117,7 +117,11 @@ export default function InsuranceDashboard() {
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
   const [showRenewalUpdateModal, setShowRenewalUpdateModal] = useState(false);
   const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { payment_date: string; cheque_no: string; bank_name: string; customer_id: string; agent_code: string; amount: string; new_policy_no: string; new_company: string; paid_by: string; remarks: string; status: string }>>({});
-  const [deletedCustomers, setDeletedCustomers] = useState<Customer[]>([]); // Track deleted customers for sync
+  const [deletedCustomers, setDeletedCustomers] = useState<Customer[]>([]);
+  const [renewalMonthFilter, setRenewalMonthFilter] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }); // Track deleted customers for sync
 
   // Field name mapping helper
   const mapFieldNameToBackend = (key: string): string => {
@@ -344,6 +348,21 @@ export default function InsuranceDashboard() {
           return String(value).toLowerCase().includes(searchLower);
         })
       );
+    }
+    
+    // Apply month filter
+    if (currentTab === 'renewals' && renewalMonthFilter) {
+      const [filterYear, filterMonth] = renewalMonthFilter.split('-').map(Number);
+      filtered = filtered.filter(c => {
+        const dateStr = getDisplayDate(c);
+        if (!dateStr) return false;
+        try {
+          const [d, m, y] = dateStr.split('/');
+          return parseInt(y) === filterYear && parseInt(m) === filterMonth;
+        } catch (e) {
+          return false;
+        }
+      });
     }
     
     const sortByExpiry = (a: Customer, b: Customer) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b);
@@ -1224,10 +1243,12 @@ export default function InsuranceDashboard() {
           {Object.entries(
             customers.reduce((acc, customer) => {
               const company = customer.company || 'Unknown';
-              if (!acc[company]) acc[company] = { count: 0, premium: 0, renewed: 0, due: 0, customers: [] };
+              if (!acc[company]) acc[company] = { count: 0, premium: 0, renewed: 0, inprocess: 0, due: 0, customers: [] };
               acc[company].count++;
               acc[company].premium += parseAmount(customer.premium);
               if (customer.status.trim().toLowerCase() === 'renewed') acc[company].renewed++;
+              const statusLower = customer.status.trim().toLowerCase().replace(/[\s-]/g, '');
+              if (statusLower === 'inprocess' || statusLower === 'inprogress') acc[company].inprocess++;
               if (customer.status.trim().toLowerCase() === 'due') acc[company].due++;
               acc[company].customers.push(customer);
               return acc;
@@ -1235,7 +1256,7 @@ export default function InsuranceDashboard() {
           ).map(([company, data]: [string, any]) => (
             <div key={company} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const sorted = [...data.customers].sort((a, b) => { const aIsDue = a.status.trim().toLowerCase() === 'due' ? 0 : 1; const bIsDue = b.status.trim().toLowerCase() === 'due' ? 0 : 1; return aIsDue - bIsDue; }); setDetailsModalTitle(`${company} - Customers`); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h4 className="text-sm font-medium text-white mb-1">{company}</h4>
-              <p className="text-xs text-slate-300">Total: {data.count} | <span className="text-green-400">Renewed: {data.renewed}</span> | <span className="text-red-400">Due: {data.due}</span></p>
+              <p className="text-xs text-slate-300">Total: {data.count} | <span className="text-green-400">Renewed: {data.renewed}</span> | <span className="text-blue-400">In Process: {data.inprocess}</span> | <span className="text-red-400">Due: {data.due}</span></p>
               <p className="text-base font-bold text-cyan-400">₹{data.premium.toLocaleString()}</p>
             </div>
           ))}
@@ -1254,12 +1275,20 @@ export default function InsuranceDashboard() {
       <div className="space-y-6">
         {/* Filter and Stats Section */}
         <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4 space-y-4">
-          <Input
-            placeholder="Search by name, mobile, vehicle, company, policy no, G code..."
-            value={renewalSearchTerm}
-            onChange={(e) => handleSearchChange('renewalSearch', e.target.value)}
-            className="w-full"
-          />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Input
+              placeholder="Search by name, mobile, vehicle, company, policy no, G code..."
+              value={renewalSearchTerm}
+              onChange={(e) => handleSearchChange('renewalSearch', e.target.value)}
+              className="w-full flex-1"
+            />
+            <input
+              type="month"
+              value={renewalMonthFilter}
+              onChange={(e) => setRenewalMonthFilter(e.target.value)}
+              className="px-3 py-2 border rounded bg-slate-700 text-white text-sm"
+            />
+          </div>
 
           {/* Statistics - Fixed */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -1573,8 +1602,15 @@ export default function InsuranceDashboard() {
     <div className="p-3 sm:p-4 md:p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">{getPageTitle()}</h1>
-        <div className="flex gap-3 items-center">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">{getPageTitle()}</h1>
+          {currentTab === 'customers' && (
+            <div className="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+              <p className="text-xs text-slate-400">Total Customers</p>
+              <p className="text-2xl font-bold text-cyan-400">{customers.length}</p>
+            </div>
+          )}
+        </div>
           {currentTab === 'customers' && (
             <Button onClick={() => {
               setDynamicFormData({});
@@ -1778,22 +1814,44 @@ export default function InsuranceDashboard() {
                         <p className="text-white">{customer.registration_no}</p>
                       </div>
                     )}
-                    {customer.company && (
-                      <div>
-                        <span className="text-slate-400">Company:</span>
-                        <p className="text-white">{customer.company}</p>
-                      </div>
-                    )}
+                    {(() => {
+                      const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
+                      if (isRenewed) {
+                        return (
+                          <>
+                            <div>
+                              <span className="text-slate-400">New Policy No:</span>
+                              <p className="text-green-400 font-bold">{customer.new_policy_no || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <span className="text-slate-400">New Company:</span>
+                              <p className="text-green-400 font-bold">{customer.new_company || 'N/A'}</p>
+                            </div>
+                          </>
+                        );
+                      } else {
+                        return (
+                          <>
+                            {customer.company && (
+                              <div>
+                                <span className="text-slate-400">Company:</span>
+                                <p className="text-white">{customer.company}</p>
+                              </div>
+                            )}
+                            {customer.current_policy_no && (
+                              <div>
+                                <span className="text-slate-400">Policy No:</span>
+                                <p className="text-cyan-400 font-bold">{customer.current_policy_no}</p>
+                              </div>
+                            )}
+                          </>
+                        );
+                      }
+                    })()}
                     {customer.g_code && (
                       <div>
                         <span className="text-slate-400">G Code:</span>
                         <p className="text-cyan-400 font-bold">{customer.g_code}</p>
-                      </div>
-                    )}
-                    {customer.current_policy_no && (
-                      <div>
-                        <span className="text-slate-400">Policy No:</span>
-                        <p className="text-cyan-400 font-bold">{customer.current_policy_no}</p>
                       </div>
                     )}
                     <div>
@@ -1933,7 +1991,7 @@ export default function InsuranceDashboard() {
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, status: e.target.value}})}
                     >
                       <option value="RENEWED">RENEWED</option>
-                      <option value="INPROCESS">INPROCESS</option>
+                      <option value="INPROCESS">IN PROCESS</option>
                     </select>
                   </div>
                   <div>
