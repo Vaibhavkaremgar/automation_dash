@@ -28,19 +28,6 @@ interface Customer {
   status: string;
   reason: string;
   vertical: string;
-  current_policy_no?: string;
-  new_policy_no?: string;
-  new_company?: string;
-  premium_mode?: string;
-  g_code?: string;
-  payment_date?: string;
-  cheque_no?: string;
-  bank_name?: string;
-  customer_id?: string;
-  agent_code?: string;
-  paid_by?: string;
-  notes?: string;
-  [key: string]: any;
 }
 
 interface Analytics {
@@ -53,7 +40,6 @@ interface Analytics {
   expiredPolicies?: number;
   expiringPolicies?: number;
   pendingPolicies?: number;
-  lostPolicies?: number;
   totalPremium?: number;
 }
 
@@ -97,8 +83,7 @@ export default function InsuranceDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [renewalStats, setRenewalStats] = useState({ reminders_today: 0, customers_reminded: 0 });
   const [renewalSearchTerm, setRenewalSearchTerm] = useState('');
-  const [renewalMonthFilter, setRenewalMonthFilter] = useState('all');
-  const [searchTimers, setSearchTimers] = useState<{[key: string]: ReturnType<typeof setTimeout>}>({});
+  const [searchTimers, setSearchTimers] = useState<{[key: string]: NodeJS.Timeout}>({});
   const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteCustomerId, setNoteCustomerId] = useState<number | null>(null);
@@ -131,7 +116,7 @@ export default function InsuranceDashboard() {
   const [quickActionsLimit, setQuickActionsLimit] = useState(5);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
   const [showRenewalUpdateModal, setShowRenewalUpdateModal] = useState(false);
-  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { payment_date: string; cheque_no: string; bank_name: string; customer_id: string; agent_code: string; amount: string; new_policy_no: string; new_company: string; paid_by: string; remarks: string; status: string }>>({});
+  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { payment_date: string; cheque_no: string; bank_name: string; customer_id: string; agent_code: string; amount: string; new_policy_no: string; new_company: string; paid_by: string; remarks: string }>>({});
   const [deletedCustomers, setDeletedCustomers] = useState<Customer[]>([]); // Track deleted customers for sync
 
   // Field name mapping helper
@@ -317,72 +302,6 @@ export default function InsuranceDashboard() {
     return isNaN(num) ? 0 : num;
   };
 
-  // Calculate next renewal date based on premium_mode
-  const calculateNextRenewalDate = (currentExpiryDate: string, premiumMode: string): string => {
-    if (!currentExpiryDate) return '';
-    
-    // Parse current date (DD/MM/YYYY format)
-    let day: number, month: number, year: number;
-    
-    if (currentExpiryDate.includes('/')) {
-      const parts = currentExpiryDate.split('/');
-      if (parts.length !== 3) return currentExpiryDate;
-      day = parseInt(parts[0]);
-      month = parseInt(parts[1]);
-      year = parseInt(parts[2]);
-    } else {
-      return currentExpiryDate;
-    }
-    
-    if (isNaN(day) || isNaN(month) || isNaN(year)) return currentExpiryDate;
-    
-    // Determine years to add based on premium_mode
-    let yearsToAdd = 1; // Default
-    
-    if (premiumMode) {
-      const modeStr = premiumMode.toLowerCase().trim();
-      // Extract number from premium_mode (e.g., 2 years -> 2, 3 -> 3)
-      const match = modeStr.match(/\d+/);
-      if (match) {
-        yearsToAdd = parseInt(match[0]);
-      }
-    }
-    
-    // Add years to get next renewal date
-    const nextYear = year + yearsToAdd;
-    
-    // Return in DD/MM/YYYY format
-    return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${nextYear}`;
-  };
-
-  // Helper functions to get display values for renewed customers
-  const getDisplayCompany = (customer: Customer) => {
-    // If status is renewed and new_company exists, show new_company
-    if (customer.status?.toLowerCase().trim() === 'renewed' && customer.new_company) {
-      return customer.new_company;
-    }
-    return customer.company;
-  };
-
-  const getDisplayPolicyNo = (customer: Customer) => {
-    // If status is renewed and new_policy_no exists, show new_policy_no
-    if (customer.status?.toLowerCase().trim() === 'renewed' && customer.new_policy_no) {
-      return customer.new_policy_no;
-    }
-    return customer.current_policy_no;
-  };
-
-  const getDisplayRenewalDate = (customer: Customer) => {
-    // If status is renewed, calculate next renewal date
-    if (customer.status?.toLowerCase().trim() === 'renewed') {
-      const currentExpiry = getDisplayDate(customer);
-      if (currentExpiry) {
-        return calculateNextRenewalDate(currentExpiry, customer.premium_mode || '');
-      }
-    }
-    return getDisplayDate(customer);
-  };
-
   const getDisplayDate = (customer: Customer) => {
     // Always prioritize renewal_date (MODIFIED EXPIRY DATE) first
     // Fall back to od_expiry_date (DATE OF EXPIRY) if renewal_date is empty
@@ -425,23 +344,6 @@ export default function InsuranceDashboard() {
           return String(value).toLowerCase().includes(searchLower);
         })
       );
-    }
-    
-    // Month filter
-    if (renewalMonthFilter !== 'all') {
-      const now = new Date();
-      const targetMonth = parseInt(renewalMonthFilter);
-      filtered = filtered.filter(c => {
-        const dateStr = getDisplayDate(c);
-        if (!dateStr) return false;
-        try {
-          const [d, m, y] = dateStr.split('/');
-          const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-          return date.getMonth() === targetMonth && date.getFullYear() === now.getFullYear();
-        } catch (e) {
-          return false;
-        }
-      });
     }
     
     const sortByExpiry = (a: Customer, b: Customer) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b);
@@ -607,16 +509,16 @@ export default function InsuranceDashboard() {
     if (compact) {
       return (
         <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all hover:scale-[1.01]`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
-          <div className=flex items-center justify-between gap-3>
-            <div className=flex-1 min-w-0>
-              <h4 className=font-medium text-white text-sm truncate>{customer.name}</h4>
-              <div className=flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-1>
-                {customer.g_code && <span className=text-cyan-400 font-semibold>G: {customer.g_code}</span>}
-                <span className=text-cyan-400>Pol: {customer.current_policy_no || '-'}</span>
-                <span className=text-orange-400 font-medium>{getDisplayDate(customer)}</span>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-white text-sm truncate">{customer.name}</h4>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-1">
+                {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
+                <span className="text-cyan-400">Pol: {customer.current_policy_no || '-'}</span>
+                <span className="text-orange-400 font-medium">{getDisplayDate(customer)}</span>
               </div>
             </div>
-            <span className=text-sm font-bold text-white whitespace-nowrap>₹{parseAmount(customer.premium).toLocaleString()}</span>
+            <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
           </div>
         </div>
       );
@@ -624,58 +526,58 @@ export default function InsuranceDashboard() {
     
     return (
       <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
-        <div className=flex items-start gap-3>
+        <div className="flex items-start gap-3">
           <input
-            type=checkbox
+            type="checkbox"
             checked={isSelected}
             onChange={(e) => { e.stopPropagation(); toggleCustomerSelection(customer.id); }}
             onClick={(e) => e.stopPropagation()}
-            className=w-4 h-4 flex-shrink-0 mt-1
+            className="w-4 h-4 flex-shrink-0 mt-1"
           />
-          <div className=flex-1 min-w-0>
-            <div className=flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-3>
-              <h4 className=font-medium text-white text-sm>{customer.name}</h4>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-3">
+              <h4 className="font-medium text-white text-sm">{customer.name}</h4>
               {isMotor && customer.registration_no && (
-                <span className=text-slate-300>× {customer.registration_no}</span>
+                <span className="text-slate-300">• {customer.registration_no}</span>
               )}
-              <span className=text-slate-300>× {getDisplayCompany(customer)}</span>
+              <span className="text-slate-300">• {customer.company}</span>
               {customer.g_code && (
-                <span className=text-cyan-400 font-medium>× G: {customer.g_code}</span>
+                <span className="text-cyan-400 font-medium">• G: {customer.g_code}</span>
               )}
-              <span className=text-cyan-400 font-medium>× Pol: {getDisplayPolicyNo(customer) || '-'}</span>
-              <span className=text-orange-400 font-medium>× {getDisplayRenewalDate(customer)}</span>
-              <span className=font-bold text-white text-base>× ₹{parseAmount(customer.premium).toLocaleString()}</span>
+              <span className="text-cyan-400 font-medium">• Pol: {customer.current_policy_no || '-'}</span>
+              <span className="text-orange-400 font-medium">• {getDisplayDate(customer)}</span>
+              <span className="font-bold text-white text-base">• ₹{parseAmount(customer.premium).toLocaleString()}</span>
             </div>
-            <div className=flex flex-wrap gap-2>
+            <div className="flex flex-wrap gap-2">
               {isSelected && (
                 <select 
-                  className=px-3 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium hover:bg-slate-700 cursor-pointer
+                  className="px-3 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium hover:bg-slate-700 cursor-pointer"
                   onChange={(e) => { e.stopPropagation(); if (e.target.value) { handleBulkStatusUpdate(e.target.value); e.target.value = ''; } }}
                   onClick={(e) => e.stopPropagation()}
-                  defaultValue=
+                  defaultValue=""
                 >
-                  <option value= disabled>Mark as...</option>
-                  <option value=due>” DUE</option>
-                  <option value=renewed> Renewed</option>
-                  <option value=not renewed> Not Renewed</option>
-                  <option value=inprocess>” In Process</option>
+                  <option value="" disabled>Mark as...</option>
+                  <option value="due">🔴 DUE</option>
+                  <option value="renewed">🟢 Renewed</option>
+                  <option value="not renewed">⚫ Not Renewed</option>
+                  <option value="inprocess">🔵 In Process</option>
                 </select>
               )}
               {!isSelected && (
                 <>
                   <button
-                    className=px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all opacity-60
+                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all opacity-60"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      alert('”’ Premium Feature\n\nUpgrade to Voice Bot Premium to enable automated calling.\n\nContact support to upgrade.');
+                      alert('🔒 Premium Feature\n\nUpgrade to Voice Bot Premium to enable automated calling.\n\nContact support to upgrade.');
                     }}
-                    title=Premium Feature
+                    title="Premium Feature"
                   >
-                    “ž”’
+                    📞🔒
                   </button>
                   <button
-                    className=px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all
+                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -712,31 +614,31 @@ export default function InsuranceDashboard() {
                       window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
                     }}
                   >
-                    ’¬
+                    💬
                   </button>
                   <button
-                    type=button
-                    className=px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all
+                    type="button"
+                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       setNoteCustomerId(customer.id);
                       setShowNoteModal(true);
                     }}
-                    title=Add Note/Report
+                    title="Add Note/Report"
                   >
-                    “
+                    📝
                   </button>
                   <button
-                    className=px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all
+                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       viewMessageHistory(customer.id);
                     }}
-                    title=Message History
+                    title="Message History"
                   >
-                    “
+                    📨
                   </button>
                 </>
               )}
@@ -825,7 +727,7 @@ export default function InsuranceDashboard() {
       
       const matchedFieldNames = matchedFields.map(f => fieldLabels[f] || f).join(', ');
       
-      if (!confirm(`✓  Potential Duplicate Found!\n\nSimilarity: ${similarityPercent}% (${matchCount}/${totalFields} fields match)\n\nExisting Customer:\nName: ${existing.name}\nMobile: ${existing.mobile_number}\nPolicy: ${existing.current_policy_no || 'N/A'}\n\nMatching Fields:\n${matchedFieldNames}\n\nClick OK to add as NEW customer anyway, or Cancel to go back.`)) {
+      if (!confirm(`⚠️ Potential Duplicate Found!\n\nSimilarity: ${similarityPercent}% (${matchCount}/${totalFields} fields match)\n\nExisting Customer:\nName: ${existing.name}\nMobile: ${existing.mobile_number}\nPolicy: ${existing.current_policy_no || 'N/A'}\n\nMatching Fields:\n${matchedFieldNames}\n\nClick OK to add as NEW customer anyway, or Cancel to go back.`)) {
         return;
       }
     }
@@ -867,9 +769,9 @@ export default function InsuranceDashboard() {
       console.log('Sync result:', syncResult.data);
       
       if (syncResult.data.message === 'No changes to sync') {
-        alert('✓ Customer added to database successfully!\n\nNote: Sheet already up to date.');
+        alert('✅ Customer added to database successfully!\n\nNote: Sheet already up to date.');
       } else {
-        alert(`✓ Customer added and synced to sheet!\n\nUpdated: ${syncResult.data.updated || 0} rows\nAdded: ${syncResult.data.added || 0} rows`);
+        alert(`✅ Customer added and synced to sheet!\n\nUpdated: ${syncResult.data.updated || 0} rows\nAdded: ${syncResult.data.added || 0} rows`);
       }
       
       setShowAddModal(false);
@@ -955,21 +857,21 @@ export default function InsuranceDashboard() {
           });
           
           if (syncResult.data.deleted > 0) {
-            alert(`✓ Customer deleted from database and sheet!\n\nDeleted: ${syncResult.data.deleted} row(s)`);
+            alert(`✅ Customer deleted from database and sheet!\n\nDeleted: ${syncResult.data.deleted} row(s)`);
           } else {
-            alert('✓ Customer deleted from database!\n\nNote: No matching row found in sheet.');
+            alert('✅ Customer deleted from database!\n\nNote: No matching row found in sheet.');
           }
           
           // Clear deleted customers after successful sync
           setDeletedCustomers([]);
         } catch (syncError) {
           console.error('Auto-sync failed:', syncError);
-          alert('✓ Customer deleted from database!\n\n✓  Failed to sync deletion to sheet. Please sync manually.');
+          alert('✅ Customer deleted from database!\n\n⚠️ Failed to sync deletion to sheet. Please sync manually.');
         }
       }
     } catch (error) {
       console.error('Failed to delete customer:', error);
-      alert('✓× Failed to delete customer: ' + (error.response?.data?.error || error.message));
+      alert('❌ Failed to delete customer: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -981,13 +883,13 @@ export default function InsuranceDashboard() {
         tabName: SHEET_TAB_NAME
       });
       if (!silent) {
-        alert(`✓ Sync from sheet completed! Imported: ${result.data.imported} customers`);
+        alert(`✅ Sync from sheet completed! Imported: ${result.data.imported} customers`);
       }
       await loadData();
     } catch (error) {
       console.error('Failed to sync from sheets:', error);
       if (!silent) {
-        alert(`✓× Sync from sheet failed: ${error.response?.data?.error || error.message}`);
+        alert(`❌ Sync from sheet failed: ${error.response?.data?.error || error.message}`);
       }
     } finally {
       setSyncing(false);
@@ -1029,49 +931,49 @@ export default function InsuranceDashboard() {
     const todayTasks = [...expiringToday, ...expiring1Day, ...expiring3, ...expiring7];
     
     return (
-      <div className=space-y-4>
+      <div className="space-y-4">
         {/* Stats */}
         {analytics && (
-          <div className=grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2>
-            <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
-              <h3 className=text-xs text-slate-400>Total Policies</h3>
-              <p className=text-xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent>{analytics.totalCustomers}</p>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Total Policies</h3>
+              <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{analytics.totalCustomers}</p>
             </div>
-            <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all onClick={() => { const upcoming = customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }); setDetailsModalTitle('Upcoming Renewals (Next 30 Days)'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
-              <h3 className=text-xs text-slate-400>Upcoming Renewals</h3>
-              <p className=text-xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent>{analytics.upcomingRenewals}</p>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const upcoming = customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }); setDetailsModalTitle('Upcoming Renewals (Next 30 Days)'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Upcoming Renewals</h3>
+              <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">{analytics.upcomingRenewals}</p>
             </div>
-            <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all onClick={() => { const renewed = customers.filter(c => c.status.trim().toLowerCase() === 'renewed'); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
-              <h3 className=text-xs text-slate-400>Renewed Policies</h3>
-              <p className=text-xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent>{customers.filter(c => c.status.trim().toLowerCase() === 'renewed').length}</p>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Renewed Policies</h3>
+              <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{analytics.totalCustomers}</p>
             </div>
-            <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all onClick={() => { const expired = customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due'); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
-              <h3 className=text-xs text-slate-400>Expired Policies</h3>
-              <p className=text-xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent>{analytics.expiredPolicies || 0}</p>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const expired = customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due'); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Expired Policies</h3>
+              <p className="text-2xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">{analytics.expiredPolicies || 0}</p>
             </div>
-            <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Year Renewed/InProcess Policies'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
-              <h3 className=text-xs text-slate-400>This Year Premium</h3>
-              <p className=text-xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent>₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Year Renewed/InProcess Policies'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">This Year Premium</h3>
+              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </div>
-            <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Month Renewed/InProcess Policies'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
-              <h3 className=text-xs text-slate-400>This Month Premium</h3>
-              <p className=text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent>₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Month Renewed/InProcess Policies'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">This Month Premium</h3>
+              <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </div>
           </div>
         )}
 
         {/* Quick Actions */}
-        <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4>
-          <h3 className=text-base font-semibold mb-3 text-white flex items-center gap-2>
-            Quick Actions - Today's Priority ({todayTasks.length})
+        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4">
+          <h3 className="text-base font-semibold mb-3 text-white flex items-center gap-2">
+            ⚡ Quick Actions - Today's Priority ({todayTasks.length})
           </h3>
           
           {todayTasks.length === 0 ? (
-            <div className=text-center py-8 text-slate-400>
-              <p className=text-lg>✓ All caught up! No urgent tasks today.</p>
+            <div className="text-center py-8 text-slate-400">
+              <p className="text-lg">✅ All caught up! No urgent tasks today.</p>
             </div>
           ) : (
-            <div className=space-y-2>
+            <div className="space-y-2">
               {todayTasks.slice(0, quickActionsLimit).map(customer => {
                 const daysLeft = getDaysUntilExpiry(customer);
                 const isOverdue = daysLeft < 0;
@@ -1081,9 +983,9 @@ export default function InsuranceDashboard() {
               })}
               
               {todayTasks.length > quickActionsLimit && (
-                <div className=text-center pt-2>
+                <div className="text-center pt-2">
                   <Button 
-                    variant=outline 
+                    variant="outline" 
                     onClick={() => setQuickActionsLimit(prev => prev + 10)}
                   >
                     Show More ({todayTasks.length - quickActionsLimit} remaining)
@@ -1092,9 +994,9 @@ export default function InsuranceDashboard() {
               )}
               
               {quickActionsLimit > 5 && (
-                <div className=text-center pt-2>
+                <div className="text-center pt-2">
                   <Button 
-                    variant=outline 
+                    variant="outline" 
                     onClick={() => setQuickActionsLimit(5)}
                   >
                     Show Less
@@ -1109,40 +1011,40 @@ export default function InsuranceDashboard() {
         <ProfileActivity />
 
         {/* Quick Stats Grid */}
-        <div className=grid grid-cols-1 md:grid-cols-3 gap-3>
-          <div className=bg-red-500/10 border border-red-500/30 rounded-lg p-3 cursor-pointer hover:bg-red-500/20 transition-all onClick={() => { setDetailsModalTitle('Expiring Today'); setDetailsModalCustomers(expiringToday); setShowDetailsModal(true); }}>
-            <h4 className=text-xs text-red-300 mb-1>Expiring Today</h4>
-            <p className=text-2xl font-bold text-red-400>{expiringToday.length}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => { setDetailsModalTitle('Expiring Today'); setDetailsModalCustomers(expiringToday); setShowDetailsModal(true); }}>
+            <h4 className="text-xs text-red-300 mb-1">Expiring Today</h4>
+            <p className="text-2xl font-bold text-red-400">{expiringToday.length}</p>
             <Button 
-              size=sm 
-              variant=outline 
-              className=mt-2 w-full text-xs
+              size="sm" 
+              variant="outline" 
+              className="mt-2 w-full text-xs"
               onClick={(e) => { e.stopPropagation(); setDetailsModalTitle('Expiring Today'); setDetailsModalCustomers(expiringToday); setShowDetailsModal(true); }}
             >
               View Details
             </Button>
           </div>
           
-          <div className=bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 cursor-pointer hover:bg-orange-500/20 transition-all onClick={() => { const all7Days = [...expiringToday, ...expiring1Day, ...expiring7]; setDetailsModalTitle('Expiring in 7 Days'); setDetailsModalCustomers(all7Days); setShowDetailsModal(true); }}>
-            <h4 className=text-xs text-orange-300 mb-1>Expiring in 7 Days</h4>
-            <p className=text-2xl font-bold text-orange-400>{expiringToday.length + expiring1Day.length + expiring7.length}</p>
+          <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 cursor-pointer hover:bg-orange-500/20 transition-all" onClick={() => { const all7Days = [...expiringToday, ...expiring1Day, ...expiring7]; setDetailsModalTitle('Expiring in 7 Days'); setDetailsModalCustomers(all7Days); setShowDetailsModal(true); }}>
+            <h4 className="text-xs text-orange-300 mb-1">Expiring in 7 Days</h4>
+            <p className="text-2xl font-bold text-orange-400">{expiringToday.length + expiring1Day.length + expiring7.length}</p>
             <Button 
-              size=sm 
-              variant=outline 
-              className=mt-2 w-full text-xs
+              size="sm" 
+              variant="outline" 
+              className="mt-2 w-full text-xs"
               onClick={(e) => { e.stopPropagation(); const all7Days = [...expiringToday, ...expiring1Day, ...expiring7]; setDetailsModalTitle('Expiring in 7 Days'); setDetailsModalCustomers(all7Days); setShowDetailsModal(true); }}
             >
               View Details
             </Button>
           </div>
           
-          <div className=bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 cursor-pointer hover:bg-yellow-500/20 transition-all onClick={() => { const { expiring15, expiring30 } = categorizeCustomers(); const all30Days = [...expiring15, ...expiring30]; setDetailsModalTitle('Expiring in 30 Days'); setDetailsModalCustomers(all30Days); setShowDetailsModal(true); }}>
-            <h4 className=text-xs text-yellow-300 mb-1>Expiring in 30 Days</h4>
-            <p className=text-2xl font-bold text-yellow-400>{categorizeCustomers().expiring15.length + categorizeCustomers().expiring30.length}</p>
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 cursor-pointer hover:bg-yellow-500/20 transition-all" onClick={() => { const { expiring15, expiring30 } = categorizeCustomers(); const all30Days = [...expiring15, ...expiring30]; setDetailsModalTitle('Expiring in 30 Days'); setDetailsModalCustomers(all30Days); setShowDetailsModal(true); }}>
+            <h4 className="text-xs text-yellow-300 mb-1">Expiring in 30 Days</h4>
+            <p className="text-2xl font-bold text-yellow-400">{categorizeCustomers().expiring15.length + categorizeCustomers().expiring30.length}</p>
             <Button 
-              size=sm 
-              variant=outline 
-              className=mt-2 w-full text-xs
+              size="sm" 
+              variant="outline" 
+              className="mt-2 w-full text-xs"
               onClick={(e) => { e.stopPropagation(); const { expiring15, expiring30 } = categorizeCustomers(); const all30Days = [...expiring15, ...expiring30]; setDetailsModalTitle('Expiring in 30 Days'); setDetailsModalCustomers(all30Days); setShowDetailsModal(true); }}
             >
               View Details
@@ -1162,21 +1064,21 @@ export default function InsuranceDashboard() {
       });
       
       if (result.data.message === 'No changes to sync') {
-        alert('i No changes detected - Sheet is already up to date!');
+        alert('ℹ️ No changes detected - Sheet is already up to date!');
       } else {
         const parts = [];
         if (result.data.deleted > 0) parts.push(`Deleted: ${result.data.deleted}`);
         if (result.data.updated > 0) parts.push(`Updated: ${result.data.updated}`);
         if (result.data.added > 0) parts.push(`Added: ${result.data.added}`);
         
-        alert(`✓ Sync completed!\n\n${parts.join('\n')}`);
+        alert(`✅ Sync completed!\n\n${parts.join('\n')}`);
         
         // Clear deleted customers after successful sync
         setDeletedCustomers([]);
       }
     } catch (error) {
       console.error('Failed to sync to sheets:', error);
-      alert(`✓× Sync to sheet failed: ${error.response?.data?.error || error.message}`);
+      alert(`❌ Sync to sheet failed: ${error.response?.data?.error || error.message}`);
     } finally {
       setSyncing(false);
     }
@@ -1186,46 +1088,46 @@ export default function InsuranceDashboard() {
     const displayedCustomers = showAllCustomers ? filteredCustomers : filteredCustomers.slice(0, 20);
     
     return (
-      <div className=space-y-4>
-        <div className=sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4>
-          <div className=flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3>
-            <div className=flex flex-col sm:flex-row gap-3 flex-1>
+      <div className="space-y-4">
+        <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
               <Input
-                placeholder=Search customers...
+                placeholder="Search customers..."
                 value={searchTerm}
                 onChange={(e) => handleSearchChange('customerSearch', e.target.value)}
-                className=w-full sm:max-w-md
+                className="w-full sm:max-w-md"
               />
               <select
-                className=px-3 py-2 border rounded bg-slate-700 text-white text-sm
+                className="px-3 py-2 border rounded bg-slate-700 text-white text-sm"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
-                <option value=all>All Status</option>
-                <option value=due>Due</option>
-                <option value=renewed>Renewed</option>
-                <option value=not renewed>Not Renewed</option>
-                <option value=inprocess>In Process</option>
+                <option value="all">All Status</option>
+                <option value="due">Due</option>
+                <option value="renewed">Renewed</option>
+                <option value="not renewed">Not Renewed</option>
+                <option value="inprocess">In Process</option>
               </select>
             </div>
-            <div className=flex gap-2>
+            <div className="flex gap-2">
               <Button 
-                onClick={() => syncFromSheets(false)} 
+                onClick={syncFromSheets} 
                 disabled={syncing}
-                variant=outline
-                title=Sync from Sheets
-                size=sm
+                variant="outline"
+                title="Sync from Sheets"
+                size="sm"
               >
-                {syncing ? 'Syncing...' : '”Sync from Sheets'}
+                {syncing ? 'Syncing...' : '🔄 Sync from Sheets'}
               </Button>
               <Button 
                 onClick={syncToSheets} 
                 disabled={syncing}
-                variant=outline
-                title=Sync to Sheets
-                size=sm
+                variant="outline"
+                title="Sync to Sheets"
+                size="sm"
               >
-                {syncing ? 'Syncing...' : '“Sync to Sheets'}
+                {syncing ? 'Syncing...' : '📤 Sync to Sheets'}
               </Button>
               <Button 
                 onClick={() => {
@@ -1235,11 +1137,11 @@ export default function InsuranceDashboard() {
                     alert('Sheet URL not available');
                   }
                 }}
-                variant=outline
-                title=Open Google Sheet
-                size=sm
+                variant="outline"
+                title="Open Google Sheet"
+                size="sm"
               >
-                “Open Sheet
+                📊 Open Sheet
               </Button>
             </div>
           </div>
@@ -1255,8 +1157,8 @@ export default function InsuranceDashboard() {
         />
         
         {filteredCustomers.length > 20 && (
-          <div className=text-center mt-4>
-            <Button variant=outline onClick={() => setShowAllCustomers(!showAllCustomers)}>
+          <div className="text-center mt-4">
+            <Button variant="outline" onClick={() => setShowAllCustomers(!showAllCustomers)}>
               {showAllCustomers ? 'Show Less' : `Show All (${filteredCustomers.length - 20} more)`}
             </Button>
           </div>
@@ -1278,29 +1180,29 @@ export default function InsuranceDashboard() {
       : customers;
 
     return (
-    <div className=space-y-6>
+    <div className="space-y-6">
       {/* Policy Tabs */}
-      <div className=flex flex-wrap gap-2>
+      <div className="flex flex-wrap gap-2">
         <button
-          className=px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-green-300 border border-slate-700 rounded
+          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-green-300 border border-slate-700 rounded"
           onClick={() => { const activePolicies = customers.filter(c => c.status.trim().toLowerCase() === 'renewed'); setDetailsModalTitle('Active Policies'); setDetailsModalCustomers(activePolicies); setShowDetailsModal(true); }}
         >
           Active ({analytics?.activePolicies || 0})
         </button>
         <button
-          className=px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-red-300 border border-slate-700 rounded
+          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-red-300 border border-slate-700 rounded"
           onClick={() => { const pendingPolicies = customers.filter(c => { const daysLeft = getDaysUntilExpiry(c); return (daysLeft < 0 || daysLeft <= 30) && c.status.trim().toLowerCase() === 'due'; }); setDetailsModalTitle('Pending Policies'); setDetailsModalCustomers(pendingPolicies); setShowDetailsModal(true); }}
         >
           Pending ({analytics?.pendingPolicies || 0})
         </button>
         <button
-          className=px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-cyan-300 border border-slate-700 rounded
+          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-cyan-300 border border-slate-700 rounded"
           onClick={() => { setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}
         >
           Total ({analytics?.totalPolicies || 0})
         </button>
         <button
-          className=px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-orange-300 border border-slate-700 rounded
+          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-orange-300 border border-slate-700 rounded"
           onClick={() => { const lostPolicies = customers.filter(c => c.status.trim().toLowerCase() === 'not renewed'); setDetailsModalTitle('Lost Policies'); setDetailsModalCustomers(lostPolicies); setShowDetailsModal(true); }}
         >
           Lost ({analytics?.lostPolicies || 0})
@@ -1308,35 +1210,33 @@ export default function InsuranceDashboard() {
       </div>
 
       {/* Company-wise Breakdown */}
-      <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4>
-        <h3 className=text-base font-semibold mb-3 text-white>Company-wise Policies</h3>
+      <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4">
+        <h3 className="text-base font-semibold mb-3 text-white">Company-wise Policies</h3>
         
         {/* Total Amount Card */}
-        <div className=mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg cursor-pointer hover:bg-purple-500/20 transition-all onClick={() => { setDetailsModalTitle('All Policies - Total Premium'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
-          <h4 className=text-sm font-medium text-purple-300 mb-1>Total Premium (All Companies)</h4>
-          <p className=text-3xl font-bold text-purple-400>₹{customers.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString()}</p>
-          <p className=text-xs text-slate-300 mt-1>{customers.length} total policies</p>
+        <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg cursor-pointer hover:bg-purple-500/20 transition-all" onClick={() => { setDetailsModalTitle('All Policies - Total Premium'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
+          <h4 className="text-sm font-medium text-purple-300 mb-1">Total Premium (All Companies)</h4>
+          <p className="text-3xl font-bold text-purple-400">₹{customers.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString()}</p>
+          <p className="text-xs text-slate-300 mt-1">{customers.length} total policies</p>
         </div>
         
-        <div className=grid grid-cols-1 md:grid-cols-3 gap-3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {Object.entries(
             customers.reduce((acc, customer) => {
               const company = customer.company || 'Unknown';
-              if (!acc[company]) acc[company] = { count: 0, premium: 0, renewed: 0, due: 0, inProcess: 0, customers: [] };
+              if (!acc[company]) acc[company] = { count: 0, premium: 0, renewed: 0, due: 0, customers: [] };
               acc[company].count++;
               acc[company].premium += parseAmount(customer.premium);
               if (customer.status.trim().toLowerCase() === 'renewed') acc[company].renewed++;
               if (customer.status.trim().toLowerCase() === 'due') acc[company].due++;
-              const status = customer.status.trim().toLowerCase().replace(/[\s-]/g, '');
-              if (status === 'inprocess' || status === 'inprogress') acc[company].inProcess++;
               acc[company].customers.push(customer);
               return acc;
             }, {})
           ).map(([company, data]: [string, any]) => (
-            <div key={company} className=p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all onClick={() => { const sorted = [...data.customers].sort((a, b) => { const aIsDue = a.status.trim().toLowerCase() === 'due' ? 0 : 1; const bIsDue = b.status.trim().toLowerCase() === 'due' ? 0 : 1; return aIsDue - bIsDue; }); setDetailsModalTitle(`${company} - Customers`); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
-              <h4 className=text-sm font-medium text-white mb-1>{company}</h4>
-              <p className=text-xs text-slate-300>Total: {data.count} | <span className=text-green-400>Renewed: {data.renewed}</span> | <span className=text-blue-400>InProcess: {data.inProcess}</span> | <span className=text-red-400>Due: {data.due}</span></p>
-              <p className=text-base font-bold text-cyan-400>₹{data.premium.toLocaleString()}</p>
+            <div key={company} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const sorted = [...data.customers].sort((a, b) => { const aIsDue = a.status.trim().toLowerCase() === 'due' ? 0 : 1; const bIsDue = b.status.trim().toLowerCase() === 'due' ? 0 : 1; return aIsDue - bIsDue; }); setDetailsModalTitle(`${company} - Customers`); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
+              <h4 className="text-sm font-medium text-white mb-1">{company}</h4>
+              <p className="text-xs text-slate-300">Total: {data.count} | <span className="text-green-400">Renewed: {data.renewed}</span> | <span className="text-red-400">Due: {data.due}</span></p>
+              <p className="text-base font-bold text-cyan-400">₹{data.premium.toLocaleString()}</p>
             </div>
           ))}
         </div>
@@ -1351,97 +1251,76 @@ export default function InsuranceDashboard() {
     const { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed, inProcess } = categorizeCustomers();
     
     return (
-      <div className=space-y-6>
+      <div className="space-y-6">
         {/* Filter and Stats Section */}
-        <div className=sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4 space-y-4>
-          <div className=flex gap-3>
-            <Input
-              placeholder=Search by name, mobile, vehicle, company, policy no, G code...
-              value={renewalSearchTerm}
-              onChange={(e) => handleSearchChange('renewalSearch', e.target.value)}
-              className=flex-1
-            />
-            <select
-              className=px-3 py-2 border rounded bg-slate-700 text-white text-sm
-              value={renewalMonthFilter}
-              onChange={(e) => setRenewalMonthFilter(e.target.value)}
-            >
-              <option value=all>All Months</option>
-              <option value=0>January</option>
-              <option value=1>February</option>
-              <option value=2>March</option>
-              <option value=3>April</option>
-              <option value=4>May</option>
-              <option value=5>June</option>
-              <option value=6>July</option>
-              <option value=7>August</option>
-              <option value=8>September</option>
-              <option value=9>October</option>
-              <option value=10>November</option>
-              <option value=11>December</option>
-            </select>
-          </div>
+        <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4 space-y-4">
+          <Input
+            placeholder="Search by name, mobile, vehicle, company, policy no, G code..."
+            value={renewalSearchTerm}
+            onChange={(e) => handleSearchChange('renewalSearch', e.target.value)}
+            className="w-full"
+          />
 
           {/* Statistics - Fixed */}
-          <div className=grid grid-cols-2 md:grid-cols-5 gap-3>
-          <div className=p-3 bg-red-500/10 border border-red-500/30 rounded-lg cursor-pointer hover:bg-red-500/20 transition-all onClick={() => document.getElementById('today-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className=text-xs text-red-300 mb-1>Expiring Today</h4>
-            <p className=text-2xl font-bold text-red-400>{expiringToday.length}</p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => document.getElementById('today-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <h4 className="text-xs text-red-300 mb-1">Expiring Today</h4>
+            <p className="text-2xl font-bold text-red-400">{expiringToday.length}</p>
           </div>
-          <div className=p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg cursor-pointer hover:bg-orange-500/20 transition-all onClick={() => document.getElementById('expiring3-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className=text-xs text-orange-300 mb-1>Within 3 Days</h4>
-            <p className=text-2xl font-bold text-orange-400>{expiring1Day.length + expiring3.length}</p>
+          <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg cursor-pointer hover:bg-orange-500/20 transition-all" onClick={() => document.getElementById('expiring3-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <h4 className="text-xs text-orange-300 mb-1">Within 3 Days</h4>
+            <p className="text-2xl font-bold text-orange-400">{expiring1Day.length + expiring3.length}</p>
           </div>
-          <div className=p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg cursor-pointer hover:bg-yellow-500/20 transition-all onClick={() => document.getElementById('expiring7-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className=text-xs text-yellow-300 mb-1>Within 7 Days</h4>
-            <p className=text-2xl font-bold text-yellow-400>{expiring7.length}</p>
+          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg cursor-pointer hover:bg-yellow-500/20 transition-all" onClick={() => document.getElementById('expiring7-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <h4 className="text-xs text-yellow-300 mb-1">Within 7 Days</h4>
+            <p className="text-2xl font-bold text-yellow-400">{expiring7.length}</p>
           </div>
-          <div className=p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer hover:bg-blue-500/20 transition-all onClick={() => document.getElementById('inprocess-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className=text-xs text-blue-300 mb-1>In Process</h4>
-            <p className=text-2xl font-bold text-blue-400>{inProcess.length}</p>
+          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer hover:bg-blue-500/20 transition-all" onClick={() => document.getElementById('inprocess-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <h4 className="text-xs text-blue-300 mb-1">In Process</h4>
+            <p className="text-2xl font-bold text-blue-400">{inProcess.length}</p>
           </div>
-          <div className=p-3 bg-green-500/10 border border-green-500/30 rounded-lg cursor-pointer hover:bg-green-500/20 transition-all onClick={() => document.getElementById('renewed-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className=text-xs text-green-300 mb-1>Renewed</h4>
-            <p className=text-2xl font-bold text-green-400>{renewed.length}</p>
+          <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg cursor-pointer hover:bg-green-500/20 transition-all" onClick={() => document.getElementById('renewed-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <h4 className="text-xs text-green-300 mb-1">Renewed</h4>
+            <p className="text-2xl font-bold text-green-400">{renewed.length}</p>
           </div>
         </div>
         </div>
 
         {/* Content Sections */}
-        <div className=space-y-4>
+        <div className="space-y-4">
 
         {/* Renewal Update Modal - Shows when customers are selected */}
         {selectedCustomers.length > 0 && (
-          <div className=sticky top-0 z-20 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 backdrop-blur-md shadow-lg>
-            <p className=text-white font-semibold text-base>
-              <span className=bg-cyan-500/30 px-2 py-1 rounded>{selectedCustomers.length}</span> customer{selectedCustomers.length > 1 ? 's' : ''} selected
+          <div className="sticky top-0 z-20 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 backdrop-blur-md shadow-lg">
+            <p className="text-white font-semibold text-base">
+              <span className="bg-cyan-500/30 px-2 py-1 rounded">{selectedCustomers.length}</span> customer{selectedCustomers.length > 1 ? 's' : ''} selected
             </p>
-            <div className=flex gap-2 items-center flex-wrap>
+            <div className="flex gap-2 items-center flex-wrap">
               <Button 
-                variant=outline 
-                size=sm
+                variant="outline" 
+                size="sm"
                 onClick={() => setShowRenewalUpdateModal(true)}
-                className=border-green-500/50 text-green-400 hover:bg-green-500/10
+                className="border-green-500/50 text-green-400 hover:bg-green-500/10"
               >
-                ✓✓ Update & Sync
+                ✏️ Update & Sync
               </Button>
-              <span className=text-sm text-slate-200 font-medium>Mark as:</span>
+              <span className="text-sm text-slate-200 font-medium">Mark as:</span>
               <select 
-                className=px-4 py-2 border-2 border-cyan-500/50 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 focus:ring-2 focus:ring-cyan-500 transition-all cursor-pointer
+                className="px-4 py-2 border-2 border-cyan-500/50 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 focus:ring-2 focus:ring-cyan-500 transition-all cursor-pointer"
                 onChange={(e) => { if (e.target.value) handleBulkStatusUpdate(e.target.value); e.target.value = ''; }}
-                defaultValue=
+                defaultValue=""
               >
-                <option value= disabled>Select Status</option>
-                <option value=due>” DUE</option>
-                <option value=renewed> Renewed</option>
-                <option value=not renewed> Not Renewed</option>
-                <option value=inprocess>” In Process</option>
+                <option value="" disabled>Select Status</option>
+                <option value="due">🔴 DUE</option>
+                <option value="renewed">🟢 Renewed</option>
+                <option value="not renewed">⚫ Not Renewed</option>
+                <option value="inprocess">🔵 In Process</option>
               </select>
               <Button 
-                variant=outline 
-                size=sm
+                variant="outline" 
+                size="sm"
                 onClick={() => setSelectedCustomers([])}
-                className=border-red-500/50 text-red-400 hover:bg-red-500/10
+                className="border-red-500/50 text-red-400 hover:bg-red-500/10"
               >
                 ✕ Clear Selection
               </Button>
@@ -1451,22 +1330,22 @@ export default function InsuranceDashboard() {
 
         {/* Show message if no renewals at all */}
         {expiringToday.length === 0 && expiring1Day.length === 0 && expiring3.length === 0 && expiring7.length === 0 && expiring15.length === 0 && expiring30.length === 0 && overdue.length === 0 && renewed.length === 0 && inProcess.length === 0 && (
-          <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-12 text-center>
-            <p className=text-2xl text-slate-400>✓ No renewals to display</p>
-            <p className=text-sm text-slate-500 mt-2>All customers are up to date!</p>
+          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-12 text-center">
+            <p className="text-2xl text-slate-400">✅ No renewals to display</p>
+            <p className="text-sm text-slate-500 mt-2">All customers are up to date!</p>
           </div>
         )}
 
         {/* Expiring Today */}
         {expiringToday.length > 0 && (
-          <div id=today-section className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48>
-            <h3 className=text-base font-semibold mb-3 text-red-400>Expiring Today ({expiringToday.length})</h3>
-            <div className=space-y-3>
+          <div id="today-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-red-400">🚨 Expiring Today ({expiringToday.length})</h3>
+            <div className="space-y-3">
               {expiringToday.slice(0, showAllToday ? expiringToday.length : 5).map(c => renderRenewalCard(c, `Expires TODAY`, 'border-red-500/50'))}
             </div>
             {expiringToday.length > 5 && (
-              <div className=text-center mt-4>
-                <Button variant=outline onClick={() => setShowAllToday(!showAllToday)}>
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAllToday(!showAllToday)}>
                   {showAllToday ? 'Show Less' : `Show All (${expiringToday.length - 5} more)`}
                 </Button>
               </div>
@@ -1474,16 +1353,16 @@ export default function InsuranceDashboard() {
           </div>
         )}
 
-        {/*Expiring Tomorrow */}
+        {/* Expiring Tomorrow */}
         {expiring1Day.length > 0 && (
-          <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48>
-            <h3 className=text-base font-semibold mb-3 text-orange-400>✓ Expiring Tomorrow ({expiring1Day.length})</h3>
-            <div className=space-y-3>
+          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-orange-400">⚠️ Expiring Tomorrow ({expiring1Day.length})</h3>
+            <div className="space-y-3">
               {expiring1Day.slice(0, showAllTomorrow ? expiring1Day.length : 5).map(c => renderRenewalCard(c, 'Expires TOMORROW', 'border-orange-500/50'))}
             </div>
             {expiring1Day.length > 5 && (
-              <div className=text-center mt-4>
-                <Button variant=outline onClick={() => setShowAllTomorrow(!showAllTomorrow)}>
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAllTomorrow(!showAllTomorrow)}>
                   {showAllTomorrow ? 'Show Less' : `Show All (${expiring1Day.length - 5} more)`}
                 </Button>
               </div>
@@ -1491,16 +1370,16 @@ export default function InsuranceDashboard() {
           </div>
         )}
 
-        {/*Expiring Within 3 Days */}
+        {/* Expiring Within 3 Days */}
         {expiring3.length > 0 && (
-          <div id=expiring3-section className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48>
-            <h3 className=text-base font-semibold mb-3 text-orange-400>Expiring Within 3 Days ({expiring3.length})</h3>
-            <div className=space-y-3>
+          <div id="expiring3-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-orange-400">🟠 Expiring Within 3 Days ({expiring3.length})</h3>
+            <div className="space-y-3">
               {expiring3.slice(0, showAll7Days ? expiring3.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-orange-500/50'))}
             </div>
             {expiring3.length > 5 && (
-              <div className=text-center mt-4>
-                <Button variant=outline onClick={() => setShowAll7Days(!showAll7Days)}>
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAll7Days(!showAll7Days)}>
                   {showAll7Days ? 'Show Less' : `Show All (${expiring3.length - 5} more)`}
                 </Button>
               </div>
@@ -1508,16 +1387,16 @@ export default function InsuranceDashboard() {
           </div>
         )}
 
-        {/*Expiring Within 7 Days */}
+        {/* Expiring Within 7 Days */}
         {expiring7.length > 0 && (
-          <div id=expiring7-section className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48>
-            <h3 className=text-base font-semibold mb-3 text-yellow-400>Expiring Within 7 Days ({expiring7.length})</h3>
-            <div className=space-y-3>
+          <div id="expiring7-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-yellow-400">🟡 Expiring Within 7 Days ({expiring7.length})</h3>
+            <div className="space-y-3">
               {expiring7.slice(0, showAll7Days ? expiring7.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-yellow-500/50'))}
             </div>
             {expiring7.length > 5 && (
-              <div className=text-center mt-4>
-                <Button variant=outline onClick={() => setShowAll7Days(!showAll7Days)}>
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAll7Days(!showAll7Days)}>
                   {showAll7Days ? 'Show Less' : `Show All (${expiring7.length - 5} more)`}
                 </Button>
               </div>
@@ -1525,16 +1404,16 @@ export default function InsuranceDashboard() {
           </div>
         )}
 
-        {/*Expiring Within 15 Days */}
+        {/* Expiring Within 15 Days */}
         {expiring15.length > 0 && (
-          <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48>
-            <h3 className=text-base font-semibold mb-3 text-yellow-400>Expiring Within 15 Days ({expiring15.length})</h3>
-            <div className=space-y-3>
+          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-yellow-400">🟡 Expiring Within 15 Days ({expiring15.length})</h3>
+            <div className="space-y-3">
               {expiring15.slice(0, showAll15Days ? expiring15.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-yellow-500/50'))}
             </div>
             {expiring15.length > 5 && (
-              <div className=text-center mt-4>
-                <Button variant=outline onClick={() => setShowAll15Days(!showAll15Days)}>
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAll15Days(!showAll15Days)}>
                   {showAll15Days ? 'Show Less' : `Show All (${expiring15.length - 5} more)`}
                 </Button>
               </div>
@@ -1542,16 +1421,16 @@ export default function InsuranceDashboard() {
           </div>
         )}
 
-        {/*Expiring Within 30 Days */}
+        {/* Expiring Within 30 Days */}
         {expiring30.length > 0 && (
-          <div id=expiring30-section className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48>
-            <h3 className=text-base font-semibold mb-3 text-yellow-400>Expiring Within 30 Days ({expiring30.length})</h3>
-            <div className=space-y-3>
+          <div id="expiring30-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-yellow-400">🟡 Expiring Within 30 Days ({expiring30.length})</h3>
+            <div className="space-y-3">
               {expiring30.slice(0, showAll30Days ? expiring30.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-yellow-500/50'))}
             </div>
             {expiring30.length > 5 && (
-              <div className=text-center mt-4>
-                <Button variant=outline onClick={() => setShowAll30Days(!showAll30Days)}>
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAll30Days(!showAll30Days)}>
                   {showAll30Days ? 'Show Less' : `Show All (${expiring30.length - 5} more)`}
                 </Button>
               </div>
@@ -1561,14 +1440,14 @@ export default function InsuranceDashboard() {
 
         {/* Overdue */}
         {overdue.length > 0 && (
-          <div id=overdue-section className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48>
-            <h3 className=text-base font-semibold mb-3 text-red-500>” Overdue ({overdue.length})</h3>
-            <div className=space-y-3>
+          <div id="overdue-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-red-500">🔴 Overdue ({overdue.length})</h3>
+            <div className="space-y-3">
               {overdue.slice(0, showAllOverdue ? overdue.length : 5).map(c => renderRenewalCard(c, `${Math.abs(getDaysUntilExpiry(c))} days overdue`, 'border-red-600/50'))}
             </div>
             {overdue.length > 5 && (
-              <div className=text-center mt-4>
-                <Button variant=outline onClick={() => setShowAllOverdue(!showAllOverdue)}>
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAllOverdue(!showAllOverdue)}>
                   {showAllOverdue ? 'Show Less' : `Show All (${overdue.length - 5} more)`}
                 </Button>
               </div>
@@ -1578,14 +1457,14 @@ export default function InsuranceDashboard() {
 
         {/* Recently Renewed */}
         {renewed.length > 0 && (
-          <div id=renewed-section className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48>
-            <h3 className=text-base font-semibold mb-3 text-green-400> Recently Renewed ({renewed.length})</h3>
-            <div className=space-y-3>
+          <div id="renewed-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-green-400">🟢 Recently Renewed ({renewed.length})</h3>
+            <div className="space-y-3">
               {renewed.slice(0, showAllRenewed ? renewed.length : 5).map(c => renderRenewalCard(c, 'Renewed', 'border-green-500/50', true))}
             </div>
             {renewed.length > 5 && (
-              <div className=text-center mt-4>
-                <Button variant=outline onClick={() => setShowAllRenewed(!showAllRenewed)}>
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAllRenewed(!showAllRenewed)}>
                   {showAllRenewed ? 'Show Less' : `Show All (${renewed.length - 5} more)`}
                 </Button>
               </div>
@@ -1595,14 +1474,14 @@ export default function InsuranceDashboard() {
 
         {/* In Process */}
         {inProcess.length > 0 && (
-          <div id=inprocess-section className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48>
-            <h3 className=text-base font-semibold mb-3 text-blue-400>” In Process ({inProcess.length})</h3>
-            <div className=space-y-3>
+          <div id="inprocess-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-blue-400">🔵 In Process ({inProcess.length})</h3>
+            <div className="space-y-3">
               {inProcess.slice(0, showAllInProcess ? inProcess.length : 5).map(c => renderRenewalCard(c, 'In Process', 'border-blue-500/50', false))}
             </div>
             {inProcess.length > 5 && (
-              <div className=text-center mt-4>
-                <Button variant=outline onClick={() => setShowAllInProcess(!showAllInProcess)}>
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAllInProcess(!showAllInProcess)}>
                   {showAllInProcess ? 'Show Less' : `Show All (${inProcess.length - 5} more)`}
                 </Button>
               </div>
@@ -1617,38 +1496,38 @@ export default function InsuranceDashboard() {
 
   const renderOldRenewalsTab = () => {
     return (
-      <div className=space-y-6>
+      <div className="space-y-6">
         {/* Add Note Modal */}
-        <Modal open={showNoteModal} onClose={() => { setShowNoteModal(false); setNote(''); setNoteCustomerId(null); }} title=Add Note/Report>
-          <div className=space-y-4>
+        <Modal open={showNoteModal} onClose={() => { setShowNoteModal(false); setNote(''); setNoteCustomerId(null); }} title="Add Note/Report">
+          <div className="space-y-4">
             <textarea
-              className=w-full p-3 border rounded bg-slate-700 text-white min-h-[100px]
-              placeholder=Add note about customer interaction...
+              className="w-full p-3 border rounded bg-slate-700 text-white min-h-[100px]"
+              placeholder="Add note about customer interaction..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
             />
-            <div className=flex gap-3>
+            <div className="flex gap-3">
               <Button onClick={handleAddNote}>Save Note</Button>
-              <Button variant=outline onClick={() => setShowNoteModal(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setShowNoteModal(false)}>Cancel</Button>
             </div>
           </div>
         </Modal>
 
         {/* Message History Modal */}
-        <Modal open={showMessageHistoryModal} onClose={() => setShowMessageHistoryModal(false)} title=Message History>
-          <div className=space-y-3 max-h-96 overflow-y-auto>
+        <Modal open={showMessageHistoryModal} onClose={() => setShowMessageHistoryModal(false)} title="Message History">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {messageHistory.length === 0 ? (
-              <p className=text-center text-slate-400 py-8>No messages sent yet</p>
+              <p className="text-center text-slate-400 py-8">No messages sent yet</p>
             ) : (
               messageHistory.map((msg, idx) => (
-                <div key={idx} className=p-3 bg-slate-700/50 rounded-lg border border-slate-600/50>
-                  <div className=flex justify-between items-start mb-2>
-                    <span className=text-xs px-2 py-1 rounded bg-green-500/20 text-green-300>
-                      {msg.channel === 'whatsapp' ? '’WhatsApp' : msg.channel}
+                <div key={idx} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-300">
+                      {msg.channel === 'whatsapp' ? '💬 WhatsApp' : msg.channel}
                     </span>
-                    <span className=text-xs text-slate-400>{new Date(msg.sent_at).toLocaleString()}</span>
+                    <span className="text-xs text-slate-400">{new Date(msg.sent_at).toLocaleString()}</span>
                   </div>
-                  <p className=text-sm text-white whitespace-pre-wrap>{msg.message_content}</p>
+                  <p className="text-sm text-white whitespace-pre-wrap">{msg.message_content}</p>
                 </div>
               ))
             )}
@@ -1656,19 +1535,19 @@ export default function InsuranceDashboard() {
         </Modal>
 
         {/* History Modal */}
-        <Modal open={showHistoryModal} onClose={() => setShowHistoryModal(false)} title=Customer History>
-          <div className=space-y-3 max-h-96 overflow-y-auto>
+        <Modal open={showHistoryModal} onClose={() => setShowHistoryModal(false)} title="Customer History">
+          <div className="space-y-3 max-h-96 overflow-y-auto">
             {customerHistory.map((item, idx) => (
-              <div key={idx} className=p-3 bg-slate-700/50 rounded-lg border border-slate-600/50>
-                <div className=flex justify-between items-start>
+              <div key={idx} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
+                <div className="flex justify-between items-start">
                   <span className={`text-xs px-2 py-1 rounded ${
                     item.type === 'note' ? 'bg-blue-500/20 text-blue-300' : 'bg-green-500/20 text-green-300'
                   }`}>
-                    {item.type === 'note' ? '“ Note' : '“Reminder'}
+                    {item.type === 'note' ? '📝 Note' : '📧 Reminder'}
                   </span>
-                  <span className=text-xs text-slate-400>{new Date(item.created_at).toLocaleString()}</span>
+                  <span className="text-xs text-slate-400">{new Date(item.created_at).toLocaleString()}</span>
                 </div>
-                <p className=text-sm text-white mt-2>{item.content}</p>
+                <p className="text-sm text-white mt-2">{item.content}</p>
               </div>
             ))}
           </div>
@@ -1691,19 +1570,11 @@ export default function InsuranceDashboard() {
   };
 
   return (
-    <div className=p-3 sm:p-4 md:p-6>
+    <div className="p-3 sm:p-4 md:p-6">
       {/* Header */}
-      <div className=flex justify-between items-center mb-4>
-        <div className=flex items-center gap-4>
-          <h1 className=text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400>{getPageTitle()}</h1>
-          {currentTab === 'customers' && analytics && (
-            <div className=bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg px-4 py-2>
-              <p className=text-xs text-slate-400>Total Customers</p>
-              <p className=text-lg font-bold text-cyan-400>{analytics.totalCustomers}</p>
-            </div>
-          )}
-        </div>
-        <div className=flex gap-3 items-center>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">{getPageTitle()}</h1>
+        <div className="flex gap-3 items-center">
           {currentTab === 'customers' && (
             <Button onClick={() => {
               setDynamicFormData({});
@@ -1724,11 +1595,11 @@ export default function InsuranceDashboard() {
       <Modal
         open={showAddModal}
         onClose={() => { setShowAddModal(false); setDynamicFormData({}); }}
-        title=Add New Customer
+        title="Add New Customer"
       >
-        <div className=space-y-4 max-h-[70vh] overflow-y-auto p-1>
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
           {sheetFields.length === 0 ? (
-            <p className=text-center text-slate-400 py-8>Loading form fields...</p>
+            <p className="text-center text-slate-400 py-8">Loading form fields...</p>
           ) : (
             sheetFields
               .filter(field => !['S NO', 's no', 'S_NO'].includes(field)) // Skip serial number
@@ -1744,9 +1615,9 @@ export default function InsuranceDashboard() {
               if (isTextarea) {
                 return (
                   <div key={key}>
-                    <label className=text-sm text-slate-300 mb-1 block>{field}{isRequired && ' *'}</label>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
                     <textarea
-                      className=w-full p-2 border rounded bg-slate-700 text-white
+                      className="w-full p-2 border rounded bg-slate-700 text-white"
                       placeholder={field}
                       value={dynamicFormData[key] || ''}
                       onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
@@ -1759,17 +1630,17 @@ export default function InsuranceDashboard() {
               if (isTypeField) {
                 return (
                   <div key={key}>
-                    <label className=text-sm text-slate-300 mb-1 block>{field}</label>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}</label>
                     <select
-                      className=w-full p-2 border rounded bg-slate-700 text-white
+                      className="w-full p-2 border rounded bg-slate-700 text-white"
                       value={dynamicFormData[key] || 'motor'}
                       onChange={(e) => {
                         setDynamicFormData({...dynamicFormData, [key]: e.target.value, product_type: ''});
                       }}
                     >
-                      <option value=motor>Motor</option>
-                      <option value=health>Health</option>
-                      <option value=non-motor>Non-Motor</option>
+                      <option value="motor">Motor</option>
+                      <option value="health">Health</option>
+                      <option value="non-motor">Non-Motor</option>
                     </select>
                   </div>
                 );
@@ -1779,23 +1650,23 @@ export default function InsuranceDashboard() {
                 const selectedType = dynamicFormData['vertical'] || dynamicFormData['type'] || 'motor';
                 return (
                   <div key={key}>
-                    <label className=text-sm text-slate-300 mb-1 block>{field}</label>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}</label>
                     <select
-                      className=w-full p-2 border rounded bg-slate-700 text-white
+                      className="w-full p-2 border rounded bg-slate-700 text-white"
                       value={dynamicFormData[key] || ''}
                       onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
                     >
-                      <option value=>Select...</option>
+                      <option value="">Select...</option>
                       {selectedType.toLowerCase() === 'motor' && (
                         <>
-                          <option value=2WH>2 Wheeler</option>
-                          <option value=4WH>4 Wheeler</option>
+                          <option value="2WH">2 Wheeler</option>
+                          <option value="4WH">4 Wheeler</option>
                         </>
                       )}
                       {selectedType.toLowerCase() === 'health' && (
                         <>
-                          <option value=Base>Base</option>
-                          <option value=Topup>Topup</option>
+                          <option value="Base">Base</option>
+                          <option value="Topup">Topup</option>
                         </>
                       )}
                     </select>
@@ -1806,16 +1677,16 @@ export default function InsuranceDashboard() {
               if (isSelect) {
                 return (
                   <div key={key}>
-                    <label className=text-sm text-slate-300 mb-1 block>{field}</label>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}</label>
                     <select
-                      className=w-full p-2 border rounded bg-slate-700 text-white
+                      className="w-full p-2 border rounded bg-slate-700 text-white"
                       value={dynamicFormData[key] || 'due'}
                       onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
                     >
-                      <option value=due>DUE</option>
-                      <option value=renewed>Renewed</option>
-                      <option value=not renewed>Not Renewed</option>
-                      <option value=inprocess>In Process</option>
+                      <option value="due">DUE</option>
+                      <option value="renewed">Renewed</option>
+                      <option value="not renewed">Not Renewed</option>
+                      <option value="inprocess">In Process</option>
                     </select>
                   </div>
                 );
@@ -1824,9 +1695,9 @@ export default function InsuranceDashboard() {
               if (isDate) {
                 return (
                   <div key={key}>
-                    <label className=text-sm text-slate-300 mb-1 block>{field}{isRequired && ' *'}</label>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
                     <Input
-                      type=date
+                      type="date"
                       value={dynamicFormData[key] || ''}
                       onChange={(e) => setDynamicFormData({...dynamicFormData, [key]: e.target.value})}
                     />
@@ -1838,7 +1709,7 @@ export default function InsuranceDashboard() {
               
               return (
                 <div key={key}>
-                  <label className=text-sm text-slate-300 mb-1 block>{field}{isRequired && ' *'}</label>
+                  <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
                   <Input
                     type={inputType}
                     placeholder={field}
@@ -1851,25 +1722,25 @@ export default function InsuranceDashboard() {
             })
           )}
 
-          <div className=flex gap-3 pt-4 border-t border-slate-600>
+          <div className="flex gap-3 pt-4 border-t border-slate-600">
             <Button onClick={handleAddCustomer}>Add Customer</Button>
-            <Button variant=outline onClick={() => { setShowAddModal(false); setDynamicFormData({}); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setShowAddModal(false); setDynamicFormData({}); }}>Cancel</Button>
           </div>
         </div>
       </Modal>
 
       {/* Details Modal - Shared across all tabs */}
       <Modal open={showDetailsModal} onClose={() => { setShowDetailsModal(false); setModalSearchTerm(''); }} title={detailsModalTitle}>
-        <div className=space-y-3>
+        <div className="space-y-3">
           {detailsModalCustomers.length > 1 && (
             <Input
-              placeholder=Search by name, mobile, G CODE, vehicle, etc...
+              placeholder="Search by name, mobile, G CODE, vehicle, etc..."
               value={modalSearchTerm}
               onChange={(e) => handleSearchChange('modalSearch', e.target.value)}
-              className=w-full
+              className="w-full"
             />
           )}
-          <div className=max-h-[70vh] overflow-y-auto space-y-3>
+          <div className="max-h-[70vh] overflow-y-auto space-y-3">
             {(() => {
               const filtered = detailsModalCustomers.filter(c => {
                 if (!modalSearchTerm) return true;
@@ -1881,21 +1752,15 @@ export default function InsuranceDashboard() {
               });
               
               return filtered.length === 0 ? (
-              <p className=text-center text-slate-400 py-8>No customers found</p>
+              <p className="text-center text-slate-400 py-8">No customers found</p>
             ) : (
-              filtered.map((customer) => {
-                // Get display values based on status
-                const displayCompany = getDisplayCompany(customer);
-                const displayPolicyNo = getDisplayPolicyNo(customer);
-                const displayRenewalDate = getDisplayRenewalDate(customer);
-                
-                return (
-                  <div key={customer.id} className=p-4 bg-slate-700/50 rounded-lg border border-slate-600/50>
-                <div className=space-y-3>
-                  <div className=flex justify-between items-start mb-2>
+              filtered.map((customer) => (
+              <div key={customer.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h4 className=font-bold text-white text-lg>{customer.name}</h4>
-                      <p className=text-sm text-slate-300>{customer.mobile_number}</p>
+                      <h4 className="font-bold text-white text-lg">{customer.name}</h4>
+                      <p className="text-sm text-slate-300">{customer.mobile_number}</p>
                     </div>
                     <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium ${
                       customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
@@ -1906,55 +1771,59 @@ export default function InsuranceDashboard() {
                       {customer.status.toUpperCase()}
                     </span>
                   </div>
-                  <div className=grid grid-cols-2 gap-2 text-sm>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
                     {customer.registration_no && (
                       <div>
-                        <span className=text-slate-400>Vehicle:</span>
-                        <p className=text-white>{customer.registration_no}</p>
+                        <span className="text-slate-400">Vehicle:</span>
+                        <p className="text-white">{customer.registration_no}</p>
                       </div>
                     )}
-                    <div>
-                      <span className=text-slate-400>Company:</span>
-                      <p className=text-white>{displayCompany}</p>
-                    </div>
+                    {customer.company && (
+                      <div>
+                        <span className="text-slate-400">Company:</span>
+                        <p className="text-white">{customer.company}</p>
+                      </div>
+                    )}
                     {customer.g_code && (
                       <div>
-                        <span className=text-slate-400>G Code:</span>
-                        <p className=text-cyan-400 font-bold>{customer.g_code}</p>
+                        <span className="text-slate-400">G Code:</span>
+                        <p className="text-cyan-400 font-bold">{customer.g_code}</p>
+                      </div>
+                    )}
+                    {customer.current_policy_no && (
+                      <div>
+                        <span className="text-slate-400">Policy No:</span>
+                        <p className="text-cyan-400 font-bold">{customer.current_policy_no}</p>
                       </div>
                     )}
                     <div>
-                      <span className=text-slate-400>Policy No:</span>
-                      <p className=text-cyan-400 font-bold>{displayPolicyNo || 'N/A'}</p>
+                      <span className="text-slate-400">Renewal Date:</span>
+                      <p className="text-orange-400 font-medium">{getDisplayDate(customer)}</p>
                     </div>
                     <div>
-                      <span className=text-slate-400>Renewal Date:</span>
-                      <p className=text-orange-400 font-medium>{displayRenewalDate}</p>
-                    </div>
-                    <div>
-                      <span className=text-slate-400>Premium:</span>
-                      <p className=text-white font-bold>₹{parseAmount(customer.premium).toLocaleString()}</p>
+                      <span className="text-slate-400">Premium:</span>
+                      <p className="text-white font-bold">₹{parseAmount(customer.premium).toLocaleString()}</p>
                     </div>
                   </div>
-                  <div className=flex gap-2>
-                    <Button size=sm onClick={(e) => {
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={(e) => {
                       e.stopPropagation();
                       const message = generatePolicyDetailsMessage({
                         customerName: customer.name,
                         vehicleNumber: customer.registration_no,
-                        companyName: displayCompany,
-                        renewalDate: displayRenewalDate,
-                        policyNumber: displayPolicyNo,
+                        companyName: customer.company,
+                        renewalDate: getDisplayDate(customer),
+                        policyNumber: customer.current_policy_no,
                         policyType: customer.vertical,
                         premiumAmount: customer.premium?.toString(),
                         clientKey
                       });
                       logWhatsAppMessage(customer.id, customer.name, message);
                       window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-                    }}>’WhatsApp</Button>
+                    }}>💬 WhatsApp</Button>
                     <Button 
-                      size=sm 
-                      variant=outline
+                      size="sm" 
+                      variant="outline"
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
@@ -1962,34 +1831,33 @@ export default function InsuranceDashboard() {
                         setShowNoteModal(true);
                       }} 
                     >
-                      “ Note
+                      📝 Note
                     </Button>
                   </div>
                 </div>
               </div>
-                );
-              })
-            );
-            })()}
+            ))
+          );
+          })()}
           </div>
         </div>
       </Modal>
 
       {/* Message History Modal */}
-      <Modal open={showMessageHistoryModal} onClose={() => setShowMessageHistoryModal(false)} title=Message History>
-        <div className=space-y-3 max-h-96 overflow-y-auto>
+      <Modal open={showMessageHistoryModal} onClose={() => setShowMessageHistoryModal(false)} title="Message History">
+        <div className="space-y-3 max-h-96 overflow-y-auto">
           {messageHistory.length === 0 ? (
-            <p className=text-center text-slate-400 py-8>No messages sent yet</p>
+            <p className="text-center text-slate-400 py-8">No messages sent yet</p>
           ) : (
             messageHistory.map((msg, idx) => (
-              <div key={idx} className=p-3 bg-slate-700/50 rounded-lg border border-slate-600/50>
-                <div className=flex justify-between items-start mb-2>
-                  <span className=text-xs px-2 py-1 rounded bg-green-500/20 text-green-300>
-                    {msg.channel === 'whatsapp' ? '’WhatsApp' : msg.channel}
+              <div key={idx} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-300">
+                    {msg.channel === 'whatsapp' ? '💬 WhatsApp' : msg.channel}
                   </span>
-                  <span className=text-xs text-slate-400>{new Date(msg.sent_at).toLocaleString()}</span>
+                  <span className="text-xs text-slate-400">{new Date(msg.sent_at).toLocaleString()}</span>
                 </div>
-                <p className=text-sm text-white whitespace-pre-wrap>{msg.message_content}</p>
+                <p className="text-sm text-white whitespace-pre-wrap">{msg.message_content}</p>
               </div>
             ))
           )}
@@ -1997,152 +1865,137 @@ export default function InsuranceDashboard() {
       </Modal>
 
       {/* Add Note Modal */}
-      <Modal open={showNoteModal} onClose={() => { setShowNoteModal(false); setNote(''); setNoteCustomerId(null); }} title=Add Note/Report>
-        <div className=space-y-4>
+      <Modal open={showNoteModal} onClose={() => { setShowNoteModal(false); setNote(''); setNoteCustomerId(null); }} title="Add Note/Report">
+        <div className="space-y-4">
           <textarea
-            className=w-full p-3 border rounded bg-slate-700 text-white min-h-[100px]
-            placeholder=Add note about customer interaction, follow-ups, or observations...
+            className="w-full p-3 border rounded bg-slate-700 text-white min-h-[100px]"
+            placeholder="Add note about customer interaction, follow-ups, or observations..."
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
-          <div className=flex gap-3>
+          <div className="flex gap-3">
             <Button onClick={handleAddNote}>Save Note</Button>
-            <Button variant=outline onClick={() => { setShowNoteModal(false); setNote(''); setNoteCustomerId(null); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setShowNoteModal(false); setNote(''); setNoteCustomerId(null); }}>Cancel</Button>
           </div>
         </div>
       </Modal>
 
       {/* Renewal Update Modal */}
       <Modal open={showRenewalUpdateModal} onClose={() => { setShowRenewalUpdateModal(false); setBulkRenewalData({}); }} title={`Update ${selectedCustomers.length} Customer${selectedCustomers.length > 1 ? 's' : ''}`}>
-        <div className=space-y-4 max-h-[70vh] overflow-y-auto>
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
           {selectedCustomers.map((customerId) => {
             const customer = customers.find(c => c.id === customerId);
             if (!customer) return null;
             
-            const data = bulkRenewalData[customerId] || { payment_date: '', cheque_no: '', bank_name: '', customer_id: '', agent_code: '', amount: '', new_policy_no: '', new_company: '', paid_by: '', remarks: '', status: 'renewed' };
+            const data = bulkRenewalData[customerId] || { payment_date: '', cheque_no: '', bank_name: '', customer_id: '', agent_code: '', amount: '', new_policy_no: '', new_company: '', paid_by: '', remarks: '' };
             
             return (
-              <div key={customerId} className=p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 space-y-3>
-                <div className=border-b border-slate-600 pb-2 space-y-1>
-                  <div className=flex justify-between items-center>
-                    <h4 className=font-bold text-white>{customer.name}</h4>
-                    <p className=text-sm text-cyan-400 font-bold>₹{customer.premium?.toLocaleString()}</p>
+              <div key={customerId} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 space-y-3">
+                <div className="flex justify-between items-center border-b border-slate-600 pb-2">
+                  <div>
+                    <h4 className="font-bold text-white">{customer.name}</h4>
+                    <p className="text-xs text-slate-300">{customer.registration_no} - {customer.company}</p>
                   </div>
-                  <div className=flex justify-between items-center text-xs>
-                    <span className=text-slate-400>Policy: <span className=text-cyan-300 font-medium>{customer.current_policy_no || 'N/A'}</span></span>
-                    <span className=text-slate-400>Expiry: <span className=text-orange-300 font-medium>{getDisplayDate(customer) || 'N/A'}</span></span>
-                  </div>
-                  <p className=text-xs text-slate-300>{customer.registration_no} - {customer.company}</p>
+                  <p className="text-sm text-cyan-400 font-bold">Current: ₹{customer.premium?.toLocaleString()}</p>
                 </div>
                 
-                <div className=grid grid-cols-2 gap-2>
-                  <div className=col-span-2>
-                    <label className=text-xs text-slate-300 mb-1 block>STATUS *</label>
-                    <select
-                      className=w-full p-2 border rounded bg-slate-700 text-white text-sm
-                      value={data.status || 'renewed'}
-                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, status: e.target.value}})}
-                    >
-                      <option value=renewed> Renewed</option>
-                      <option value=inprocess>” In Process</option>
-                    </select>
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className=text-xs text-slate-300 mb-1 block>DEPOSITED/PAYMENT DATE</label>
+                    <label className="text-xs text-slate-300 mb-1 block">DEPOSITED/PAYMENT DATE</label>
                     <Input
-                      type=date
+                      type="date"
                       value={data.payment_date}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, payment_date: e.target.value}})}
-                      className=text-sm
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className=text-xs text-slate-300 mb-1 block>CHQ NO & DATE</label>
+                    <label className="text-xs text-slate-300 mb-1 block">CHQ NO & DATE</label>
                     <Input
-                      type=text
-                      placeholder=Cheque number & date
+                      type="text"
+                      placeholder="Cheque number & date"
                       value={data.cheque_no}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, cheque_no: e.target.value}})}
-                      className=text-sm
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className=text-xs text-slate-300 mb-1 block>BANK NAME</label>
+                    <label className="text-xs text-slate-300 mb-1 block">BANK NAME</label>
                     <Input
-                      type=text
-                      placeholder=Bank name
+                      type="text"
+                      placeholder="Bank name"
                       value={data.bank_name}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, bank_name: e.target.value}})}
-                      className=text-sm
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className=text-xs text-slate-300 mb-1 block>CUSTOMER ID</label>
+                    <label className="text-xs text-slate-300 mb-1 block">CUSTOMER ID</label>
                     <Input
-                      type=text
-                      placeholder=Customer ID
+                      type="text"
+                      placeholder="Customer ID"
                       value={data.customer_id}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, customer_id: e.target.value}})}
-                      className=text-sm
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className=text-xs text-slate-300 mb-1 block>AGENT CODE</label>
+                    <label className="text-xs text-slate-300 mb-1 block">AGENT CODE</label>
                     <Input
-                      type=text
-                      placeholder=Agent code
+                      type="text"
+                      placeholder="Agent code"
                       value={data.agent_code}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, agent_code: e.target.value}})}
-                      className=text-sm
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className=text-xs text-slate-300 mb-1 block>AMOUNT</label>
+                    <label className="text-xs text-slate-300 mb-1 block">AMOUNT</label>
                     <Input
-                      type=number
+                      type="number"
                       placeholder={customer.premium?.toString() || '0'}
                       value={data.amount}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, amount: e.target.value}})}
-                      className=text-sm
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className=text-xs text-slate-300 mb-1 block>NEW POLICY NO</label>
+                    <label className="text-xs text-slate-300 mb-1 block">NEW POLICY NO</label>
                     <Input
-                      type=text
-                      placeholder=New policy number
+                      type="text"
+                      placeholder="New policy number"
                       value={data.new_policy_no}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, new_policy_no: e.target.value}})}
-                      className=text-sm
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className=text-xs text-slate-300 mb-1 block>New Policy Company</label>
+                    <label className="text-xs text-slate-300 mb-1 block">New Policy Company</label>
                     <Input
-                      type=text
+                      type="text"
                       placeholder={customer.company || 'Company'}
                       value={data.new_company}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, new_company: e.target.value}})}
-                      className=text-sm
+                      className="text-sm"
                     />
                   </div>
                   <div>
-                    <label className=text-xs text-slate-300 mb-1 block>Paid By</label>
+                    <label className="text-xs text-slate-300 mb-1 block">Paid By</label>
                     <Input
-                      type=text
-                      placeholder=Payment method
+                      type="text"
+                      placeholder="Payment method"
                       value={data.paid_by}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, paid_by: e.target.value}})}
-                      className=text-sm
+                      className="text-sm"
                     />
                   </div>
                 </div>
                 
                 <div>
-                  <label className=text-xs text-slate-300 mb-1 block>Remarks</label>
+                  <label className="text-xs text-slate-300 mb-1 block">Remarks</label>
                   <textarea
-                    className=w-full p-2 border rounded bg-slate-700 text-white text-sm min-h-[60px]
-                    placeholder=Remarks
+                    className="w-full p-2 border rounded bg-slate-700 text-white text-sm min-h-[60px]"
+                    placeholder="Remarks"
                     value={data.remarks}
                     onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, remarks: e.target.value}})}
                   />
@@ -2151,7 +2004,7 @@ export default function InsuranceDashboard() {
             );
           })}
           
-          <div className=flex gap-3 pt-4 border-t border-slate-600 sticky bottom-0 bg-slate-800 p-3 -mx-1>
+          <div className="flex gap-3 pt-4 border-t border-slate-600 sticky bottom-0 bg-slate-800 p-3 -mx-1">
             <Button onClick={async () => {
               try {
                 for (const customerId of selectedCustomers) {
@@ -2159,86 +2012,36 @@ export default function InsuranceDashboard() {
                   if (!customer) continue;
                   
                   const data = bulkRenewalData[customerId] || {};
-                  const isRenewed = (data.status || 'renewed').toLowerCase() === 'renewed';
                   
-                  // Prepare update payload
-                  const updatePayload: any = {
+                  await api.put(`/api/insurance/customers/${customerId}`, {
                     ...customer,
                     payment_date: data.payment_date || customer.payment_date,
                     cheque_no: data.cheque_no || customer.cheque_no,
                     bank_name: data.bank_name || customer.bank_name,
                     customer_id: data.customer_id || customer.customer_id,
                     agent_code: data.agent_code || customer.agent_code,
+                    premium: data.amount ? parseFloat(data.amount) : customer.premium,
                     new_policy_no: data.new_policy_no || customer.new_policy_no,
                     new_company: data.new_company || customer.new_company,
                     paid_by: data.paid_by || customer.paid_by,
                     reason: data.remarks ? `${customer.reason || ''}\n${data.remarks} [${new Date().toLocaleString()}]` : customer.reason,
-                    status: data.status || 'renewed'
-                  };
-                  
-                  // If status is 'renewed', move new values to current and calculate next renewal date
-                  if (isRenewed) {
-                    // Update premium from amount field
-                    if (data.amount) {
-                      updatePayload.premium = parseFloat(data.amount);
-                    }
-                    
-                    // Move new_company to company
-                    if (data.new_company) {
-                      updatePayload.company = data.new_company;
-                    }
-                    
-                    // Move new_policy_no to current_policy_no
-                    if (data.new_policy_no) {
-                      updatePayload.current_policy_no = data.new_policy_no;
-                    }
-                    
-                    // Calculate next renewal date based on premium_mode
-                    const currentExpiry = getDisplayDate(customer);
-                    if (currentExpiry) {
-                      const nextRenewalDate = calculateNextRenewalDate(currentExpiry, customer.premium_mode || '');
-                      updatePayload.od_expiry_date = nextRenewalDate;
-                      updatePayload.renewal_date = nextRenewalDate;
-                    }
-                  } else {
-                    // For non-renewed status, keep premium as is or update from amount
-                    if (data.amount) {
-                      updatePayload.premium = parseFloat(data.amount);
-                    }
-                  }
-                  
-                  await api.put(`/api/insurance/customers/${customerId}`, updatePayload);
+                    status: 'RENEWED'
+                  });
                 }
                 
-                // Force sync to sheet after all updates
-                try {
-                  const syncResult = await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
-                  console.log('Sync result:', syncResult.data);
-                  
-                  setShowRenewalUpdateModal(false);
-                  setBulkRenewalData({});
-                  setSelectedCustomers([]);
-                  await loadData();
-                  
-                  if (syncResult.data.message === 'No changes to sync') {
-                    alert(`✓ ${selectedCustomers.length} customer(s) updated in database!\n\nNote: Sheet already up to date.`);
-                  } else {
-                    alert(`✓ ${selectedCustomers.length} customer(s) updated and synced!\n\nUpdated: ${syncResult.data.updated || 0} rows in sheet`);
-                  }
-                } catch (syncError) {
-                  console.error('Sync failed:', syncError);
-                  setShowRenewalUpdateModal(false);
-                  setBulkRenewalData({});
-                  setSelectedCustomers([]);
-                  await loadData();
-                  alert(`✓ ${selectedCustomers.length} customer(s) updated in database!\n\n✓  Failed to sync to sheet. Please use 'Sync to Sheets' button manually.`);
-                }
+                // await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+                
+                setShowRenewalUpdateModal(false);
+                setBulkRenewalData({});
+                setSelectedCustomers([]);
+                loadData();
+                alert(`✅ Updated and synced ${selectedCustomers.length} customer(s) successfully!`);
               } catch (error) {
                 console.error('Update failed:', error);
-                alert('✓× Failed to update customers');
+                alert('❌ Failed to update customers');
               }
             }}>Update All & Sync to Sheet</Button>
-            <Button variant=outline onClick={() => { setShowRenewalUpdateModal(false); setBulkRenewalData({}); }}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setShowRenewalUpdateModal(false); setBulkRenewalData({}); }}>Cancel</Button>
           </div>
         </div>
       </Modal>
@@ -2247,12 +2050,12 @@ export default function InsuranceDashboard() {
       <Modal
         open={!!editingCustomer}
         onClose={() => setEditingCustomer(null)}
-        title=Edit Customer
+        title="Edit Customer"
       >
         {editingCustomer && (
-          <div className=space-y-3 max-h-[75vh] overflow-y-auto p-1>
+          <div className="space-y-3 max-h-[75vh] overflow-y-auto p-1">
             {sheetFields.length === 0 ? (
-              <p className=text-center text-slate-400 py-8>Loading form fields...</p>
+              <p className="text-center text-slate-400 py-8">Loading form fields...</p>
             ) : (
               sheetFields
                 .filter(field => !['S NO', 's no', 'S_NO'].includes(field)) // Skip serial number
@@ -2266,9 +2069,9 @@ export default function InsuranceDashboard() {
                 if (isTextarea) {
                   return (
                     <div key={key}>
-                      <label className=text-sm text-slate-300 mb-1 block>{field}{isRequired && ' *'}</label>
+                      <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
                       <textarea
-                        className=w-full p-2 border rounded bg-slate-700 text-white
+                        className="w-full p-2 border rounded bg-slate-700 text-white"
                         placeholder={field}
                         value={editingCustomer[key] || ''}
                         onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
@@ -2281,16 +2084,16 @@ export default function InsuranceDashboard() {
                 if (isSelect) {
                   return (
                     <div key={key}>
-                      <label className=text-sm text-slate-300 mb-1 block>{field}</label>
+                      <label className="text-sm text-slate-300 mb-1 block">{field}</label>
                       <select
-                        className=w-full p-2 border rounded bg-slate-700 text-white
+                        className="w-full p-2 border rounded bg-slate-700 text-white"
                         value={editingCustomer[key] || 'due'}
                         onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
                       >
-                        <option value=due>DUE</option>
-                        <option value=renewed>Renewed</option>
-                        <option value=not renewed>Not Renewed</option>
-                        <option value=inprocess>In Process</option>
+                        <option value="due">DUE</option>
+                        <option value="renewed">Renewed</option>
+                        <option value="not renewed">Not Renewed</option>
+                        <option value="inprocess">In Process</option>
                       </select>
                     </div>
                   );
@@ -2304,9 +2107,9 @@ export default function InsuranceDashboard() {
                   
                   return (
                     <div key={key}>
-                      <label className=text-sm text-slate-300 mb-1 block>{field}{isRequired && ' *'}</label>
+                      <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
                       <Input
-                        type=date
+                        type="date"
                         value={formattedDate}
                         onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
                       />
@@ -2318,7 +2121,7 @@ export default function InsuranceDashboard() {
                 
                 return (
                   <div key={key}>
-                    <label className=text-sm text-slate-300 mb-1 block>{field}{isRequired && ' *'}</label>
+                    <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
                     <Input
                       type={inputType}
                       placeholder={field}
@@ -2331,9 +2134,9 @@ export default function InsuranceDashboard() {
               })
             )}
             
-            <div className=flex gap-3 pt-4 border-t border-slate-600>
+            <div className="flex gap-3 pt-4 border-t border-slate-600">
               <Button onClick={handleUpdateCustomer}>Update Customer</Button>
-              <Button variant=outline onClick={() => setEditingCustomer(null)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setEditingCustomer(null)}>Cancel</Button>
             </div>
           </div>
         )}
