@@ -898,19 +898,40 @@ export default function InsuranceDashboard() {
     if (syncing) return;
     try {
       setSyncing(true);
-      const result = await api.post('/api/insurance/sync/from-sheet', {
+      await api.post('/api/insurance/sync/from-sheet', {
         tabName: SHEET_TAB_NAME
       });
+      
       if (!silent) {
-        alert(`✅ Sync from sheet completed! Imported: ${result.data.imported} customers`);
+        alert('✅ Sync queued! Processing in background...');
       }
-      await loadData();
+      
+      // Poll for completion in background
+      setTimeout(async () => {
+        let completed = false;
+        let attempts = 0;
+        while (!completed && attempts < 120) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          try {
+            const statusRes = await api.get('/api/insurance/sync/status');
+            if (statusRes.data.status === 'idle') {
+              completed = true;
+              await loadData();
+              console.log('✅ Sync completed, data refreshed');
+            }
+          } catch (e) {
+            console.error('Status check failed:', e);
+          }
+          attempts++;
+        }
+      }, 0);
+      
+      setSyncing(false);
     } catch (error) {
       console.error('Failed to sync from sheets:', error);
       if (!silent) {
         alert(`❌ Sync from sheet failed: ${error.response?.data?.error || error.message}`);
       }
-    } finally {
       setSyncing(false);
     }
   };
@@ -1077,28 +1098,37 @@ export default function InsuranceDashboard() {
   const syncToSheets = async () => {
     try {
       setSyncing(true);
-      const result = await api.post('/api/insurance/sync/to-sheet', {
+      await api.post('/api/insurance/sync/to-sheet', {
         tabName: SHEET_TAB_NAME,
-        deletedCustomers: deletedCustomers // Include any pending deletions
+        deletedCustomers: deletedCustomers
       });
       
-      if (result.data.message === 'No changes to sync') {
-        alert('ℹ️ No changes detected - Sheet is already up to date!');
-      } else {
-        const parts = [];
-        if (result.data.deleted > 0) parts.push(`Deleted: ${result.data.deleted}`);
-        if (result.data.updated > 0) parts.push(`Updated: ${result.data.updated}`);
-        if (result.data.added > 0) parts.push(`Added: ${result.data.added}`);
-        
-        alert(`✅ Sync completed!\n\n${parts.join('\n')}`);
-        
-        // Clear deleted customers after successful sync
-        setDeletedCustomers([]);
-      }
+      alert('✅ Sync queued! Processing in background...');
+      
+      // Poll for completion in background
+      setTimeout(async () => {
+        let completed = false;
+        let attempts = 0;
+        while (!completed && attempts < 120) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          try {
+            const statusRes = await api.get('/api/insurance/sync/status');
+            if (statusRes.data.status === 'idle') {
+              completed = true;
+              setDeletedCustomers([]);
+              console.log('✅ Sync completed');
+            }
+          } catch (e) {
+            console.error('Status check failed:', e);
+          }
+          attempts++;
+        }
+      }, 0);
+      
+      setSyncing(false);
     } catch (error) {
       console.error('Failed to sync to sheets:', error);
       alert(`❌ Sync to sheet failed: ${error.response?.data?.error || error.message}`);
-    } finally {
       setSyncing(false);
     }
   };

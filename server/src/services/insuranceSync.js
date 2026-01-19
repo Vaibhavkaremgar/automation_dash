@@ -763,7 +763,6 @@ class InsuranceSyncService {
             others_doc: customer.others_doc,
             g_code: customer.g_code,
             paid_by: customer.paid_by,
-            paid_by: customer.paid_by,
             policy_start_date: customer.policy_start_date,
             insurance_activated_date: customer.insurance_activated_date,
             policy_doc_link: customer.policy_doc_link,

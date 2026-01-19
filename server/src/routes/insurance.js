@@ -495,165 +495,87 @@ router.get('/messages', (req, res) => {
 
 // Sync from Google Sheets
 router.post('/sync/from-sheet', activityLogger, async (req, res) => {
-  const syncMutex = require('../utils/syncMutex');
+  const syncQueue = require('../services/syncQueue');
+  const userId = req.user.id;
   
-  // Check if sync already in progress for this user
-  if (syncMutex.isLocked(req.user.id)) {
-    return res.status(409).json({ 
-      error: 'Sync already in progress',
-      message: 'Please wait for the current sync to complete'
-    });
-  }
-  
-  const release = await syncMutex.acquire(req.user.id);
-  
-  try {
-    console.log('\n========== SYNC FROM SHEET STARTED ==========');
-    console.log('User ID:', req.user.id);
-    
-    const { get } = require('../db/connection');
-    const { getClientConfig } = require('../config/insuranceClients');
-    
-    const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
-    console.log('User email:', user?.email);
-    
-    if (!user) {
-      console.error('❌ User not found');
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    const clientConfig = getClientConfig(user.email);
-    console.log('Client config:', JSON.stringify(clientConfig, null, 2));
-    
-    const spreadsheetId = clientConfig.spreadsheetId;
-    console.log('Spreadsheet ID:', spreadsheetId);
-    
-    // Both KMG and Joban now use multi-tab structure
-    if (clientConfig.tabs) {
-      console.log(`🔄 Syncing from multiple tabs for ${clientConfig.name}`);
-      let totalImported = 0;
+  // Enqueue sync and return immediately
+  syncQueue.enqueue(userId, async () => {
+    try {
+      console.log('\n========== SYNC FROM SHEET STARTED ==========');
+      console.log('User ID:', userId);
       
-      // Sync general insurance
-      const generalTab = clientConfig.tabs.general.tab;
-      console.log(`\n📊 SYNCING GENERAL INSURANCE`);
-      console.log(`Tab name: ${generalTab}`);
-      console.log(`Spreadsheet: ${spreadsheetId}`);
+      const { get } = require('../db/connection');
+      const { getClientConfig } = require('../config/insuranceClients');
       
-      const generalResult = await insuranceSync.syncFromSheet(req.user.id, spreadsheetId, generalTab, 'general');
-      console.log('General sync result:', generalResult);
-      totalImported += generalResult.imported || 0;
+      const user = await get('SELECT email FROM users WHERE id = ?', [userId]);
+      console.log('User email:', user?.email);
       
-      // Sync life insurance
-      const lifeTab = clientConfig.tabs.life.tab;
-      console.log(`\n📊 SYNCING LIFE INSURANCE`);
-      console.log(`Tab name: ${lifeTab}`);
-      console.log(`Spreadsheet: ${spreadsheetId}`);
+      if (!user) {
+        console.error('❌ User not found');
+        return;
+      }
       
-      const lifeResult = await insuranceSync.syncFromSheet(req.user.id, spreadsheetId, lifeTab, 'life');
-      console.log('Life sync result:', lifeResult);
-      totalImported += lifeResult.imported || 0;
+      const clientConfig = getClientConfig(user.email);
+      const spreadsheetId = clientConfig.spreadsheetId;
       
-      console.log(`\n✅ TOTAL IMPORTED: ${totalImported}`);
+      if (clientConfig.tabs) {
+        console.log(`🔄 Syncing from multiple tabs for ${clientConfig.name}`);
+        const generalTab = clientConfig.tabs.general.tab;
+        const lifeTab = clientConfig.tabs.life.tab;
+        
+        await insuranceSync.syncFromSheet(userId, spreadsheetId, generalTab, 'general');
+        await insuranceSync.syncFromSheet(userId, spreadsheetId, lifeTab, 'life');
+      } else {
+        const tabName = clientConfig.tabName;
+        await insuranceSync.syncFromSheet(userId, spreadsheetId, tabName);
+      }
+      
       console.log('========== SYNC FROM SHEET COMPLETED ==========\n');
-      
-      req.logActivity('sync_from_sheet', `Synced ${totalImported} customers from Google Sheets`);
-      res.json({ imported: totalImported, updated: 0 });
-    } else {
-      // Fallback for old single-tab structure
-      const tabName = clientConfig.tabName;
-      console.log(`🔄 Syncing from sheet for ${clientConfig.name}`);
-      console.log(`📊 Sheet ID: ${spreadsheetId}, Tab: ${tabName}`);
-      
-      const result = await insuranceSync.syncFromSheet(req.user.id, spreadsheetId, tabName);
-      req.logActivity('sync_from_sheet', `Synced ${result.imported || 0} customers from Google Sheets`);
-      res.json(result);
+    } catch (error) {
+      console.error('❌ Sync from sheet error:', error);
     }
-  } catch (error) {
-    console.error('❌ Sync from sheet error:', error);
-    console.error('Error stack:', error.stack);
-    console.log('========== SYNC FROM SHEET FAILED ==========\n');
-    res.status(500).json({ error: error.message });
-  } finally {
-    release(); // Always release lock
-  }
+  });
+  
+  // Return immediately with queued status
+  res.json({ queued: true, message: 'Sync queued for processing' });
 });
 
 // Sync to Google Sheets
 router.post('/sync/to-sheet', activityLogger, async (req, res) => {
-  const syncMutex = require('../utils/syncMutex');
+  const syncQueue = require('../services/syncQueue');
+  const userId = req.user.id;
+  const { deletedCustomers = [] } = req.body;
   
-  // Check if sync already in progress for this user
-  if (syncMutex.isLocked(req.user.id)) {
-    return res.status(409).json({ 
-      error: 'Sync already in progress',
-      message: 'Please wait for the current sync to complete'
-    });
-  }
-  
-  const release = await syncMutex.acquire(req.user.id);
-  
-  try {
-    const { deletedCustomers = [] } = req.body; // Accept deleted customers array
-    const { get } = require('../db/connection');
-    const { getClientConfig } = require('../config/insuranceClients');
-    
-    const user = await get('SELECT email FROM users WHERE id = ?', [req.user.id]);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+  // Enqueue sync and return immediately
+  syncQueue.enqueue(userId, async () => {
+    try {
+      const { get } = require('../db/connection');
+      const { getClientConfig } = require('../config/insuranceClients');
+      
+      const user = await get('SELECT email FROM users WHERE id = ?', [userId]);
+      if (!user) return;
+      
+      const clientConfig = getClientConfig(user.email);
+      const spreadsheetId = clientConfig.spreadsheetId;
+      
+      if (clientConfig.tabs) {
+        console.log(`🔄 Syncing to multiple tabs for ${clientConfig.name}`);
+        const generalTab = clientConfig.tabs.general.tab;
+        const lifeTab = clientConfig.tabs.life.tab;
+        
+        await insuranceSync.syncToSheet(userId, spreadsheetId, generalTab, ['motor', 'health', 'non-motor', '2-wheeler', 'general'], deletedCustomers);
+        await insuranceSync.syncToSheet(userId, spreadsheetId, lifeTab, ['life'], deletedCustomers);
+      } else {
+        const tabName = clientConfig.tabName;
+        await insuranceSync.syncToSheet(userId, spreadsheetId, tabName, null, deletedCustomers);
+      }
+    } catch (error) {
+      console.error('Sync to sheet error:', error);
     }
-    
-    const clientConfig = getClientConfig(user.email);
-    const spreadsheetId = clientConfig.spreadsheetId;
-    
-    // Both KMG and Joban now use multi-tab structure
-    if (clientConfig.tabs) {
-      console.log(`🔄 Syncing to multiple tabs for ${clientConfig.name}`);
-      let totalExported = 0;
-      let totalDeleted = 0;
-      let totalUpdated = 0;
-      let totalAdded = 0;
-      
-      // Sync general insurance (motor, health, non-motor)
-      const generalTab = clientConfig.tabs.general.tab;
-      console.log(`📊 Syncing general insurance to tab: ${generalTab}`);
-      const generalResult = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, generalTab, ['motor', 'health', 'non-motor', '2-wheeler', 'general'], deletedCustomers);
-      totalExported += generalResult.exported || 0;
-      totalDeleted += generalResult.deleted || 0;
-      totalUpdated += generalResult.updated || 0;
-      totalAdded += generalResult.added || 0;
-      
-      // Sync life insurance
-      const lifeTab = clientConfig.tabs.life.tab;
-      console.log(`📊 Syncing life insurance to tab: ${lifeTab}`);
-      const lifeResult = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, lifeTab, ['life'], deletedCustomers);
-      totalExported += lifeResult.exported || 0;
-      totalDeleted += lifeResult.deleted || 0;
-      totalUpdated += lifeResult.updated || 0;
-      totalAdded += lifeResult.added || 0;
-      
-      req.logActivity('sync_to_sheet', `Synced ${totalExported} customers to Google Sheets`);
-      res.json({ 
-        success: true, 
-        exported: totalExported,
-        deleted: totalDeleted,
-        updated: totalUpdated,
-        added: totalAdded
-      });
-    } else {
-      // Fallback for old single-tab structure
-      const tabName = clientConfig.tabName;
-      console.log('Syncing to sheet - User:', req.user.id, 'Email:', user.email, 'Sheet:', spreadsheetId, 'Tab:', tabName);
-      const result = await insuranceSync.syncToSheet(req.user.id, spreadsheetId, tabName, null, deletedCustomers);
-      console.log('Sync result:', result);
-      req.logActivity('sync_to_sheet', `Synced ${result.exported || 0} customers to Google Sheets`);
-      res.json(result);
-    }
-  } catch (error) {
-    console.error('Sync to sheet error:', error.message);
-    res.status(500).json({ error: error.message });
-  } finally {
-    release(); // Always release lock
-  }
+  });
+  
+  // Return immediately with queued status
+  res.json({ queued: true, message: 'Sync queued for processing' });
 });
 
 // Schedule reminders
@@ -1484,6 +1406,17 @@ router.get('/incident-metrics', (req, res) => {
   try {
     const incidentMetrics = require('../utils/incidentMetrics');
     res.json(incidentMetrics.getStats());
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get sync status
+router.get('/sync/status', (req, res) => {
+  try {
+    const syncQueue = require('../services/syncQueue');
+    const status = syncQueue.getStatus(req.user.id);
+    res.json(status);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
