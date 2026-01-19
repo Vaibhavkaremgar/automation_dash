@@ -1292,27 +1292,27 @@ export default function InsuranceDashboard() {
 
           {/* Statistics - Fixed */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => document.getElementById('today-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className="text-xs text-red-300 mb-1">Expiring Today</h4>
-            <p className="text-2xl font-bold text-red-400">{expiringToday.length}</p>
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => document.getElementById('today-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              <h4 className="text-xs text-red-300 mb-1">Expiring Today</h4>
+              <p className="text-2xl font-bold text-red-400">{expiringToday.length}</p>
+            </div>
+            <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg cursor-pointer hover:bg-orange-500/20 transition-all" onClick={() => document.getElementById('expiring3-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              <h4 className="text-xs text-orange-300 mb-1">Within 3 Days</h4>
+              <p className="text-2xl font-bold text-orange-400">{expiring1Day.length + expiring3.length}</p>
+            </div>
+            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg cursor-pointer hover:bg-yellow-500/20 transition-all" onClick={() => document.getElementById('expiring7-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              <h4 className="text-xs text-yellow-300 mb-1">Within 7 Days</h4>
+              <p className="text-2xl font-bold text-yellow-400">{expiring7.length}</p>
+            </div>
+            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer hover:bg-blue-500/20 transition-all" onClick={() => document.getElementById('inprocess-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              <h4 className="text-xs text-blue-300 mb-1">In Process</h4>
+              <p className="text-2xl font-bold text-blue-400">{inProcess.length}</p>
+            </div>
+            <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg cursor-pointer hover:bg-green-500/20 transition-all" onClick={() => document.getElementById('renewed-section')?.scrollIntoView({ behavior: 'smooth' })}>
+              <h4 className="text-xs text-green-300 mb-1">Renewed</h4>
+              <p className="text-2xl font-bold text-green-400">{renewed.length}</p>
+            </div>
           </div>
-          <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg cursor-pointer hover:bg-orange-500/20 transition-all" onClick={() => document.getElementById('expiring3-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className="text-xs text-orange-300 mb-1">Within 3 Days</h4>
-            <p className="text-2xl font-bold text-orange-400">{expiring1Day.length + expiring3.length}</p>
-          </div>
-          <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg cursor-pointer hover:bg-yellow-500/20 transition-all" onClick={() => document.getElementById('expiring7-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className="text-xs text-yellow-300 mb-1">Within 7 Days</h4>
-            <p className="text-2xl font-bold text-yellow-400">{expiring7.length}</p>
-          </div>
-          <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer hover:bg-blue-500/20 transition-all" onClick={() => document.getElementById('inprocess-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className="text-xs text-blue-300 mb-1">In Process</h4>
-            <p className="text-2xl font-bold text-blue-400">{inProcess.length}</p>
-          </div>
-          <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg cursor-pointer hover:bg-green-500/20 transition-all" onClick={() => document.getElementById('renewed-section')?.scrollIntoView({ behavior: 'smooth' })}>
-            <h4 className="text-xs text-green-300 mb-1">Renewed</h4>
-            <p className="text-2xl font-bold text-green-400">{renewed.length}</p>
-          </div>
-        </div>
         </div>
 
         {/* Content Sections */}
