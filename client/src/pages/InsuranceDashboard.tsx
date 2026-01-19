@@ -1599,33 +1599,39 @@ export default function InsuranceDashboard() {
   };
 
   return (
-    <div className="p-3 sm:p-4 md:p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">{getPageTitle()}</h1>
-          {currentTab === 'customers' && (
-            <div className="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg">
-              <p className="text-xs text-slate-400">Total Customers</p>
-              <p className="text-2xl font-bold text-cyan-400">{customers.length}</p>
-            </div>
-          )}
-        </div>
-          {currentTab === 'customers' && (
-            <Button onClick={() => {
-              setDynamicFormData({});
-              setShowAddModal(true);
-            }}>
-              Add Customer
-            </Button>
-          )}
-        </div>
+  <div className="p-3 sm:p-4 md:p-6">
+    {/* Header */}
+    <div className="flex justify-between items-center mb-4">
+      <div className="flex items-center gap-4">
+        <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
+          {getPageTitle()}
+        </h1>
+
+        {currentTab === 'customers' && (
+          <div className="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+            <p className="text-xs text-slate-400">Total Customers</p>
+            <p className="text-2xl font-bold text-cyan-400">{customers.length}</p>
+          </div>
+        )}
       </div>
 
-      {/* Content */}
-      <div>
-        {renderTabContent()}
-      </div>
+      {currentTab === 'customers' && (
+        <Button
+          onClick={() => {
+            setDynamicFormData({});
+            setShowAddModal(true);
+          }}
+        >
+          Add Customer
+        </Button>
+      )}
+    </div>
+
+    {/* Content */}
+    <div>
+      {renderTabContent()}
+    </div>
+
 
       {/* Add Customer Modal */}
       <Modal
