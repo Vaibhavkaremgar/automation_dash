@@ -28,6 +28,19 @@ interface Customer {
   status: string;
   reason: string;
   vertical: string;
+  current_policy_no?: string;
+  new_policy_no?: string;
+  new_company?: string;
+  premium_mode?: string;
+  g_code?: string;
+  payment_date?: string;
+  cheque_no?: string;
+  bank_name?: string;
+  customer_id?: string;
+  agent_code?: string;
+  paid_by?: string;
+  notes?: string;
+  [key: string]: any;
 }
 
 interface Analytics {
@@ -40,6 +53,7 @@ interface Analytics {
   expiredPolicies?: number;
   expiringPolicies?: number;
   pendingPolicies?: number;
+  lostPolicies?: number;
   totalPremium?: number;
 }
 
@@ -84,7 +98,7 @@ export default function InsuranceDashboard() {
   const [renewalStats, setRenewalStats] = useState({ reminders_today: 0, customers_reminded: 0 });
   const [renewalSearchTerm, setRenewalSearchTerm] = useState('');
   const [renewalMonthFilter, setRenewalMonthFilter] = useState('all');
-  const [searchTimers, setSearchTimers] = useState<{[key: string]: NodeJS.Timeout}>({});
+  const [searchTimers, setSearchTimers] = useState<{[key: string]: ReturnType<typeof setTimeout>}>({});
   const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteCustomerId, setNoteCustomerId] = useState<number | null>(null);
@@ -602,7 +616,7 @@ export default function InsuranceDashboard() {
                 <span className="text-orange-400 font-medium">{getDisplayDate(customer)}</span>
               </div>
             </div>
-            <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
+            <span className="text-sm font-bold text-white whitespace-nowrap">â‚¹{parseAmount(customer.premium).toLocaleString()}</span>
           </div>
         </div>
       );
@@ -622,15 +636,15 @@ export default function InsuranceDashboard() {
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-3">
               <h4 className="font-medium text-white text-sm">{customer.name}</h4>
               {isMotor && customer.registration_no && (
-                <span className="text-slate-300">• {customer.registration_no}</span>
+                <span className="text-slate-300">â€¢ {customer.registration_no}</span>
               )}
-              <span className="text-slate-300">• {getDisplayCompany(customer)}</span>
+              <span className="text-slate-300">â€¢ {getDisplayCompany(customer)}</span>
               {customer.g_code && (
-                <span className="text-cyan-400 font-medium">• G: {customer.g_code}</span>
+                <span className="text-cyan-400 font-medium">â€¢ G: {customer.g_code}</span>
               )}
-              <span className="text-cyan-400 font-medium">• Pol: {getDisplayPolicyNo(customer) || '-'}</span>
-              <span className="text-orange-400 font-medium">• {getDisplayRenewalDate(customer)}</span>
-              <span className="font-bold text-white text-base">• ₹{parseAmount(customer.premium).toLocaleString()}</span>
+              <span className="text-cyan-400 font-medium">â€¢ Pol: {getDisplayPolicyNo(customer) || '-'}</span>
+              <span className="text-orange-400 font-medium">â€¢ {getDisplayRenewalDate(customer)}</span>
+              <span className="font-bold text-white text-base">â€¢ â‚¹{parseAmount(customer.premium).toLocaleString()}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {isSelected && (
@@ -641,10 +655,10 @@ export default function InsuranceDashboard() {
                   defaultValue=""
                 >
                   <option value="" disabled>Mark as...</option>
-                  <option value="due">🔴 DUE</option>
-                  <option value="renewed">🟢 Renewed</option>
-                  <option value="not renewed">⚫ Not Renewed</option>
-                  <option value="inprocess">🔵 In Process</option>
+                  <option value="due">ðŸ”´ DUE</option>
+                  <option value="renewed">ðŸŸ¢ Renewed</option>
+                  <option value="not renewed">âš« Not Renewed</option>
+                  <option value="inprocess">ðŸ”µ In Process</option>
                 </select>
               )}
               {!isSelected && (
@@ -654,11 +668,11 @@ export default function InsuranceDashboard() {
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      alert('🔒 Premium Feature\n\nUpgrade to Voice Bot Premium to enable automated calling.\n\nContact support to upgrade.');
+                      alert('ðŸ”’ Premium Feature\n\nUpgrade to Voice Bot Premium to enable automated calling.\n\nContact support to upgrade.');
                     }}
                     title="Premium Feature"
                   >
-                    📞🔒
+                    ðŸ“žðŸ”’
                   </button>
                   <button
                     className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
@@ -698,7 +712,7 @@ export default function InsuranceDashboard() {
                       window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
                     }}
                   >
-                    💬
+                    ðŸ’¬
                   </button>
                   <button
                     type="button"
@@ -711,7 +725,7 @@ export default function InsuranceDashboard() {
                     }}
                     title="Add Note/Report"
                   >
-                    📝
+                    ðŸ“
                   </button>
                   <button
                     className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
@@ -722,7 +736,7 @@ export default function InsuranceDashboard() {
                     }}
                     title="Message History"
                   >
-                    📨
+                    ðŸ“¨
                   </button>
                 </>
               )}
@@ -811,7 +825,7 @@ export default function InsuranceDashboard() {
       
       const matchedFieldNames = matchedFields.map(f => fieldLabels[f] || f).join(', ');
       
-      if (!confirm(`⚠️ Potential Duplicate Found!\n\nSimilarity: ${similarityPercent}% (${matchCount}/${totalFields} fields match)\n\nExisting Customer:\nName: ${existing.name}\nMobile: ${existing.mobile_number}\nPolicy: ${existing.current_policy_no || 'N/A'}\n\nMatching Fields:\n${matchedFieldNames}\n\nClick OK to add as NEW customer anyway, or Cancel to go back.`)) {
+      if (!confirm(`âš ï¸ Potential Duplicate Found!\n\nSimilarity: ${similarityPercent}% (${matchCount}/${totalFields} fields match)\n\nExisting Customer:\nName: ${existing.name}\nMobile: ${existing.mobile_number}\nPolicy: ${existing.current_policy_no || 'N/A'}\n\nMatching Fields:\n${matchedFieldNames}\n\nClick OK to add as NEW customer anyway, or Cancel to go back.`)) {
         return;
       }
     }
@@ -853,9 +867,9 @@ export default function InsuranceDashboard() {
       console.log('Sync result:', syncResult.data);
       
       if (syncResult.data.message === 'No changes to sync') {
-        alert('✅ Customer added to database successfully!\n\nNote: Sheet already up to date.');
+        alert('âœ… Customer added to database successfully!\n\nNote: Sheet already up to date.');
       } else {
-        alert(`✅ Customer added and synced to sheet!\n\nUpdated: ${syncResult.data.updated || 0} rows\nAdded: ${syncResult.data.added || 0} rows`);
+        alert(`âœ… Customer added and synced to sheet!\n\nUpdated: ${syncResult.data.updated || 0} rows\nAdded: ${syncResult.data.added || 0} rows`);
       }
       
       setShowAddModal(false);
@@ -941,21 +955,21 @@ export default function InsuranceDashboard() {
           });
           
           if (syncResult.data.deleted > 0) {
-            alert(`✅ Customer deleted from database and sheet!\n\nDeleted: ${syncResult.data.deleted} row(s)`);
+            alert(`âœ… Customer deleted from database and sheet!\n\nDeleted: ${syncResult.data.deleted} row(s)`);
           } else {
-            alert('✅ Customer deleted from database!\n\nNote: No matching row found in sheet.');
+            alert('âœ… Customer deleted from database!\n\nNote: No matching row found in sheet.');
           }
           
           // Clear deleted customers after successful sync
           setDeletedCustomers([]);
         } catch (syncError) {
           console.error('Auto-sync failed:', syncError);
-          alert('✅ Customer deleted from database!\n\n⚠️ Failed to sync deletion to sheet. Please sync manually.');
+          alert('âœ… Customer deleted from database!\n\nâš ï¸ Failed to sync deletion to sheet. Please sync manually.');
         }
       }
     } catch (error) {
       console.error('Failed to delete customer:', error);
-      alert('❌ Failed to delete customer: ' + (error.response?.data?.error || error.message));
+      alert('âŒ Failed to delete customer: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -967,13 +981,13 @@ export default function InsuranceDashboard() {
         tabName: SHEET_TAB_NAME
       });
       if (!silent) {
-        alert(`✅ Sync from sheet completed! Imported: ${result.data.imported} customers`);
+        alert(`âœ… Sync from sheet completed! Imported: ${result.data.imported} customers`);
       }
       await loadData();
     } catch (error) {
       console.error('Failed to sync from sheets:', error);
       if (!silent) {
-        alert(`❌ Sync from sheet failed: ${error.response?.data?.error || error.message}`);
+        alert(`âŒ Sync from sheet failed: ${error.response?.data?.error || error.message}`);
       }
     } finally {
       setSyncing(false);
@@ -1037,11 +1051,11 @@ export default function InsuranceDashboard() {
             </div>
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Year Renewed/InProcess Policies'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">This Year Premium</h3>
-              <p className="text-xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+              <p className="text-xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">â‚¹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </div>
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Month Renewed/InProcess Policies'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">This Month Premium</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">â‚¹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </div>
           </div>
         )}
@@ -1049,12 +1063,12 @@ export default function InsuranceDashboard() {
         {/* Quick Actions */}
         <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4">
           <h3 className="text-base font-semibold mb-3 text-white flex items-center gap-2">
-            ⚡ Quick Actions - Today's Priority ({todayTasks.length})
+            âš¡ Quick Actions - Today's Priority ({todayTasks.length})
           </h3>
           
           {todayTasks.length === 0 ? (
             <div className="text-center py-8 text-slate-400">
-              <p className="text-lg">✅ All caught up! No urgent tasks today.</p>
+              <p className="text-lg">âœ… All caught up! No urgent tasks today.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -1148,21 +1162,21 @@ export default function InsuranceDashboard() {
       });
       
       if (result.data.message === 'No changes to sync') {
-        alert('ℹ️ No changes detected - Sheet is already up to date!');
+        alert('â„¹ï¸ No changes detected - Sheet is already up to date!');
       } else {
         const parts = [];
         if (result.data.deleted > 0) parts.push(`Deleted: ${result.data.deleted}`);
         if (result.data.updated > 0) parts.push(`Updated: ${result.data.updated}`);
         if (result.data.added > 0) parts.push(`Added: ${result.data.added}`);
         
-        alert(`✅ Sync completed!\n\n${parts.join('\n')}`);
+        alert(`âœ… Sync completed!\n\n${parts.join('\n')}`);
         
         // Clear deleted customers after successful sync
         setDeletedCustomers([]);
       }
     } catch (error) {
       console.error('Failed to sync to sheets:', error);
-      alert(`❌ Sync to sheet failed: ${error.response?.data?.error || error.message}`);
+      alert(`âŒ Sync to sheet failed: ${error.response?.data?.error || error.message}`);
     } finally {
       setSyncing(false);
     }
@@ -1196,13 +1210,13 @@ export default function InsuranceDashboard() {
             </div>
             <div className="flex gap-2">
               <Button 
-                onClick={syncFromSheets} 
+                onClick={() => syncFromSheets(false)} 
                 disabled={syncing}
                 variant="outline"
                 title="Sync from Sheets"
                 size="sm"
               >
-                {syncing ? 'Syncing...' : '🔄 Sync from Sheets'}
+                {syncing ? 'Syncing...' : 'ðŸ”„ Sync from Sheets'}
               </Button>
               <Button 
                 onClick={syncToSheets} 
@@ -1211,7 +1225,7 @@ export default function InsuranceDashboard() {
                 title="Sync to Sheets"
                 size="sm"
               >
-                {syncing ? 'Syncing...' : '📤 Sync to Sheets'}
+                {syncing ? 'Syncing...' : 'ðŸ“¤ Sync to Sheets'}
               </Button>
               <Button 
                 onClick={() => {
@@ -1225,7 +1239,7 @@ export default function InsuranceDashboard() {
                 title="Open Google Sheet"
                 size="sm"
               >
-                📊 Open Sheet
+                ðŸ“Š Open Sheet
               </Button>
             </div>
           </div>
@@ -1300,7 +1314,7 @@ export default function InsuranceDashboard() {
         {/* Total Amount Card */}
         <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg cursor-pointer hover:bg-purple-500/20 transition-all" onClick={() => { setDetailsModalTitle('All Policies - Total Premium'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
           <h4 className="text-sm font-medium text-purple-300 mb-1">Total Premium (All Companies)</h4>
-          <p className="text-3xl font-bold text-purple-400">₹{customers.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString()}</p>
+          <p className="text-3xl font-bold text-purple-400">â‚¹{customers.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString()}</p>
           <p className="text-xs text-slate-300 mt-1">{customers.length} total policies</p>
         </div>
         
@@ -1322,7 +1336,7 @@ export default function InsuranceDashboard() {
             <div key={company} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const sorted = [...data.customers].sort((a, b) => { const aIsDue = a.status.trim().toLowerCase() === 'due' ? 0 : 1; const bIsDue = b.status.trim().toLowerCase() === 'due' ? 0 : 1; return aIsDue - bIsDue; }); setDetailsModalTitle(`${company} - Customers`); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h4 className="text-sm font-medium text-white mb-1">{company}</h4>
               <p className="text-xs text-slate-300">Total: {data.count} | <span className="text-green-400">Renewed: {data.renewed}</span> | <span className="text-blue-400">InProcess: {data.inProcess}</span> | <span className="text-red-400">Due: {data.due}</span></p>
-              <p className="text-base font-bold text-cyan-400">₹{data.premium.toLocaleString()}</p>
+              <p className="text-base font-bold text-cyan-400">â‚¹{data.premium.toLocaleString()}</p>
             </div>
           ))}
         </div>
@@ -1409,7 +1423,7 @@ export default function InsuranceDashboard() {
                 onClick={() => setShowRenewalUpdateModal(true)}
                 className="border-green-500/50 text-green-400 hover:bg-green-500/10"
               >
-                ✏️ Update & Sync
+                âœï¸ Update & Sync
               </Button>
               <span className="text-sm text-slate-200 font-medium">Mark as:</span>
               <select 
@@ -1418,10 +1432,10 @@ export default function InsuranceDashboard() {
                 defaultValue=""
               >
                 <option value="" disabled>Select Status</option>
-                <option value="due">🔴 DUE</option>
-                <option value="renewed">🟢 Renewed</option>
-                <option value="not renewed">⚫ Not Renewed</option>
-                <option value="inprocess">🔵 In Process</option>
+                <option value="due">ðŸ”´ DUE</option>
+                <option value="renewed">ðŸŸ¢ Renewed</option>
+                <option value="not renewed">âš« Not Renewed</option>
+                <option value="inprocess">ðŸ”µ In Process</option>
               </select>
               <Button 
                 variant="outline" 
@@ -1429,7 +1443,7 @@ export default function InsuranceDashboard() {
                 onClick={() => setSelectedCustomers([])}
                 className="border-red-500/50 text-red-400 hover:bg-red-500/10"
               >
-                ✕ Clear Selection
+                âœ• Clear Selection
               </Button>
             </div>
           </div>
@@ -1438,7 +1452,7 @@ export default function InsuranceDashboard() {
         {/* Show message if no renewals at all */}
         {expiringToday.length === 0 && expiring1Day.length === 0 && expiring3.length === 0 && expiring7.length === 0 && expiring15.length === 0 && expiring30.length === 0 && overdue.length === 0 && renewed.length === 0 && inProcess.length === 0 && (
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-12 text-center">
-            <p className="text-2xl text-slate-400">✅ No renewals to display</p>
+            <p className="text-2xl text-slate-400">âœ… No renewals to display</p>
             <p className="text-sm text-slate-500 mt-2">All customers are up to date!</p>
           </div>
         )}
@@ -1446,7 +1460,7 @@ export default function InsuranceDashboard() {
         {/* Expiring Today */}
         {expiringToday.length > 0 && (
           <div id="today-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-red-400">🚨 Expiring Today ({expiringToday.length})</h3>
+            <h3 className="text-base font-semibold mb-3 text-red-400">ðŸš¨ Expiring Today ({expiringToday.length})</h3>
             <div className="space-y-3">
               {expiringToday.slice(0, showAllToday ? expiringToday.length : 5).map(c => renderRenewalCard(c, `Expires TODAY`, 'border-red-500/50'))}
             </div>
@@ -1463,7 +1477,7 @@ export default function InsuranceDashboard() {
         {/* Expiring Tomorrow */}
         {expiring1Day.length > 0 && (
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-orange-400">⚠️ Expiring Tomorrow ({expiring1Day.length})</h3>
+            <h3 className="text-base font-semibold mb-3 text-orange-400">âš ï¸ Expiring Tomorrow ({expiring1Day.length})</h3>
             <div className="space-y-3">
               {expiring1Day.slice(0, showAllTomorrow ? expiring1Day.length : 5).map(c => renderRenewalCard(c, 'Expires TOMORROW', 'border-orange-500/50'))}
             </div>
@@ -1480,7 +1494,7 @@ export default function InsuranceDashboard() {
         {/* Expiring Within 3 Days */}
         {expiring3.length > 0 && (
           <div id="expiring3-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-orange-400">🟠 Expiring Within 3 Days ({expiring3.length})</h3>
+            <h3 className="text-base font-semibold mb-3 text-orange-400">ðŸŸ  Expiring Within 3 Days ({expiring3.length})</h3>
             <div className="space-y-3">
               {expiring3.slice(0, showAll7Days ? expiring3.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-orange-500/50'))}
             </div>
@@ -1497,7 +1511,7 @@ export default function InsuranceDashboard() {
         {/* Expiring Within 7 Days */}
         {expiring7.length > 0 && (
           <div id="expiring7-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-yellow-400">🟡 Expiring Within 7 Days ({expiring7.length})</h3>
+            <h3 className="text-base font-semibold mb-3 text-yellow-400">ðŸŸ¡ Expiring Within 7 Days ({expiring7.length})</h3>
             <div className="space-y-3">
               {expiring7.slice(0, showAll7Days ? expiring7.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-yellow-500/50'))}
             </div>
@@ -1514,7 +1528,7 @@ export default function InsuranceDashboard() {
         {/* Expiring Within 15 Days */}
         {expiring15.length > 0 && (
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-yellow-400">🟡 Expiring Within 15 Days ({expiring15.length})</h3>
+            <h3 className="text-base font-semibold mb-3 text-yellow-400">ðŸŸ¡ Expiring Within 15 Days ({expiring15.length})</h3>
             <div className="space-y-3">
               {expiring15.slice(0, showAll15Days ? expiring15.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-yellow-500/50'))}
             </div>
@@ -1531,7 +1545,7 @@ export default function InsuranceDashboard() {
         {/* Expiring Within 30 Days */}
         {expiring30.length > 0 && (
           <div id="expiring30-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-yellow-400">🟡 Expiring Within 30 Days ({expiring30.length})</h3>
+            <h3 className="text-base font-semibold mb-3 text-yellow-400">ðŸŸ¡ Expiring Within 30 Days ({expiring30.length})</h3>
             <div className="space-y-3">
               {expiring30.slice(0, showAll30Days ? expiring30.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-yellow-500/50'))}
             </div>
@@ -1548,7 +1562,7 @@ export default function InsuranceDashboard() {
         {/* Overdue */}
         {overdue.length > 0 && (
           <div id="overdue-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-red-500">🔴 Overdue ({overdue.length})</h3>
+            <h3 className="text-base font-semibold mb-3 text-red-500">ðŸ”´ Overdue ({overdue.length})</h3>
             <div className="space-y-3">
               {overdue.slice(0, showAllOverdue ? overdue.length : 5).map(c => renderRenewalCard(c, `${Math.abs(getDaysUntilExpiry(c))} days overdue`, 'border-red-600/50'))}
             </div>
@@ -1565,7 +1579,7 @@ export default function InsuranceDashboard() {
         {/* Recently Renewed */}
         {renewed.length > 0 && (
           <div id="renewed-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-green-400">🟢 Recently Renewed ({renewed.length})</h3>
+            <h3 className="text-base font-semibold mb-3 text-green-400">ðŸŸ¢ Recently Renewed ({renewed.length})</h3>
             <div className="space-y-3">
               {renewed.slice(0, showAllRenewed ? renewed.length : 5).map(c => renderRenewalCard(c, 'Renewed', 'border-green-500/50', true))}
             </div>
@@ -1582,7 +1596,7 @@ export default function InsuranceDashboard() {
         {/* In Process */}
         {inProcess.length > 0 && (
           <div id="inprocess-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-blue-400">🔵 In Process ({inProcess.length})</h3>
+            <h3 className="text-base font-semibold mb-3 text-blue-400">ðŸ”µ In Process ({inProcess.length})</h3>
             <div className="space-y-3">
               {inProcess.slice(0, showAllInProcess ? inProcess.length : 5).map(c => renderRenewalCard(c, 'In Process', 'border-blue-500/50', false))}
             </div>
@@ -1630,7 +1644,7 @@ export default function InsuranceDashboard() {
                 <div key={idx} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-300">
-                      {msg.channel === 'whatsapp' ? '💬 WhatsApp' : msg.channel}
+                      {msg.channel === 'whatsapp' ? 'ðŸ’¬ WhatsApp' : msg.channel}
                     </span>
                     <span className="text-xs text-slate-400">{new Date(msg.sent_at).toLocaleString()}</span>
                   </div>
@@ -1650,7 +1664,7 @@ export default function InsuranceDashboard() {
                   <span className={`text-xs px-2 py-1 rounded ${
                     item.type === 'note' ? 'bg-blue-500/20 text-blue-300' : 'bg-green-500/20 text-green-300'
                   }`}>
-                    {item.type === 'note' ? '📝 Note' : '📧 Reminder'}
+                    {item.type === 'note' ? 'ðŸ“ Note' : 'ðŸ“§ Reminder'}
                   </span>
                   <span className="text-xs text-slate-400">{new Date(item.created_at).toLocaleString()}</span>
                 </div>
@@ -1876,7 +1890,7 @@ export default function InsuranceDashboard() {
                 const displayRenewalDate = getDisplayRenewalDate(customer);
                 
                 return (
-              <div key={customer.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
+                  <div key={customer.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
                 <div className="space-y-3">
                   <div className="flex justify-between items-start mb-2">
                     <div>
@@ -1919,7 +1933,7 @@ export default function InsuranceDashboard() {
                     </div>
                     <div>
                       <span className="text-slate-400">Premium:</span>
-                      <p className="text-white font-bold">₹{parseAmount(customer.premium).toLocaleString()}</p>
+                      <p className="text-white font-bold">â‚¹{parseAmount(customer.premium).toLocaleString()}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -1937,7 +1951,7 @@ export default function InsuranceDashboard() {
                       });
                       logWhatsAppMessage(customer.id, customer.name, message);
                       window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-                    }}>💬 WhatsApp</Button>
+                    }}>ðŸ’¬ WhatsApp</Button>
                     <Button 
                       size="sm" 
                       variant="outline"
@@ -1948,14 +1962,15 @@ export default function InsuranceDashboard() {
                         setShowNoteModal(true);
                       }} 
                     >
-                      📝 Note
+                      ðŸ“ Note
                     </Button>
                   </div>
                 </div>
               </div>
-            );}))
-          );
-          })()}
+                );
+              })
+            );
+            })()}
           </div>
         </div>
       </Modal>
@@ -1970,7 +1985,7 @@ export default function InsuranceDashboard() {
               <div key={idx} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-300">
-                    {msg.channel === 'whatsapp' ? '💬 WhatsApp' : msg.channel}
+                    {msg.channel === 'whatsapp' ? 'ðŸ’¬ WhatsApp' : msg.channel}
                   </span>
                   <span className="text-xs text-slate-400">{new Date(msg.sent_at).toLocaleString()}</span>
                 </div>
@@ -2011,7 +2026,7 @@ export default function InsuranceDashboard() {
                 <div className="border-b border-slate-600 pb-2 space-y-1">
                   <div className="flex justify-between items-center">
                     <h4 className="font-bold text-white">{customer.name}</h4>
-                    <p className="text-sm text-cyan-400 font-bold">₹{customer.premium?.toLocaleString()}</p>
+                    <p className="text-sm text-cyan-400 font-bold">â‚¹{customer.premium?.toLocaleString()}</p>
                   </div>
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-slate-400">Policy: <span className="text-cyan-300 font-medium">{customer.current_policy_no || 'N/A'}</span></span>
@@ -2028,8 +2043,8 @@ export default function InsuranceDashboard() {
                       value={data.status || 'renewed'}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, status: e.target.value}})}
                     >
-                      <option value="renewed">🟢 Renewed</option>
-                      <option value="inprocess">🔵 In Process</option>
+                      <option value="renewed">ðŸŸ¢ Renewed</option>
+                      <option value="inprocess">ðŸ”µ In Process</option>
                     </select>
                   </div>
                   <div>
@@ -2206,9 +2221,9 @@ export default function InsuranceDashboard() {
                   await loadData();
                   
                   if (syncResult.data.message === 'No changes to sync') {
-                    alert(`✅ ${selectedCustomers.length} customer(s) updated in database!\n\nNote: Sheet already up to date.`);
+                    alert(`âœ… ${selectedCustomers.length} customer(s) updated in database!\n\nNote: Sheet already up to date.`);
                   } else {
-                    alert(`✅ ${selectedCustomers.length} customer(s) updated and synced!\n\nUpdated: ${syncResult.data.updated || 0} rows in sheet`);
+                    alert(`âœ… ${selectedCustomers.length} customer(s) updated and synced!\n\nUpdated: ${syncResult.data.updated || 0} rows in sheet`);
                   }
                 } catch (syncError) {
                   console.error('Sync failed:', syncError);
@@ -2216,11 +2231,11 @@ export default function InsuranceDashboard() {
                   setBulkRenewalData({});
                   setSelectedCustomers([]);
                   await loadData();
-                  alert(`✅ ${selectedCustomers.length} customer(s) updated in database!\n\n⚠️ Failed to sync to sheet. Please use 'Sync to Sheets' button manually.`);
+                  alert(`âœ… ${selectedCustomers.length} customer(s) updated in database!\n\nâš ï¸ Failed to sync to sheet. Please use 'Sync to Sheets' button manually.`);
                 }
               } catch (error) {
                 console.error('Update failed:', error);
-                alert('❌ Failed to update customers');
+                alert('âŒ Failed to update customers');
               }
             }}>Update All & Sync to Sheet</Button>
             <Button variant="outline" onClick={() => { setShowRenewalUpdateModal(false); setBulkRenewalData({}); }}>Cancel</Button>
