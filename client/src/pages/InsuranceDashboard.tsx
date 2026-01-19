@@ -341,6 +341,34 @@ export default function InsuranceDashboard() {
     return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${nextYear}`;
   };
 
+  // Helper functions to get display values for renewed customers
+  const getDisplayCompany = (customer: Customer) => {
+    // If status is renewed and new_company exists, show new_company
+    if (customer.status?.toLowerCase().trim() === 'renewed' && customer.new_company) {
+      return customer.new_company;
+    }
+    return customer.company;
+  };
+
+  const getDisplayPolicyNo = (customer: Customer) => {
+    // If status is renewed and new_policy_no exists, show new_policy_no
+    if (customer.status?.toLowerCase().trim() === 'renewed' && customer.new_policy_no) {
+      return customer.new_policy_no;
+    }
+    return customer.current_policy_no;
+  };
+
+  const getDisplayRenewalDate = (customer: Customer) => {
+    // If status is renewed, calculate next renewal date
+    if (customer.status?.toLowerCase().trim() === 'renewed') {
+      const currentExpiry = getDisplayDate(customer);
+      if (currentExpiry) {
+        return calculateNextRenewalDate(currentExpiry, customer.premium_mode || '');
+      }
+    }
+    return getDisplayDate(customer);
+  };
+
   const getDisplayDate = (customer: Customer) => {
     // Always prioritize renewal_date (MODIFIED EXPIRY DATE) first
     // Fall back to od_expiry_date (DATE OF EXPIRY) if renewal_date is empty
@@ -596,12 +624,12 @@ export default function InsuranceDashboard() {
               {isMotor && customer.registration_no && (
                 <span className="text-slate-300">• {customer.registration_no}</span>
               )}
-              <span className="text-slate-300">• {customer.company}</span>
+              <span className="text-slate-300">• {getDisplayCompany(customer)}</span>
               {customer.g_code && (
                 <span className="text-cyan-400 font-medium">• G: {customer.g_code}</span>
               )}
-              <span className="text-cyan-400 font-medium">• Pol: {customer.current_policy_no || '-'}</span>
-              <span className="text-orange-400 font-medium">• {getDisplayDate(customer)}</span>
+              <span className="text-cyan-400 font-medium">• Pol: {getDisplayPolicyNo(customer) || '-'}</span>
+              <span className="text-orange-400 font-medium">• {getDisplayRenewalDate(customer)}</span>
               <span className="font-bold text-white text-base">• ₹{parseAmount(customer.premium).toLocaleString()}</span>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1841,7 +1869,13 @@ export default function InsuranceDashboard() {
               return filtered.length === 0 ? (
               <p className="text-center text-slate-400 py-8">No customers found</p>
             ) : (
-              filtered.map((customer) => (
+              filtered.map((customer) => {
+                // Get display values based on status
+                const displayCompany = getDisplayCompany(customer);
+                const displayPolicyNo = getDisplayPolicyNo(customer);
+                const displayRenewalDate = getDisplayRenewalDate(customer);
+                
+                return (
               <div key={customer.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
                 <div className="space-y-3">
                   <div className="flex justify-between items-start mb-2">
@@ -1865,27 +1899,23 @@ export default function InsuranceDashboard() {
                         <p className="text-white">{customer.registration_no}</p>
                       </div>
                     )}
-                    {customer.company && (
-                      <div>
-                        <span className="text-slate-400">Company:</span>
-                        <p className="text-white">{customer.company}</p>
-                      </div>
-                    )}
+                    <div>
+                      <span className="text-slate-400">Company:</span>
+                      <p className="text-white">{displayCompany}</p>
+                    </div>
                     {customer.g_code && (
                       <div>
                         <span className="text-slate-400">G Code:</span>
                         <p className="text-cyan-400 font-bold">{customer.g_code}</p>
                       </div>
                     )}
-                    {customer.current_policy_no && (
-                      <div>
-                        <span className="text-slate-400">Policy No:</span>
-                        <p className="text-cyan-400 font-bold">{customer.current_policy_no}</p>
-                      </div>
-                    )}
+                    <div>
+                      <span className="text-slate-400">Policy No:</span>
+                      <p className="text-cyan-400 font-bold">{displayPolicyNo || 'N/A'}</p>
+                    </div>
                     <div>
                       <span className="text-slate-400">Renewal Date:</span>
-                      <p className="text-orange-400 font-medium">{getDisplayDate(customer)}</p>
+                      <p className="text-orange-400 font-medium">{displayRenewalDate}</p>
                     </div>
                     <div>
                       <span className="text-slate-400">Premium:</span>
@@ -1898,9 +1928,9 @@ export default function InsuranceDashboard() {
                       const message = generatePolicyDetailsMessage({
                         customerName: customer.name,
                         vehicleNumber: customer.registration_no,
-                        companyName: customer.company,
-                        renewalDate: getDisplayDate(customer),
-                        policyNumber: customer.current_policy_no,
+                        companyName: displayCompany,
+                        renewalDate: displayRenewalDate,
+                        policyNumber: displayPolicyNo,
                         policyType: customer.vertical,
                         premiumAmount: customer.premium?.toString(),
                         clientKey
@@ -1923,7 +1953,7 @@ export default function InsuranceDashboard() {
                   </div>
                 </div>
               </div>
-            ))
+            );}))
           );
           })()}
           </div>

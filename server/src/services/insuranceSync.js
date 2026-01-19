@@ -603,19 +603,67 @@ class InsuranceSyncService {
       
       // STEP 5: Process each customer from DB
       for (const customer of customers) {
-        // Try to find matching row in sheet - ONLY by unique identifiers
+        // Try to find matching row in sheet - MULTIPLE MATCHING STRATEGIES
         let existingEntry = null;
         
-        // Try Policy Number first (exact match)
-        if (customer.current_policy_no && customer.current_policy_no.trim()) {
-          const key = `policy:${customer.current_policy_no.trim()}`;
+        // Strategy 1: Match by Name + Mobile (most reliable for updates)
+        if (customer.name && customer.mobile_number) {
+          const key = `name_mobile:${customer.name.trim().toLowerCase()}:${customer.mobile_number.trim()}`;
           existingEntry = sheetRowMap.get(key);
+          if (existingEntry) {
+            console.log(`✓ Matched by name+mobile: ${customer.name}`);
+          }
         }
         
-        // If no policy match, try Registration Number (for vehicles)
+        // Strategy 2: Match by Policy Number (current_policy_no)
+        if (!existingEntry && customer.current_policy_no && customer.current_policy_no.trim()) {
+          const key = `policy:${customer.current_policy_no.trim()}`;
+          existingEntry = sheetRowMap.get(key);
+          if (existingEntry) {
+            console.log(`✓ Matched by policy: ${customer.current_policy_no}`);
+          }
+        }
+        
+        // Strategy 3: Match by Customer ID
+        if (!existingEntry && customer.customer_id && customer.customer_id.trim()) {
+          // Build customer_id lookup if not exists
+          const custIdColIndex = headers.findIndex(h => h === schema.customer_id);
+          if (custIdColIndex !== -1) {
+            existingRows.forEach((row, index) => {
+              const custId = row[custIdColIndex] ? row[custIdColIndex].trim() : '';
+              if (custId) {
+                sheetRowMap.set(`custid:${custId}`, { row, rowNumber: index + 2, sheetIndex: index });
+              }
+            });
+            const key = `custid:${customer.customer_id.trim()}`;
+            existingEntry = sheetRowMap.get(key);
+            if (existingEntry) {
+              console.log(`✓ Matched by customer_id: ${customer.customer_id}`);
+            }
+          }
+        }
+        
+        // Strategy 4: Match by G Code
+        if (!existingEntry && customer.g_code && customer.g_code.trim()) {
+          const gCodeColIndex = headers.findIndex(h => h === schema.g_code);
+          if (gCodeColIndex !== -1) {
+            existingRows.forEach((row, index) => {
+              const gCode = row[gCodeColIndex] ? row[gCodeColIndex].trim() : '';
+              if (gCode) {
+                sheetRowMap.set(`gcode:${gCode}`, { row, rowNumber: index + 2, sheetIndex: index });
+              }
+            });
+            const key = `gcode:${customer.g_code.trim()}`;
+            existingEntry = sheetRowMap.get(key);
+            if (existingEntry) {
+              console.log(`✓ Matched by g_code: ${customer.g_code}`);
+            }
+          }
+        }
+        
+        // Strategy 5: Match by Registration Number (for vehicles)
         if (!existingEntry && customer.registration_no && customer.registration_no.trim()) {
           const regKey = `reg:${customer.registration_no.trim()}`;
-          // Build reg lookup if not exists
           if (!sheetRowMap.has(regKey)) {
             existingRows.forEach((row, index) => {
               const regColIndex = headers.findIndex(h => h === schema.registration_no);
@@ -628,9 +676,15 @@ class InsuranceSyncService {
             });
           }
           existingEntry = sheetRowMap.get(regKey);
+          if (existingEntry) {
+            console.log(`✓ Matched by registration: ${customer.registration_no}`);
+          }
         }
         
-        // If no match by unique identifiers, this is a NEW customer (add as new row)
+        // If no match found, this is a NEW customer (will be added as new row)
+        if (!existingEntry) {
+          console.log(`⚠️ No match found for: ${customer.name} - will add as NEW row`);
+        }
         
         // Calculate S.NO for new rows (find max S.NO + 1)
         let nextSNo = '';
