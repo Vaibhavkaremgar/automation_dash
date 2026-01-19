@@ -30,7 +30,7 @@ export default function MobileSidebar({ open, onClose }: { open: boolean; onClos
               <X className="w-5 h-5" />
             </button>
           </div>
-          <div className="text-xs text-slate-400 mb-2 truncate">{user?.email}</div>
+          <div className="text-xs text-slate-400 mb-2 truncate">{user?.email?.toLowerCase().includes('joban') ? 'Support@jobanputras.com' : user?.email}</div>
         </div>
         <nav className="space-y-1 text-sm px-4 pb-4">
           {user?.role === 'client' && isInsuranceClient && (

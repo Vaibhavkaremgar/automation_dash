@@ -116,7 +116,7 @@ export default function InsuranceDashboard() {
   const [quickActionsLimit, setQuickActionsLimit] = useState(5);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
   const [showRenewalUpdateModal, setShowRenewalUpdateModal] = useState(false);
-  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { payment_date: string; cheque_no: string; bank_name: string; customer_id: string; agent_code: string; amount: string; new_policy_no: string; new_company: string; paid_by: string; remarks: string }>>({});
+  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { payment_date: string; cheque_no: string; bank_name: string; customer_id: string; agent_code: string; amount: string; new_policy_no: string; new_company: string; paid_by: string; remarks: string; status: string }>>({});
   const [deletedCustomers, setDeletedCustomers] = useState<Customer[]>([]); // Track deleted customers for sync
 
   // Field name mapping helper
@@ -300,6 +300,44 @@ export default function InsuranceDashboard() {
     const str = String(value).replace(/[^0-9.-]/g, '');
     const num = parseFloat(str);
     return isNaN(num) ? 0 : num;
+  };
+
+  // Calculate next renewal date based on premium_mode
+  const calculateNextRenewalDate = (currentExpiryDate: string, premiumMode: string): string => {
+    if (!currentExpiryDate) return '';
+    
+    // Parse current date (DD/MM/YYYY format)
+    let day: number, month: number, year: number;
+    
+    if (currentExpiryDate.includes('/')) {
+      const parts = currentExpiryDate.split('/');
+      if (parts.length !== 3) return currentExpiryDate;
+      day = parseInt(parts[0]);
+      month = parseInt(parts[1]);
+      year = parseInt(parts[2]);
+    } else {
+      return currentExpiryDate;
+    }
+    
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return currentExpiryDate;
+    
+    // Determine years to add based on premium_mode
+    let yearsToAdd = 1; // Default
+    
+    if (premiumMode) {
+      const modeStr = premiumMode.toLowerCase().trim();
+      // Extract number from premium_mode (e.g., "2 years" -> 2, "3" -> 3)
+      const match = modeStr.match(/\d+/);
+      if (match) {
+        yearsToAdd = parseInt(match[0]);
+      }
+    }
+    
+    // Add years to get next renewal date
+    const nextYear = year + yearsToAdd;
+    
+    // Return in DD/MM/YYYY format
+    return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${nextYear}`;
   };
 
   const getDisplayDate = (customer: Customer) => {
@@ -934,22 +972,26 @@ export default function InsuranceDashboard() {
       <div className="space-y-4">
         {/* Stats */}
         {analytics && (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
-              <h3 className="text-xs text-slate-400">Total Customers</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{analytics.totalCustomers}</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(customers); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Total Policies</h3>
+              <p className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{analytics.totalCustomers}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const upcoming = customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }); setDetailsModalTitle('Upcoming Renewals (Next 30 Days)'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const upcoming = customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }); setDetailsModalTitle('Upcoming Renewals (Next 30 Days)'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Upcoming Renewals</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">{analytics.upcomingRenewals}</p>
+              <p className="text-xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">{analytics.upcomingRenewals}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const expired = customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due'); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const renewed = customers.filter(c => c.status.trim().toLowerCase() === 'renewed'); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Renewed Policies</h3>
+              <p className="text-xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{customers.filter(c => c.status.trim().toLowerCase() === 'renewed').length}</p>
+            </div>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const expired = customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due'); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Expired Policies</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">{analytics.expiredPolicies || 0}</p>
+              <p className="text-xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">{analytics.expiredPolicies || 0}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Year Renewed/InProcess Policies'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Year Renewed/InProcess Policies'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">This Year Premium</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+              <p className="text-xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </div>
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); setDetailsModalTitle('This Month Renewed/InProcess Policies'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">This Month Premium</h3>
@@ -1220,18 +1262,20 @@ export default function InsuranceDashboard() {
           {Object.entries(
             customers.reduce((acc, customer) => {
               const company = customer.company || 'Unknown';
-              if (!acc[company]) acc[company] = { count: 0, premium: 0, renewed: 0, due: 0, customers: [] };
+              if (!acc[company]) acc[company] = { count: 0, premium: 0, renewed: 0, due: 0, inProcess: 0, customers: [] };
               acc[company].count++;
               acc[company].premium += parseAmount(customer.premium);
               if (customer.status.trim().toLowerCase() === 'renewed') acc[company].renewed++;
               if (customer.status.trim().toLowerCase() === 'due') acc[company].due++;
+              const status = customer.status.trim().toLowerCase().replace(/[\s-]/g, '');
+              if (status === 'inprocess' || status === 'inprogress') acc[company].inProcess++;
               acc[company].customers.push(customer);
               return acc;
             }, {})
           ).map(([company, data]: [string, any]) => (
             <div key={company} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const sorted = [...data.customers].sort((a, b) => { const aIsDue = a.status.trim().toLowerCase() === 'due' ? 0 : 1; const bIsDue = b.status.trim().toLowerCase() === 'due' ? 0 : 1; return aIsDue - bIsDue; }); setDetailsModalTitle(`${company} - Customers`); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h4 className="text-sm font-medium text-white mb-1">{company}</h4>
-              <p className="text-xs text-slate-300">Total: {data.count} | <span className="text-green-400">Renewed: {data.renewed}</span> | <span className="text-red-400">Due: {data.due}</span></p>
+              <p className="text-xs text-slate-300">Total: {data.count} | <span className="text-green-400">Renewed: {data.renewed}</span> | <span className="text-blue-400">InProcess: {data.inProcess}</span> | <span className="text-red-400">Due: {data.due}</span></p>
               <p className="text-base font-bold text-cyan-400">₹{data.premium.toLocaleString()}</p>
             </div>
           ))}
@@ -1569,7 +1613,15 @@ export default function InsuranceDashboard() {
     <div className="p-3 sm:p-4 md:p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">{getPageTitle()}</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">{getPageTitle()}</h1>
+          {currentTab === 'customers' && analytics && (
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg px-4 py-2">
+              <p className="text-xs text-slate-400">Total Customers</p>
+              <p className="text-lg font-bold text-cyan-400">{analytics.totalCustomers}</p>
+            </div>
+          )}
+        </div>
         <div className="flex gap-3 items-center">
           {currentTab === 'customers' && (
             <Button onClick={() => {
@@ -1883,19 +1935,34 @@ export default function InsuranceDashboard() {
             const customer = customers.find(c => c.id === customerId);
             if (!customer) return null;
             
-            const data = bulkRenewalData[customerId] || { payment_date: '', cheque_no: '', bank_name: '', customer_id: '', agent_code: '', amount: '', new_policy_no: '', new_company: '', paid_by: '', remarks: '' };
+            const data = bulkRenewalData[customerId] || { payment_date: '', cheque_no: '', bank_name: '', customer_id: '', agent_code: '', amount: '', new_policy_no: '', new_company: '', paid_by: '', remarks: '', status: 'renewed' };
             
             return (
               <div key={customerId} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 space-y-3">
-                <div className="flex justify-between items-center border-b border-slate-600 pb-2">
-                  <div>
+                <div className="border-b border-slate-600 pb-2 space-y-1">
+                  <div className="flex justify-between items-center">
                     <h4 className="font-bold text-white">{customer.name}</h4>
-                    <p className="text-xs text-slate-300">{customer.registration_no} - {customer.company}</p>
+                    <p className="text-sm text-cyan-400 font-bold">₹{customer.premium?.toLocaleString()}</p>
                   </div>
-                  <p className="text-sm text-cyan-400 font-bold">Current: ₹{customer.premium?.toLocaleString()}</p>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Policy: <span className="text-cyan-300 font-medium">{customer.current_policy_no || 'N/A'}</span></span>
+                    <span className="text-slate-400">Expiry: <span className="text-orange-300 font-medium">{getDisplayDate(customer) || 'N/A'}</span></span>
+                  </div>
+                  <p className="text-xs text-slate-300">{customer.registration_no} - {customer.company}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2">
+                  <div className="col-span-2">
+                    <label className="text-xs text-slate-300 mb-1 block">STATUS *</label>
+                    <select
+                      className="w-full p-2 border rounded bg-slate-700 text-white text-sm"
+                      value={data.status || 'renewed'}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, status: e.target.value}})}
+                    >
+                      <option value="renewed">🟢 Renewed</option>
+                      <option value="inprocess">🔵 In Process</option>
+                    </select>
+                  </div>
                   <div>
                     <label className="text-xs text-slate-300 mb-1 block">DEPOSITED/PAYMENT DATE</label>
                     <Input
@@ -2008,8 +2075,10 @@ export default function InsuranceDashboard() {
                   if (!customer) continue;
                   
                   const data = bulkRenewalData[customerId] || {};
+                  const isRenewed = (data.status || 'renewed').toLowerCase() === 'renewed';
                   
-                  await api.put(`/api/insurance/customers/${customerId}`, {
+                  // Prepare update payload
+                  const updatePayload: any = {
                     ...customer,
                     payment_date: data.payment_date || customer.payment_date,
                     cheque_no: data.cheque_no || customer.cheque_no,
@@ -2021,17 +2090,56 @@ export default function InsuranceDashboard() {
                     new_company: data.new_company || customer.new_company,
                     paid_by: data.paid_by || customer.paid_by,
                     reason: data.remarks ? `${customer.reason || ''}\n${data.remarks} [${new Date().toLocaleString()}]` : customer.reason,
-                    status: 'RENEWED'
-                  });
+                    status: data.status || 'renewed'
+                  };
+                  
+                  // If status is 'renewed', move new values to current and calculate next renewal date
+                  if (isRenewed) {
+                    // Move new_company to company
+                    if (data.new_company) {
+                      updatePayload.company = data.new_company;
+                    }
+                    
+                    // Move new_policy_no to current_policy_no
+                    if (data.new_policy_no) {
+                      updatePayload.current_policy_no = data.new_policy_no;
+                    }
+                    
+                    // Calculate next renewal date based on premium_mode
+                    const currentExpiry = getDisplayDate(customer);
+                    if (currentExpiry) {
+                      const nextRenewalDate = calculateNextRenewalDate(currentExpiry, customer.premium_mode || '');
+                      updatePayload.od_expiry_date = nextRenewalDate;
+                      updatePayload.renewal_date = nextRenewalDate;
+                    }
+                  }
+                  
+                  await api.put(`/api/insurance/customers/${customerId}`, updatePayload);
                 }
                 
-                // await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
-                
-                setShowRenewalUpdateModal(false);
-                setBulkRenewalData({});
-                setSelectedCustomers([]);
-                loadData();
-                alert(`✅ Updated and synced ${selectedCustomers.length} customer(s) successfully!`);
+                // Force sync to sheet after all updates
+                try {
+                  const syncResult = await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+                  console.log('Sync result:', syncResult.data);
+                  
+                  setShowRenewalUpdateModal(false);
+                  setBulkRenewalData({});
+                  setSelectedCustomers([]);
+                  await loadData();
+                  
+                  if (syncResult.data.message === 'No changes to sync') {
+                    alert(`✅ ${selectedCustomers.length} customer(s) updated in database!\n\nNote: Sheet already up to date.`);
+                  } else {
+                    alert(`✅ ${selectedCustomers.length} customer(s) updated and synced!\n\nUpdated: ${syncResult.data.updated || 0} rows in sheet`);
+                  }
+                } catch (syncError) {
+                  console.error('Sync failed:', syncError);
+                  setShowRenewalUpdateModal(false);
+                  setBulkRenewalData({});
+                  setSelectedCustomers([]);
+                  await loadData();
+                  alert(`✅ ${selectedCustomers.length} customer(s) updated in database!\n\n⚠️ Failed to sync to sheet. Please use 'Sync to Sheets' button manually.`);
+                }
               } catch (error) {
                 console.error('Update failed:', error);
                 alert('❌ Failed to update customers');

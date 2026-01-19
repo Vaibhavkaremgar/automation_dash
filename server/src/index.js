@@ -35,8 +35,9 @@ const app = express();
 
 app.use(cors({
   origin: config.nodeEnv === 'production' 
-    // Railway Production URLs
     ? ['https://vbautomations.up.railway.app', config.frontendUrl].filter(Boolean)
+    // Local Development
+    // ? ['http://localhost:5173', config.frontendUrl].filter(Boolean)
     : ['http://localhost:5173', config.frontendUrl].filter(Boolean),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

@@ -108,7 +108,7 @@ export default memo(function Sidebar() {
           </div>
         )}
         <div className="text-xs text-slate-400 truncate mt-0.5 text-center" title={user?.email || ''}>
-          {user?.email}
+          {user?.email?.toLowerCase().includes('joban') ? 'Support@jobanputras.com' : user?.email}
         </div>
       </div>
       <nav className="p-3 flex-1 flex flex-col justify-between">
