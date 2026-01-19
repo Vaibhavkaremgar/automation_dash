@@ -686,7 +686,7 @@ class InsuranceSyncService {
             premium: customer.premium,
             premium_mode: customer.premium_mode,
             last_year_premium: customer.last_year_premium,
-            renewal_date: customer.modified_expiry_date || customer.od_expiry_date,
+            renewal_date: customer.modified_expiry_date || customer.renewal_date || customer.od_expiry_date,
             od_expiry_date: customer.od_expiry_date,
             tp_expiry_date: customer.tp_expiry_date,
             payment_date: customer.payment_date,

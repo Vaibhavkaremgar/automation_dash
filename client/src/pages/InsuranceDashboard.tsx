@@ -83,6 +83,7 @@ export default function InsuranceDashboard() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [renewalStats, setRenewalStats] = useState({ reminders_today: 0, customers_reminded: 0 });
   const [renewalSearchTerm, setRenewalSearchTerm] = useState('');
+  const [renewalMonthFilter, setRenewalMonthFilter] = useState('all');
   const [searchTimers, setSearchTimers] = useState<{[key: string]: NodeJS.Timeout}>({});
   const [selectedCustomers, setSelectedCustomers] = useState<number[]>([]);
   const [showNoteModal, setShowNoteModal] = useState(false);
@@ -382,6 +383,23 @@ export default function InsuranceDashboard() {
           return String(value).toLowerCase().includes(searchLower);
         })
       );
+    }
+    
+    // Month filter
+    if (renewalMonthFilter !== 'all') {
+      const now = new Date();
+      const targetMonth = parseInt(renewalMonthFilter);
+      filtered = filtered.filter(c => {
+        const dateStr = getDisplayDate(c);
+        if (!dateStr) return false;
+        try {
+          const [d, m, y] = dateStr.split('/');
+          const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+          return date.getMonth() === targetMonth && date.getFullYear() === now.getFullYear();
+        } catch (e) {
+          return false;
+        }
+      });
     }
     
     const sortByExpiry = (a: Customer, b: Customer) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b);
@@ -1294,12 +1312,33 @@ export default function InsuranceDashboard() {
       <div className="space-y-6">
         {/* Filter and Stats Section */}
         <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4 space-y-4">
-          <Input
-            placeholder="Search by name, mobile, vehicle, company, policy no, G code..."
-            value={renewalSearchTerm}
-            onChange={(e) => handleSearchChange('renewalSearch', e.target.value)}
-            className="w-full"
-          />
+          <div className="flex gap-3">
+            <Input
+              placeholder="Search by name, mobile, vehicle, company, policy no, G code..."
+              value={renewalSearchTerm}
+              onChange={(e) => handleSearchChange('renewalSearch', e.target.value)}
+              className="flex-1"
+            />
+            <select
+              className="px-3 py-2 border rounded bg-slate-700 text-white text-sm"
+              value={renewalMonthFilter}
+              onChange={(e) => setRenewalMonthFilter(e.target.value)}
+            >
+              <option value="all">All Months</option>
+              <option value="0">January</option>
+              <option value="1">February</option>
+              <option value="2">March</option>
+              <option value="3">April</option>
+              <option value="4">May</option>
+              <option value="5">June</option>
+              <option value="6">July</option>
+              <option value="7">August</option>
+              <option value="8">September</option>
+              <option value="9">October</option>
+              <option value="10">November</option>
+              <option value="11">December</option>
+            </select>
+          </div>
 
           {/* Statistics - Fixed */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -2085,7 +2124,6 @@ export default function InsuranceDashboard() {
                     bank_name: data.bank_name || customer.bank_name,
                     customer_id: data.customer_id || customer.customer_id,
                     agent_code: data.agent_code || customer.agent_code,
-                    premium: data.amount ? parseFloat(data.amount) : customer.premium,
                     new_policy_no: data.new_policy_no || customer.new_policy_no,
                     new_company: data.new_company || customer.new_company,
                     paid_by: data.paid_by || customer.paid_by,
@@ -2095,6 +2133,11 @@ export default function InsuranceDashboard() {
                   
                   // If status is 'renewed', move new values to current and calculate next renewal date
                   if (isRenewed) {
+                    // Update premium from amount field
+                    if (data.amount) {
+                      updatePayload.premium = parseFloat(data.amount);
+                    }
+                    
                     // Move new_company to company
                     if (data.new_company) {
                       updatePayload.company = data.new_company;
@@ -2111,6 +2154,11 @@ export default function InsuranceDashboard() {
                       const nextRenewalDate = calculateNextRenewalDate(currentExpiry, customer.premium_mode || '');
                       updatePayload.od_expiry_date = nextRenewalDate;
                       updatePayload.renewal_date = nextRenewalDate;
+                    }
+                  } else {
+                    // For non-renewed status, keep premium as is or update from amount
+                    if (data.amount) {
+                      updatePayload.premium = parseFloat(data.amount);
                     }
                   }
                   
