@@ -28,6 +28,29 @@ const getClaimTypeLabel = (type: string) => {
   return labels[type] || type;
 };
 
+const calculateNextRenewalDate = (expiryDate: string, premiumMode: string) => {
+  if (!expiryDate) return '';
+  try {
+    const [d, m, y] = expiryDate.split('/');
+    const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    
+    if (premiumMode?.toLowerCase().includes('month')) {
+      const months = parseInt(premiumMode) || 1;
+      date.setMonth(date.getMonth() + months);
+    } else {
+      const years = parseInt(premiumMode) || 1;
+      date.setFullYear(date.getFullYear() + years);
+    }
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return expiryDate;
+  }
+};
+
 interface ReportData {
   renewalPerformance: {
     expiringThisMonth: number;
@@ -407,54 +430,46 @@ export default function ReportsPage() {
                 (c.registration_no?.toLowerCase().includes(modalSearchTerm.toLowerCase()) || '') ||
                 (c.customer_name?.toLowerCase().includes(modalSearchTerm.toLowerCase()) || '') ||
                 (c.vehicle_number?.toLowerCase().includes(modalSearchTerm.toLowerCase()) || '')
-              ).map((item, idx) => (
+              ).map((item, idx) => {
+                const isRenewed = item.status?.toLowerCase() === 'renewed';
+                return (
               <div key={idx} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-2">
                       <h4 className="font-bold text-white text-sm">{item.name || item.customer_name}</h4>
-                      <span className="text-slate-300">{item.mobile_number || 'N/A'}</span>
-                      {item.registration_no && (
-                        <span className="text-slate-300">• {item.registration_no}</span>
+                      {item.g_code && <span className="text-cyan-400 font-medium">G: {item.g_code}</span>}
+                      {item.customer_id && <span className="text-slate-300">CID: {item.customer_id}</span>}
+                      {item.registration_no && <span className="text-slate-300">• {item.registration_no}</span>}
+                      {item.vehicle_number && <span className="text-slate-300">• {item.vehicle_number}</span>}
+                      {isRenewed ? (
+                        <>
+                          {item.new_policy_no && <span className="text-green-400 font-medium">• New Pol: {item.new_policy_no}</span>}
+                          {item.new_company && <span className="text-green-400 font-medium">• {item.new_company}</span>}
+                        </>
+                      ) : (
+                        <>
+                          {item.current_policy_no && <span className="text-cyan-400 font-medium">• Pol: {item.current_policy_no}</span>}
+                          {item.company && <span className="text-slate-300">• {item.company}</span>}
+                        </>
                       )}
-                      {item.vehicle_number && (
-                        <span className="text-slate-300">• {item.vehicle_number}</span>
-                      )}
-                      {item.company && (
-                        <span className="text-slate-300">• {item.company}</span>
-                      )}
-                      {item.insurance_company && (
-                        <span className="text-slate-300">• {item.insurance_company}</span>
-                      )}
-                      {item.premium && item.premium !== 0 && (
-                        <span className="font-bold text-white">• ₹{item.premium}</span>
-                      )}
-                      {item.renewal_date && (
-                        <span className="text-orange-400 font-medium">• {item.renewal_date}</span>
-                      )}
+                      {item.renewal_date && <span className="text-orange-400 font-medium">• {isRenewed ? calculateNextRenewalDate(item.renewal_date || item.od_expiry_date, item.premium_mode) : item.renewal_date}</span>}
+                      {item.od_expiry_date && !item.renewal_date && <span className="text-orange-400 font-medium">• {isRenewed ? calculateNextRenewalDate(item.od_expiry_date, item.premium_mode) : item.od_expiry_date}</span>}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                       {item.claim_type && <span className="text-slate-400">Type: {getClaimTypeLabel(item.claim_type)}</span>}
-                      {item.claim_status && <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                        item.claim_status === 'approved' || item.claim_status === 'settled' ? 'bg-green-500/20 text-green-300' : 
-                        item.claim_status === 'rejected' ? 'bg-red-500/20 text-red-300' : 
-                        'bg-yellow-500/20 text-yellow-300'
-                      }`}>{item.claim_status}</span>}
-                      {item.status && <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                        item.status?.toLowerCase() === 'renewed' ? 'bg-green-500/20 text-green-300' : 
-                        item.status?.toLowerCase() === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
-                        item.status?.toLowerCase() === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
-                        'bg-yellow-500/20 text-yellow-300'
-                      }`}>{item.status}</span>}
+                      {item.claim_status && <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${item.claim_status === 'approved' || item.claim_status === 'settled' ? 'bg-green-500/20 text-green-300' : item.claim_status === 'rejected' ? 'bg-red-500/20 text-red-300' : 'bg-yellow-500/20 text-yellow-300'}`}>{item.claim_status}</span>}
+                      {item.status && <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${item.status?.toLowerCase() === 'renewed' ? 'bg-green-500/20 text-green-300' : item.status?.toLowerCase() === 'not renewed' ? 'bg-red-500/20 text-red-300' : item.status?.toLowerCase() === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 'bg-yellow-500/20 text-yellow-300'}`}>{item.status}</span>}
                     </div>
                   </div>
                   {item.mobile_number && <Button size="sm" onClick={() => {
-                    const message = `Dear ${item.name || item.customer_name},\n\nPolicy Details:\nVehicle: ${item.registration_no || item.vehicle_number || 'N/A'}\nCompany: ${item.company || item.insurance_company || 'N/A'}\nPremium: ₹${item.premium || 'N/A'}\nRenewal Date: ${item.renewal_date || 'N/A'}\nStatus: ${item.status || 'N/A'}\n\nThank you!`;
+                    const message = `Dear ${item.name || item.customer_name},\n\nPolicy Details:\nVehicle: ${item.registration_no || item.vehicle_number || 'N/A'}\nCompany: ${isRenewed ? (item.new_company || 'N/A') : (item.company || item.insurance_company || 'N/A')}\nPolicy No: ${isRenewed ? (item.new_policy_no || 'N/A') : (item.current_policy_no || 'N/A')}\nExpiry: ${item.renewal_date || item.od_expiry_date || 'N/A'}\nStatus: ${item.status || 'N/A'}\n\nThank you!`;
                     window.open(`https://wa.me/${item.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
                   }} className="px-2 py-1 text-xs flex-shrink-0">💬</Button>}
                 </div>
               </div>
-            ))
+            );
+              })
           )}
           </div>
         </div>
