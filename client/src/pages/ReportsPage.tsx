@@ -413,6 +413,7 @@ export default function ReportsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-2">
                       <h4 className="font-bold text-white text-sm">{item.name || item.customer_name}</h4>
+                      <span className="text-slate-300">{item.mobile_number || 'N/A'}</span>
                       {item.registration_no && (
                         <span className="text-slate-300">• {item.registration_no}</span>
                       )}
@@ -425,7 +426,7 @@ export default function ReportsPage() {
                       {item.insurance_company && (
                         <span className="text-slate-300">• {item.insurance_company}</span>
                       )}
-                      {item.premium && (
+                      {item.premium && item.premium !== 0 && (
                         <span className="font-bold text-white">• ₹{item.premium}</span>
                       )}
                       {item.renewal_date && (
@@ -433,7 +434,6 @@ export default function ReportsPage() {
                       )}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                      <span className="text-slate-300">{item.mobile_number || 'N/A'}</span>
                       {item.claim_type && <span className="text-slate-400">Type: {getClaimTypeLabel(item.claim_type)}</span>}
                       {item.claim_status && <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
                         item.claim_status === 'approved' || item.claim_status === 'settled' ? 'bg-green-500/20 text-green-300' : 
@@ -449,7 +449,7 @@ export default function ReportsPage() {
                     </div>
                   </div>
                   {item.mobile_number && <Button size="sm" onClick={() => {
-                    const message = `Dear ${item.name || item.customer_name},\n\nPolicy Details:\nVehicle: ${item.registration_no || item.vehicle_number}\nCompany: ${item.company || item.insurance_company}\nPremium: ₹${item.premium}\nRenewal Date: ${item.renewal_date}\nStatus: ${item.status}\n\nThank you!`;
+                    const message = `Dear ${item.name || item.customer_name},\n\nPolicy Details:\nVehicle: ${item.registration_no || item.vehicle_number || 'N/A'}\nCompany: ${item.company || item.insurance_company || 'N/A'}\nPremium: ₹${item.premium || 'N/A'}\nRenewal Date: ${item.renewal_date || 'N/A'}\nStatus: ${item.status || 'N/A'}\n\nThank you!`;
                     window.open(`https://wa.me/${item.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
                   }} className="px-2 py-1 text-xs flex-shrink-0">💬</Button>}
                 </div>
