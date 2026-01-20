@@ -549,6 +549,7 @@ export default function InsuranceDashboard() {
     const isSelected = selectedCustomers.includes(customer.id);
     const displayDate = getDisplayDate(customer);
     const nextRenewalDate = isRenewed ? calculateNextRenewalDate(displayDate, customer.premium_mode) : displayDate;
+    const actualIsRenewed = customer.status?.trim().toLowerCase() === 'renewed';
     
     if (compact) {
       return (
@@ -558,7 +559,7 @@ export default function InsuranceDashboard() {
               <h4 className="font-medium text-white text-sm truncate">{customer.name}</h4>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-1">
                 {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
-                {isRenewed ? (
+                {actualIsRenewed ? (
                   <>
                     {customer.new_company && <span className="text-green-400">• {customer.new_company}</span>}
                     {customer.new_policy_no && <span className="text-green-400">• New Pol: {customer.new_policy_no}</span>}
@@ -1624,9 +1625,14 @@ export default function InsuranceDashboard() {
 
 
 
+  const getUniqueCustomerCount = () => {
+    const uniqueNames = new Set(customers.map(c => c.name?.toLowerCase().trim()));
+    return uniqueNames.size;
+  };
+
   const getPageTitle = () => {
     switch (currentTab) {
-      case 'customers': return 'Customer Management';
+      case 'customers': return `Customer Management (${getUniqueCustomerCount()} unique)`;
       case 'policies': return 'Policy Overview';
       case 'renewals': return 'Upcoming Renewals';
       default: return 'Insurance Agency Dashboard';
@@ -1636,7 +1642,7 @@ export default function InsuranceDashboard() {
   return (
   <div className="p-3 sm:p-4 md:p-6">
     {/* Header */}
-    <div className="flex justify-between items-center mb-4">
+    <div className="flex justify-between items-center mb-4 relative z-30">
       <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
         {getPageTitle()}
       </h1>
@@ -1659,7 +1665,7 @@ export default function InsuranceDashboard() {
     <div>
       {/* Sticky Stats - Visible across all sections */}
       {analytics && (
-        <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 rounded-lg p-3 shadow-lg mb-4">
+        <div className="sticky top-0 z-10 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 rounded-lg p-3 shadow-lg mb-4">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const sorted = [...customers].sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Total Policies</h3>
@@ -1859,86 +1865,72 @@ export default function InsuranceDashboard() {
                 const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
                 const displayDate = getDisplayDate(customer);
                 return (
-              <div key={customer.id} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all">
-                <div className="flex items-start gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-2">
-                      <h4 className="font-bold text-white text-sm">{customer.name}</h4>
-                      {customer.registration_no && (
-                        <span className="text-slate-300">• {customer.registration_no}</span>
-                      )}
-                      {isRenewed ? (
-                        <>
-                          {customer.new_company && <span className="text-green-400 font-medium">• {customer.new_company}</span>}
-                          {customer.new_policy_no && <span className="text-green-400 font-medium">• New Pol: {customer.new_policy_no}</span>}
-                          <span className="text-green-400 font-medium">• Next: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</span>
-                        </>
-                      ) : (
-                        <>
-                          {customer.company && <span className="text-slate-300">• {customer.company}</span>}
-                          {customer.current_policy_no && <span className="text-cyan-400 font-medium">• Pol: {customer.current_policy_no}</span>}
-                          <span className="text-orange-400 font-medium">• {displayDate}</span>
-                        </>
-                      )}
-                      {customer.g_code && (
-                        <span className="text-cyan-400 font-medium">• G: {customer.g_code}</span>
-                      )}
-                      <span className="font-bold text-white text-base">• ₹{parseAmount(customer.premium).toLocaleString()}</span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                      <span className="text-slate-300">{customer.mobile_number}</span>
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                        customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
-                        customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
-                        customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
-                        'bg-yellow-500/20 text-yellow-300'
-                      }`}>
-                        {customer.status.toUpperCase()}
-                      </span>
-                      {(() => {
-                        const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
-                        if (isRenewed) {
-                          return (
-                            <>
-                              {customer.new_policy_no && <span className="text-green-400 font-medium">New Pol: {customer.new_policy_no}</span>}
-                              {customer.new_company && <span className="text-green-400 font-medium">New Co: {customer.new_company}</span>}
-                            </>
-                          );
-                        }
-                        return null;
-                      })()}
+              <div key={customer.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all space-y-3">
+                {isRenewed && (customer.new_company || customer.new_policy_no) && (
+                  <div className="pb-3 border-b border-slate-600">
+                    <h5 className="text-xs font-semibold text-green-400 mb-2">NEW POLICY DETAILS</h5>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {customer.new_company && <div><span className="text-slate-400">Company:</span> <span className="text-green-400 font-medium">{customer.new_company}</span></div>}
+                      {customer.new_policy_no && <div><span className="text-slate-400">Policy No:</span> <span className="text-green-400 font-medium">{customer.new_policy_no}</span></div>}
+                      <div><span className="text-slate-400">Next Renewal:</span> <span className="text-green-400 font-medium">{calculateNextRenewalDate(displayDate, customer.premium_mode)}</span></div>
                     </div>
                   </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <Button size="sm" onClick={(e) => {
+                )}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                    <h4 className="font-bold text-white text-sm">{customer.name}</h4>
+                    {customer.g_code && <span className="text-cyan-400 font-medium">G: {customer.g_code}</span>}
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                      customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
+                      customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
+                      customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
+                      'bg-yellow-500/20 text-yellow-300'
+                    }`}>
+                      {customer.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {customer.mobile_number && <div><span className="text-slate-400">Mobile:</span> <span className="text-white">{customer.mobile_number}</span></div>}
+                    {customer.email && <div><span className="text-slate-400">Email:</span> <span className="text-white">{customer.email}</span></div>}
+                    {customer.registration_no && <div><span className="text-slate-400">Vehicle:</span> <span className="text-white">{customer.registration_no}</span></div>}
+                    {customer.premium && <div><span className="text-slate-400">Premium:</span> <span className="text-white font-bold">₹{parseAmount(customer.premium).toLocaleString()}</span></div>}
+                    {customer.company && <div><span className="text-slate-400">Company:</span> <span className="text-white">{customer.company}</span></div>}
+                    {customer.current_policy_no && <div><span className="text-slate-400">Policy No:</span> <span className="text-white">{customer.current_policy_no}</span></div>}
+                    {customer.vertical && <div><span className="text-slate-400">Type:</span> <span className="text-white">{customer.vertical}</span></div>}
+                    {customer.product && <div><span className="text-slate-400">Product:</span> <span className="text-white">{customer.product}</span></div>}
+                    {displayDate && <div><span className="text-slate-400">Expiry Date:</span> <span className="text-orange-400 font-medium">{displayDate}</span></div>}
+                    {customer.premium_mode && <div><span className="text-slate-400">Premium Mode:</span> <span className="text-white">{customer.premium_mode}</span></div>}
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2 border-t border-slate-600">
+                  <Button size="sm" onClick={(e) => {
+                    e.stopPropagation();
+                    const message = generatePolicyDetailsMessage({
+                      customerName: customer.name,
+                      vehicleNumber: customer.registration_no,
+                      companyName: isRenewed ? customer.new_company : customer.company,
+                      renewalDate: displayDate,
+                      policyNumber: isRenewed ? customer.new_policy_no : customer.current_policy_no,
+                      policyType: customer.vertical,
+                      premiumAmount: customer.premium?.toString(),
+                      clientKey
+                    });
+                    logWhatsAppMessage(customer.id, customer.name, message);
+                    window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+                  }} className="px-2 py-1 text-xs">💬 WhatsApp</Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      const message = generatePolicyDetailsMessage({
-                        customerName: customer.name,
-                        vehicleNumber: customer.registration_no,
-                        companyName: isRenewed ? customer.new_company : customer.company,
-                        renewalDate: displayDate,
-                        policyNumber: isRenewed ? customer.new_policy_no : customer.current_policy_no,
-                        policyType: customer.vertical,
-                        premiumAmount: customer.premium?.toString(),
-                        clientKey
-                      });
-                      logWhatsAppMessage(customer.id, customer.name, message);
-                      window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-                    }} className="px-2 py-1 text-xs">💬</Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setNoteCustomerId(customer.id);
-                        setShowNoteModal(true);
-                      }}
-                      className="px-2 py-1 text-xs"
-                    >
-                      📝
-                    </Button>
-                  </div>
+                      setNoteCustomerId(customer.id);
+                      setShowNoteModal(true);
+                    }}
+                    className="px-2 py-1 text-xs"
+                  >
+                    📝 Note
+                  </Button>
                 </div>
               </div>
             );
