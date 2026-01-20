@@ -33,10 +33,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
-  const [showMainDropdown, setShowMainDropdown] = useState(false)
-  const [showGeneralDropdown, setShowGeneralDropdown] = useState(false)
-  const [showMotorDropdown, setShowMotorDropdown] = useState(false)
-  const [showHealthDropdown, setShowHealthDropdown] = useState(false)
+  const [showTypeFilter, setShowTypeFilter] = useState(false)
 
   const handleSync = async () => {
     try {
@@ -165,6 +162,17 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       window.open(`https://wa.me/${firstCustomer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(summary)}`, '_blank', 'noopener,noreferrer')
     }
   }
+
+  const handleSelectFilter = (vertical: string, subFilter?: string) => {
+    setSelectedVertical(vertical)
+    localStorage.setItem('insuranceVerticalFilter', vertical)
+    if (subFilter) {
+      localStorage.setItem('insuranceGeneralSubFilter', subFilter)
+      window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: subFilter }))
+    }
+    window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: vertical }))
+    setShowTypeFilter(false)
+  }
   
   return (
     <>
@@ -188,13 +196,9 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {isInsuranceClient && (
-          <div 
-            className="relative"
-            onMouseEnter={() => setShowMainDropdown(true)}
-            onMouseLeave={() => setShowMainDropdown(false)}
-          >
+          <div className="relative">
             <button 
-              onClick={() => setShowMainDropdown(!showMainDropdown)}
+              onClick={() => setShowTypeFilter(!showTypeFilter)}
               className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all"
             >
               <span className="md:hidden">
@@ -218,160 +222,25 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
                  selectedVertical === 'life' ? '👤 Life' : '📋 All Types'}
               </span>
             </button>
-            {showMainDropdown && (
-            <div className="absolute top-full right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 min-w-[160px]">
-              <button
-                className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                onClick={() => {
-                  setSelectedVertical('all');
-                  localStorage.setItem('insuranceVerticalFilter', 'all');
-                  window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'all' }));
-                  setShowMainDropdown(false);
-                }}
-              >
-                📋 All Types
-              </button>
-              <div className="relative" onMouseEnter={() => setShowGeneralDropdown(true)} onMouseLeave={() => setShowGeneralDropdown(false)}>
-                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm flex items-center justify-between">
-                  🏢 General <span>›</span>
-                </button>
-                {showGeneralDropdown && (
-                <div className="absolute left-full top-0 ml-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl min-w-[140px] z-50">
-                  <button
-                    className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                    onClick={() => {
-                      setSelectedVertical('general');
-                      localStorage.setItem('insuranceVerticalFilter', 'general');
-                      localStorage.setItem('insuranceGeneralSubFilter', 'all');
-                      window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'general' }));
-                      window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'all' }));
-                      setShowMainDropdown(false);
-                    }}
-                  >
-                    🏢 General
-                  </button>
-                  <div className="relative" onMouseEnter={() => setShowMotorDropdown(true)} onMouseLeave={() => setShowMotorDropdown(false)}>
-                    <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm flex items-center justify-between">
-                      🚗 Motor <span>›</span>
-                    </button>
-                    {showMotorDropdown && (
-                    <div className="absolute left-full top-0 ml-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl min-w-[140px] z-50">
-                      <button
-                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                        onClick={() => {
-                          setSelectedVertical('4-wheeler');
-                          localStorage.setItem('insuranceVerticalFilter', '4-wheeler');
-                          localStorage.setItem('insuranceGeneralSubFilter', '4-wheeler');
-                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: '4-wheeler' }));
-                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: '4-wheeler' }));
-                          setShowMainDropdown(false);
-                        }}
-                      >
-                        🚗 4-Wheeler
-                      </button>
-                      <button
-                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                        onClick={() => {
-                          setSelectedVertical('2-wheeler');
-                          localStorage.setItem('insuranceVerticalFilter', '2-wheeler');
-                          localStorage.setItem('insuranceGeneralSubFilter', '2-wheeler');
-                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: '2-wheeler' }));
-                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: '2-wheeler' }));
-                          setShowMainDropdown(false);
-                        }}
-                      >
-                        🏍️ 2-Wheeler
-                      </button>
-                      <button
-                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                        onClick={() => {
-                          setSelectedVertical('motor');
-                          localStorage.setItem('insuranceVerticalFilter', 'motor');
-                          localStorage.setItem('insuranceGeneralSubFilter', 'motor');
-                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'motor' }));
-                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'motor' }));
-                          setShowMainDropdown(false);
-                        }}
-                      >
-                        🚙 All Motor
-                      </button>
-                    </div>
-                    )}
-                  </div>
-                  <div className="relative" onMouseEnter={() => setShowHealthDropdown(true)} onMouseLeave={() => setShowHealthDropdown(false)}>
-                    <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm flex items-center justify-between">
-                      🏥 Health <span>›</span>
-                    </button>
-                    {showHealthDropdown && (
-                    <div className="absolute left-full top-0 ml-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl min-w-[140px] z-50">
-                      <button
-                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                        onClick={() => {
-                          setSelectedVertical('health-base');
-                          localStorage.setItem('insuranceVerticalFilter', 'health-base');
-                          localStorage.setItem('insuranceGeneralSubFilter', 'health-base');
-                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health-base' }));
-                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health-base' }));
-                          setShowMainDropdown(false);
-                        }}
-                      >
-                        🏥 Base
-                      </button>
-                      <button
-                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                        onClick={() => {
-                          setSelectedVertical('health-topup');
-                          localStorage.setItem('insuranceVerticalFilter', 'health-topup');
-                          localStorage.setItem('insuranceGeneralSubFilter', 'health-topup');
-                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health-topup' }));
-                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health-topup' }));
-                          setShowMainDropdown(false);
-                        }}
-                      >
-                        🏥 Topup
-                      </button>
-                      <button
-                        className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                        onClick={() => {
-                          setSelectedVertical('health');
-                          localStorage.setItem('insuranceVerticalFilter', 'health');
-                          localStorage.setItem('insuranceGeneralSubFilter', 'health');
-                          window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health' }));
-                          window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health' }));
-                          setShowMainDropdown(false);
-                        }}
-                      >
-                        🏥 All Health
-                      </button>
-                    </div>
-                    )}
-                  </div>
-                  <button
-                    className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                    onClick={() => {
-                      setSelectedVertical('non-motor');
-                      localStorage.setItem('insuranceVerticalFilter', 'non-motor');
-                      window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'non-motor' }));
-                      setShowMainDropdown(false);
-                    }}
-                  >
-                    🏠 Non-Motor
-                  </button>
-                </div>
-                )}
+            {showTypeFilter && (
+              <div className="fixed inset-0 z-40" onClick={() => setShowTypeFilter(false)} />
+            )}
+            {showTypeFilter && (
+              <div className="absolute top-full right-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50 min-w-[200px] max-h-[400px] overflow-y-auto">
+                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm" onClick={() => handleSelectFilter('all')}>📋 All Types</button>
+                <div className="border-t border-slate-600 px-4 py-2 text-xs font-semibold text-slate-400">🏢 GENERAL</div>
+                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm pl-8" onClick={() => handleSelectFilter('general', 'all')}>All</button>
+                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm pl-8" onClick={() => handleSelectFilter('motor', 'motor')}>🚙 All Motor</button>
+                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm pl-8" onClick={() => handleSelectFilter('4-wheeler', '4-wheeler')}>🚗 4-Wheeler</button>
+                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm pl-8" onClick={() => handleSelectFilter('2-wheeler', '2-wheeler')}>🏍️ 2-Wheeler</button>
+                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm pl-8" onClick={() => handleSelectFilter('non-motor')}>🏠 Non-Motor</button>
+                <div className="border-t border-slate-600 px-4 py-2 text-xs font-semibold text-slate-400">🏥 HEALTH</div>
+                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm pl-8" onClick={() => handleSelectFilter('health', 'health')}>All</button>
+                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm pl-8" onClick={() => handleSelectFilter('health-base', 'health-base')}>Base</button>
+                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm pl-8" onClick={() => handleSelectFilter('health-topup', 'health-topup')}>Topup</button>
+                <div className="border-t border-slate-600 px-4 py-2 text-xs font-semibold text-slate-400">👤 LIFE</div>
+                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm pl-8" onClick={() => handleSelectFilter('life')}>All</button>
               </div>
-              <button
-                className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm"
-                onClick={() => {
-                  setSelectedVertical('life');
-                  localStorage.setItem('insuranceVerticalFilter', 'life');
-                  window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'life' }));
-                  setShowMainDropdown(false);
-                }}
-              >
-                👤 Life
-              </button>
-            </div>
             )}
           </div>
         )}
