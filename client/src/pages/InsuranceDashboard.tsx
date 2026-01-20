@@ -1539,7 +1539,7 @@ export default function InsuranceDashboard() {
           <div id="renewed-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-green-400">🟢 Recently Renewed ({renewed.length})</h3>
             <div className="space-y-3">
-              {renewed.slice(0, showAllRenewed ? renewed.length : 5).map(c => renderRenewalCard(c, 'Renewed', 'border-green-500/50', true))}
+              {renewed.slice(0, showAllRenewed ? renewed.length : 5).map(c => renderRenewalCard(c, 'Renewed', 'border-green-500/50', true, true))}
             </div>
             {renewed.length > 5 && (
               <div className="text-center mt-4">
