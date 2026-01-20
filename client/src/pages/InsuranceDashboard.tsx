@@ -540,6 +540,10 @@ export default function InsuranceDashboard() {
     );
   };
 
+  const sortCustomersByExpiry = (custs: Customer[]) => {
+    return [...custs].sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b));
+  };
+
   const renderRenewalCard = (customer: Customer, daysLabel: string, colorClass: string, isRenewed: boolean = false, compact: boolean = false) => {
     const isMotor = customer.vertical === 'motor' || customer.vertical === '2-wheeler';
     const isSelected = selectedCustomers.includes(customer.id);
@@ -1832,19 +1836,22 @@ export default function InsuranceDashboard() {
           )}
           <div className="max-h-[70vh] overflow-y-auto space-y-3">
             {(() => {
-              const filtered = detailsModalCustomers.filter(c => {
+              const filtered = sortCustomersByExpiry(detailsModalCustomers.filter(c => {
                 if (!modalSearchTerm) return true;
                 const searchLower = modalSearchTerm.toLowerCase();
                 return Object.entries(c).some(([key, value]) => {
                   if (value === null || value === undefined) return false;
                   return String(value).toLowerCase().includes(searchLower);
                 });
-              });
+              }));
               
               return filtered.length === 0 ? (
               <p className="text-center text-slate-400 py-8">No customers found</p>
             ) : (
-              filtered.map((customer) => (
+              filtered.map((customer) => {
+                const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
+                const displayDate = getDisplayDate(customer);
+                return (
               <div key={customer.id} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all">
                 <div className="flex items-start gap-3">
                   <div className="flex-1 min-w-0">
@@ -1853,36 +1860,22 @@ export default function InsuranceDashboard() {
                       {customer.registration_no && (
                         <span className="text-slate-300">• {customer.registration_no}</span>
                       )}
-                      {(() => {
-                        const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
-                        if (isRenewed) {
-                          return (
-                            <>
-                              {customer.new_company && <span className="text-green-400 font-medium">• {customer.new_company}</span>}
-                              {customer.new_policy_no && <span className="text-green-400 font-medium">• New Pol: {customer.new_policy_no}</span>}
-                            </>
-                          );
-                        } else {
-                          return (
-                            <>
-                              {customer.company && <span className="text-slate-300">• {customer.company}</span>}
-                              {customer.current_policy_no && <span className="text-cyan-400 font-medium">• Pol: {customer.current_policy_no}</span>}
-                            </>
-                          );
-                        }
-                      })()}
+                      {isRenewed ? (
+                        <>
+                          {customer.new_company && <span className="text-green-400 font-medium">• {customer.new_company}</span>}
+                          {customer.new_policy_no && <span className="text-green-400 font-medium">• New Pol: {customer.new_policy_no}</span>}
+                          <span className="text-green-400 font-medium">• Next: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</span>
+                        </>
+                      ) : (
+                        <>
+                          {customer.company && <span className="text-slate-300">• {customer.company}</span>}
+                          {customer.current_policy_no && <span className="text-cyan-400 font-medium">• Pol: {customer.current_policy_no}</span>}
+                          <span className="text-orange-400 font-medium">• {displayDate}</span>
+                        </>
+                      )}
                       {customer.g_code && (
                         <span className="text-cyan-400 font-medium">• G: {customer.g_code}</span>
                       )}
-                      {(() => {
-                        const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
-                        const displayDate = getDisplayDate(customer);
-                        if (isRenewed) {
-                          return <span className="text-green-400 font-medium">• Next Renewal: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</span>;
-                        } else {
-                          return <span className="text-orange-400 font-medium">• {displayDate}</span>;
-                        }
-                      })()}
                       <span className="font-bold text-white text-base">• ₹{parseAmount(customer.premium).toLocaleString()}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
@@ -1915,9 +1908,9 @@ export default function InsuranceDashboard() {
                       const message = generatePolicyDetailsMessage({
                         customerName: customer.name,
                         vehicleNumber: customer.registration_no,
-                        companyName: customer.company,
-                        renewalDate: getDisplayDate(customer),
-                        policyNumber: customer.current_policy_no,
+                        companyName: isRenewed ? customer.new_company : customer.company,
+                        renewalDate: displayDate,
+                        policyNumber: isRenewed ? customer.new_policy_no : customer.current_policy_no,
                         policyType: customer.vertical,
                         premiumAmount: customer.premium?.toString(),
                         clientKey
@@ -1941,7 +1934,8 @@ export default function InsuranceDashboard() {
                   </div>
                 </div>
               </div>
-            ))
+            );
+              })
           );
           })()}
           </div>
