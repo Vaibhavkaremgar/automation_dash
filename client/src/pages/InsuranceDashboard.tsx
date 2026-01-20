@@ -47,6 +47,12 @@ interface Customer {
   status: string;
   reason: string;
   vertical: string;
+  g_code?: string;
+  new_company?: string;
+  new_policy_no?: string;
+  current_policy_no?: string;
+  premium_mode?: string;
+  [key: string]: any;
 }
 
 interface Analytics {
@@ -552,6 +558,24 @@ export default function InsuranceDashboard() {
     const actualIsRenewed = customer.status?.trim().toLowerCase() === 'renewed';
     
     if (compact) {
+      if (actualIsRenewed) {
+        return (
+          <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all hover:scale-[1.01]`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-white text-sm truncate">{customer.name}</h4>
+                <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
+              </div>
+              <div className="text-xs space-y-1">
+                {customer.g_code && <div className="text-cyan-400 font-semibold">G: {customer.g_code}</div>}
+                <div className="text-green-400">New Policy No: {customer.new_policy_no || '-'}</div>
+                <div className="text-green-400">New Company: {customer.new_company || '-'}</div>
+                <div className="text-green-400 font-medium">Next Renewal: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</div>
+              </div>
+            </div>
+          </div>
+        );
+      }
       return (
         <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all hover:scale-[1.01]`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
           <div className="flex items-center justify-between gap-3">
@@ -559,19 +583,9 @@ export default function InsuranceDashboard() {
               <h4 className="font-medium text-white text-sm truncate">{customer.name}</h4>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-1">
                 {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
-                {actualIsRenewed ? (
-                  <>
-                    <span className="text-green-400">• {customer.new_company || customer.company}</span>
-                    <span className="text-green-400">• New Pol: {customer.new_policy_no || customer.current_policy_no}</span>
-                    <span className="text-green-400 font-medium">• Next: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</span>
-                  </>
-                ) : (
-                  <>
-                    {customer.company && <span className="text-slate-300">• {customer.company}</span>}
-                    {customer.current_policy_no && <span className="text-cyan-400">• Pol: {customer.current_policy_no}</span>}
-                    <span className="text-orange-400 font-medium">• {displayDate}</span>
-                  </>
-                )}
+                {customer.company && <span className="text-slate-300">• {customer.company}</span>}
+                {customer.current_policy_no && <span className="text-cyan-400">• Pol: {customer.current_policy_no}</span>}
+                <span className="text-orange-400 font-medium">• {displayDate}</span>
               </div>
             </div>
             <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
