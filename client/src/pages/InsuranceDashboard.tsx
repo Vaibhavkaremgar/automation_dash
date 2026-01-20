@@ -1642,7 +1642,7 @@ export default function InsuranceDashboard() {
     <div>
       {/* Sticky Stats - Visible across all sections */}
       {analytics && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 p-3 shadow-lg">
+        <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 rounded-lg p-3 shadow-lg mb-4">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all">
               <h3 className="text-xs text-slate-400">Total Policies</h3>
