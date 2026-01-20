@@ -408,34 +408,50 @@ export default function ReportsPage() {
                 (c.customer_name?.toLowerCase().includes(modalSearchTerm.toLowerCase()) || '') ||
                 (c.vehicle_number?.toLowerCase().includes(modalSearchTerm.toLowerCase()) || '')
               ).map((item, idx) => (
-              <div key={idx} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-white">{item.name || item.customer_name}</h4>
-                    <p className="text-sm text-slate-300">{item.mobile_number || 'N/A'}</p>
-                    {item.registration_no && <p className="text-sm text-slate-400">Vehicle: {item.registration_no}</p>}
-                    {item.vehicle_number && <p className="text-sm text-slate-400">Vehicle: {item.vehicle_number}</p>}
-                    {item.company && <p className="text-sm text-slate-400">Company: {item.company}</p>}
-                    {item.insurance_company && <p className="text-sm text-slate-400">Company: {item.insurance_company}</p>}
-                    {item.premium && <p className="text-sm text-slate-400">Premium: ₹{item.premium}</p>}
-                    {item.renewal_date && <p className="text-sm text-slate-400">Renewal: {item.renewal_date}</p>}
-                    {item.claim_type && <p className="text-sm text-slate-400">Type: {getClaimTypeLabel(item.claim_type)}</p>}
-                    {item.claim_status && <span className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${
-                      item.claim_status === 'approved' ? 'bg-green-500/20 text-green-300' : 
-                      item.claim_status === 'rejected' ? 'bg-red-500/20 text-red-300' : 
-                      'bg-yellow-500/20 text-yellow-300'
-                    }`}>{item.claim_status}</span>}
-                    {item.status && <span className={`inline-block mt-2 px-2 py-1 text-xs rounded-full ${
-                      item.status?.toLowerCase() === 'renewed' ? 'bg-green-500/20 text-green-300' : 
-                      item.status?.toLowerCase() === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
-                      item.status?.toLowerCase() === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
-                      'bg-yellow-500/20 text-yellow-300'
-                    }`}>{item.status}</span>}
+              <div key={idx} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-2">
+                      <h4 className="font-bold text-white text-sm">{item.name || item.customer_name}</h4>
+                      {item.registration_no && (
+                        <span className="text-slate-300">• {item.registration_no}</span>
+                      )}
+                      {item.vehicle_number && (
+                        <span className="text-slate-300">• {item.vehicle_number}</span>
+                      )}
+                      {item.company && (
+                        <span className="text-slate-300">• {item.company}</span>
+                      )}
+                      {item.insurance_company && (
+                        <span className="text-slate-300">• {item.insurance_company}</span>
+                      )}
+                      {item.premium && (
+                        <span className="font-bold text-white">• ₹{item.premium}</span>
+                      )}
+                      {item.renewal_date && (
+                        <span className="text-orange-400 font-medium">• {item.renewal_date}</span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      <span className="text-slate-300">{item.mobile_number || 'N/A'}</span>
+                      {item.claim_type && <span className="text-slate-400">Type: {getClaimTypeLabel(item.claim_type)}</span>}
+                      {item.claim_status && <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                        item.claim_status === 'approved' || item.claim_status === 'settled' ? 'bg-green-500/20 text-green-300' : 
+                        item.claim_status === 'rejected' ? 'bg-red-500/20 text-red-300' : 
+                        'bg-yellow-500/20 text-yellow-300'
+                      }`}>{item.claim_status}</span>}
+                      {item.status && <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                        item.status?.toLowerCase() === 'renewed' ? 'bg-green-500/20 text-green-300' : 
+                        item.status?.toLowerCase() === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
+                        item.status?.toLowerCase() === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
+                        'bg-yellow-500/20 text-yellow-300'
+                      }`}>{item.status}</span>}
+                    </div>
                   </div>
                   {item.mobile_number && <Button size="sm" onClick={() => {
-                    const message = `Dear ${item.name},\n\nPolicy Details:\nVehicle: ${item.registration_no}\nCompany: ${item.company}\nPremium: ₹${item.premium}\nRenewal Date: ${item.renewal_date}\nStatus: ${item.status}\n\nThank you!`;
+                    const message = `Dear ${item.name || item.customer_name},\n\nPolicy Details:\nVehicle: ${item.registration_no || item.vehicle_number}\nCompany: ${item.company || item.insurance_company}\nPremium: ₹${item.premium}\nRenewal Date: ${item.renewal_date}\nStatus: ${item.status}\n\nThank you!`;
                     window.open(`https://wa.me/${item.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`);
-                  }}>💬</Button>}
+                  }} className="px-2 py-1 text-xs flex-shrink-0">💬</Button>}
                 </div>
               </div>
             ))
