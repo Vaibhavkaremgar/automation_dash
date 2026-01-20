@@ -543,6 +543,8 @@ export default function InsuranceDashboard() {
   const renderRenewalCard = (customer: Customer, daysLabel: string, colorClass: string, isRenewed: boolean = false, compact: boolean = false) => {
     const isMotor = customer.vertical === 'motor' || customer.vertical === '2-wheeler';
     const isSelected = selectedCustomers.includes(customer.id);
+    const displayDate = getDisplayDate(customer);
+    const nextRenewalDate = isRenewed ? calculateNextRenewalDate(displayDate, customer.premium_mode) : displayDate;
     
     if (compact) {
       return (
@@ -552,8 +554,12 @@ export default function InsuranceDashboard() {
               <h4 className="font-medium text-white text-sm truncate">{customer.name}</h4>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-1">
                 {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
-                <span className="text-cyan-400">Pol: {customer.current_policy_no || '-'}</span>
-                <span className="text-orange-400 font-medium">{getDisplayDate(customer)}</span>
+                {isRenewed ? (
+                  <span className="text-green-400">Pol: {customer.new_policy_no || '-'}</span>
+                ) : (
+                  <span className="text-cyan-400">Pol: {customer.current_policy_no || '-'}</span>
+                )}
+                <span className="text-orange-400 font-medium">{nextRenewalDate}</span>
               </div>
             </div>
             <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
@@ -1644,27 +1650,27 @@ export default function InsuranceDashboard() {
       {analytics && (
         <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 rounded-lg p-3 shadow-lg mb-4">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all">
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const sorted = [...customers].sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Total Policies</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{analytics.totalCustomers}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all">
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const upcoming = customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Upcoming Renewals</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">{analytics.upcomingRenewals}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all">
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const activePolicies = customers.filter(c => c.status.trim().toLowerCase() === 'renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(activePolicies); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Renewed Policies</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{customers.filter(c => c.status.trim().toLowerCase() === 'renewed').length}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all">
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const expired = customers.filter(c => getDaysUntilExpiry(c) < 0).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">Expired Policies</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">{analytics.expiredPolicies || 0}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all">
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Year Premium'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">This Year Premium</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all">
+            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all" onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Month Premium'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400">This Month Premium</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </div>
