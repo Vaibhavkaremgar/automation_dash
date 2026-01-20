@@ -61,7 +61,7 @@ router.get('/customers', (req, res) => {
         query += ' AND LOWER(vertical) IN (?, ?, ?)';
         params.push('motor', 'health', 'non-motor');
       } else if (vertical === 'health') {
-        query += ' AND LOWER(product) = ?';
+        query += ' AND LOWER(vertical) = ?';
         params.push('health');
       } else if (vertical === 'health-base') {
         query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';

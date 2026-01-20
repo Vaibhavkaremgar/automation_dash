@@ -193,7 +193,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
           <div className="relative group">
             <button 
               onClick={() => setShowMainDropdown(!showMainDropdown)}
-              className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all md:pointer-events-none"
+              className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all"
             >
               <span className="md:hidden">
                 {selectedVertical === 'all' ? '📋' : 
