@@ -561,8 +561,8 @@ export default function InsuranceDashboard() {
                 {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
                 {actualIsRenewed ? (
                   <>
-                    {customer.new_company && <span className="text-green-400">• {customer.new_company}</span>}
-                    {customer.new_policy_no && <span className="text-green-400">• New Pol: {customer.new_policy_no}</span>}
+                    <span className="text-green-400">• {customer.new_company || customer.company}</span>
+                    <span className="text-green-400">• New Pol: {customer.new_policy_no || customer.current_policy_no}</span>
                     <span className="text-green-400 font-medium">• Next: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</span>
                   </>
                 ) : (
@@ -1890,16 +1890,26 @@ export default function InsuranceDashboard() {
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    {customer.mobile_number && <div><span className="text-slate-400">Mobile:</span> <span className="text-white">{customer.mobile_number}</span></div>}
-                    {customer.email && <div><span className="text-slate-400">Email:</span> <span className="text-white">{customer.email}</span></div>}
-                    {customer.registration_no && <div><span className="text-slate-400">Vehicle:</span> <span className="text-white">{customer.registration_no}</span></div>}
-                    {customer.premium && <div><span className="text-slate-400">Premium:</span> <span className="text-white font-bold">₹{parseAmount(customer.premium).toLocaleString()}</span></div>}
-                    {customer.company && <div><span className="text-slate-400">Company:</span> <span className="text-white">{customer.company}</span></div>}
+                    {customer.s_no && <div><span className="text-slate-400">S No:</span> <span className="text-white">{customer.s_no}</span></div>}
+                    {customer.g_code && <div><span className="text-slate-400">G Code:</span> <span className="text-cyan-400 font-medium">{customer.g_code}</span></div>}
+                    {customer.mobile_number && <div><span className="text-slate-400">Mobile No:</span> <span className="text-white">{customer.mobile_number}</span></div>}
+                    {customer.email && <div><span className="text-slate-400">Email ID:</span> <span className="text-white">{customer.email}</span></div>}
+                    {customer.registration_no && <div><span className="text-slate-400">Veh No:</span> <span className="text-white">{customer.registration_no}</span></div>}
                     {customer.current_policy_no && <div><span className="text-slate-400">Policy No:</span> <span className="text-white">{customer.current_policy_no}</span></div>}
+                    {customer.company && <div><span className="text-slate-400">Company:</span> <span className="text-white">{customer.company}</span></div>}
+                    {customer.premium && <div><span className="text-slate-400">Amount:</span> <span className="text-white font-bold">₹{parseAmount(customer.premium).toLocaleString()}</span></div>}
+                    {customer.last_year_premium && <div><span className="text-slate-400">Last Year Premium:</span> <span className="text-white">₹{parseAmount(customer.last_year_premium).toLocaleString()}</span></div>}
+                    {displayDate && <div><span className="text-slate-400">Policy Expiry Date:</span> <span className="text-orange-400 font-medium">{displayDate}</span></div>}
+                    {customer.tp_expiry_date && <div><span className="text-slate-400">TP Expiry Date:</span> <span className="text-white">{customer.tp_expiry_date}</span></div>}
+                    {customer.premium_mode && <div><span className="text-slate-400">Premium Mode:</span> <span className="text-white">{customer.premium_mode}</span></div>}
                     {customer.vertical && <div><span className="text-slate-400">Type:</span> <span className="text-white">{customer.vertical}</span></div>}
                     {customer.product && <div><span className="text-slate-400">Product:</span> <span className="text-white">{customer.product}</span></div>}
-                    {displayDate && <div><span className="text-slate-400">Expiry Date:</span> <span className="text-orange-400 font-medium">{displayDate}</span></div>}
-                    {customer.premium_mode && <div><span className="text-slate-400">Premium Mode:</span> <span className="text-white">{customer.premium_mode}</span></div>}
+                    {customer.payment_date && <div><span className="text-slate-400">Payment Date:</span> <span className="text-white">{customer.payment_date}</span></div>}
+                    {customer.cheque_no && <div><span className="text-slate-400">Cheque No:</span> <span className="text-white">{customer.cheque_no}</span></div>}
+                    {customer.bank_name && <div><span className="text-slate-400">Bank Name:</span> <span className="text-white">{customer.bank_name}</span></div>}
+                    {customer.customer_id && <div><span className="text-slate-400">Customer ID:</span> <span className="text-white">{customer.customer_id}</span></div>}
+                    {customer.agent_code && <div><span className="text-slate-400">Agent Code:</span> <span className="text-white">{customer.agent_code}</span></div>}
+                    {customer.reason && <div className="col-span-2"><span className="text-slate-400">Remarks:</span> <span className="text-white">{customer.reason}</span></div>}
                   </div>
                 </div>
                 <div className="flex gap-2 pt-2 border-t border-slate-600">
