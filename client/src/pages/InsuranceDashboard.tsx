@@ -1712,9 +1712,14 @@ export default function InsuranceDashboard() {
   <div className="p-3 sm:p-4 md:p-6">
     {/* Header */}
     <div className="flex justify-between items-center mb-4 relative z-30">
-      <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
-        {getPageTitle()}
-      </h1>
+      <div>
+        <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
+          {getPageTitle()}
+        </h1>
+        {verticalFilter !== 'all' && (
+          <p className="text-sm text-slate-400 mt-1">📊 Filter: <span className="text-cyan-400 font-medium">{verticalFilter === 'health-base' ? 'Health Base' : verticalFilter === 'health-topup' ? 'Health Topup' : verticalFilter === '4-wheeler' ? '4-Wheeler' : verticalFilter === '2-wheeler' ? '2-Wheeler' : verticalFilter === 'health' ? 'All Health' : verticalFilter === 'non-motor' ? 'Non-Motor' : verticalFilter === 'motor' ? 'All Motor' : verticalFilter === 'life' ? 'Life' : 'General'}</span></p>
+        )}
+      </div>
 
       {currentTab === 'customers' && (
         <Button
