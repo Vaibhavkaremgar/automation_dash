@@ -558,37 +558,82 @@ export default function InsuranceDashboard() {
     const actualIsRenewed = customer.status?.trim().toLowerCase() === 'renewed';
     
     if (compact) {
-      if (actualIsRenewed) {
-        return (
-          <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all hover:scale-[1.01]`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-white text-sm truncate">{customer.name}</h4>
-                <div className="text-xs space-y-0.5 mt-1">
-                  {customer.g_code && <div className="text-cyan-400 font-semibold">G: {customer.g_code}</div>}
-                  <div className="text-green-400">Pol: {customer.new_policy_no || '-'}</div>
-                  <div className="text-green-400">{customer.new_company || '-'}</div>
-                  <div className="text-green-400 font-medium">Next: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</div>
-                </div>
-              </div>
-              <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
-            </div>
-          </div>
-        );
-      }
       return (
-        <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all hover:scale-[1.01]`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
+        <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-white text-sm truncate">{customer.name}</h4>
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-1">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <h4 className="font-medium text-white text-sm">{customer.name}</h4>
                 {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
-                {customer.company && <span className="text-slate-300">• {customer.company}</span>}
-                {customer.current_policy_no && <span className="text-cyan-400">• Pol: {customer.current_policy_no}</span>}
-                <span className="text-orange-400 font-medium">• {displayDate}</span>
+                {actualIsRenewed ? (
+                  <>
+                    {customer.new_company && <span className="text-green-400 font-medium">• {customer.new_company}</span>}
+                    {customer.new_policy_no && <span className="text-green-400 font-medium">• Pol: {customer.new_policy_no}</span>}
+                    <span className="text-green-400 font-medium">• Next: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</span>
+                  </>
+                ) : (
+                  <>
+                    {customer.company && <span className="text-slate-300">• {customer.company}</span>}
+                    {customer.current_policy_no && <span className="text-cyan-400">• Pol: {customer.current_policy_no}</span>}
+                    <span className="text-orange-400 font-medium">• {displayDate}</span>
+                  </>
+                )}
               </div>
             </div>
-            <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
+              <button
+                className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  let message = '';
+                  const days = getDaysUntilExpiry(customer);
+                  if (actualIsRenewed) {
+                    message = generateThankYouMessage({ 
+                      customerName: customer.name, 
+                      renewalDate: displayDate,
+                      policyNumber: customer.current_policy_no,
+                      companyName: customer.company,
+                      premiumAmount: customer.premium?.toString(),
+                      clientKey,
+                      vehicleNumber: customer.registration_no,
+                      productModel: customer.product
+                    });
+                  } else {
+                    message = generateRenewalReminder({ 
+                      customerName: customer.name, 
+                      renewalDate: displayDate, 
+                      daysRemaining: days,
+                      policyNumber: customer.current_policy_no,
+                      companyName: customer.company,
+                      premiumAmount: customer.premium?.toString(),
+                      clientKey,
+                      vehicleNumber: customer.registration_no,
+                      productModel: customer.product
+                    });
+                  }
+                  logWhatsAppMessage(customer.id, customer.name, message);
+                  window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+                }}
+                title="Send WhatsApp"
+              >
+                💬
+              </button>
+              <button
+                type="button"
+                className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setNoteCustomerId(customer.id);
+                  setShowNoteModal(true);
+                }}
+                title="Add Note"
+              >
+                📝
+              </button>
+            </div>
           </div>
         </div>
       );
