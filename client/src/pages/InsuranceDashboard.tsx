@@ -559,11 +559,18 @@ export default function InsuranceDashboard() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mt-1">
                 {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
                 {isRenewed ? (
-                  <span className="text-green-400">Pol: {customer.new_policy_no || '-'}</span>
+                  <>
+                    {customer.new_company && <span className="text-green-400">• {customer.new_company}</span>}
+                    {customer.new_policy_no && <span className="text-green-400">• New Pol: {customer.new_policy_no}</span>}
+                    <span className="text-green-400 font-medium">• Next: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</span>
+                  </>
                 ) : (
-                  <span className="text-cyan-400">Pol: {customer.current_policy_no || '-'}</span>
+                  <>
+                    {customer.company && <span className="text-slate-300">• {customer.company}</span>}
+                    {customer.current_policy_no && <span className="text-cyan-400">• Pol: {customer.current_policy_no}</span>}
+                    <span className="text-orange-400 font-medium">• {displayDate}</span>
+                  </>
                 )}
-                <span className="text-orange-400 font-medium">{nextRenewalDate}</span>
               </div>
             </div>
             <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
