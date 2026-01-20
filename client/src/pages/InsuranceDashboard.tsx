@@ -1632,18 +1632,9 @@ export default function InsuranceDashboard() {
   <div className="p-3 sm:p-4 md:p-6">
     {/* Header */}
     <div className="flex justify-between items-center mb-4">
-      <div className="flex items-center gap-4">
-        <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
-          {getPageTitle()}
-        </h1>
-
-        {currentTab === 'customers' && (
-          <div className="px-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg">
-            <p className="text-xs text-slate-400">Total Customers</p>
-            <p className="text-2xl font-bold text-cyan-400">{customers.length}</p>
-          </div>
-        )}
-      </div>
+      <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
+        {getPageTitle()}
+      </h1>
 
       {currentTab === 'customers' && (
         <Button
@@ -1656,6 +1647,38 @@ export default function InsuranceDashboard() {
         </Button>
       )}
     </div>
+
+    {/* Sticky Stats Bar */}
+    {analytics && (
+      <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 rounded-lg mb-4 p-3 shadow-lg">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+            <div>
+              <p className="text-xs text-slate-400">Total Customers</p>
+              <p className="text-xl font-bold text-cyan-400">{analytics.totalCustomers}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+            <div>
+              <p className="text-xs text-slate-400">Renewed Policies</p>
+              <p className="text-xl font-bold text-green-400">{customers.filter(c => c.status.trim().toLowerCase() === 'renewed').length}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+            <div>
+              <p className="text-xs text-slate-400">Upcoming Renewals</p>
+              <p className="text-xl font-bold text-orange-400">{analytics.upcomingRenewals}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-lg border border-slate-700/50">
+            <div>
+              <p className="text-xs text-slate-400">Expired Policies</p>
+              <p className="text-xl font-bold text-red-400">{analytics.expiredPolicies || 0}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Content */}
     <div>
@@ -1827,79 +1850,46 @@ export default function InsuranceDashboard() {
               <p className="text-center text-slate-400 py-8">No customers found</p>
             ) : (
               filtered.map((customer) => (
-              <div key={customer.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h4 className="font-bold text-white text-lg">{customer.name}</h4>
-                      <p className="text-sm text-slate-300">{customer.mobile_number}</p>
+              <div key={customer.id} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs mb-2">
+                      <h4 className="font-bold text-white text-sm">{customer.name}</h4>
+                      {customer.registration_no && (
+                        <span className="text-slate-300">• {customer.registration_no}</span>
+                      )}
+                      {customer.company && (
+                        <span className="text-slate-300">• {customer.company}</span>
+                      )}
+                      {customer.g_code && (
+                        <span className="text-cyan-400 font-medium">• G: {customer.g_code}</span>
+                      )}
+                      {customer.current_policy_no && (
+                        <span className="text-cyan-400 font-medium">• Pol: {customer.current_policy_no}</span>
+                      )}
+                      <span className="text-orange-400 font-medium">• {getDisplayDate(customer)}</span>
+                      <span className="font-bold text-white text-base">• ₹{parseAmount(customer.premium).toLocaleString()}</span>
                     </div>
-                    <span className={`inline-block px-3 py-1 text-xs rounded-full font-medium ${
-                      customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
-                      customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
-                      customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
-                      'bg-yellow-500/20 text-yellow-300'
-                    }`}>
-                      {customer.status.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {customer.registration_no && (
-                      <div>
-                        <span className="text-slate-400">Vehicle:</span>
-                        <p className="text-white">{customer.registration_no}</p>
-                      </div>
-                    )}
-                    {(() => {
-                      const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
-                      if (isRenewed) {
-                        return (
-                          <>
-                            <div>
-                              <span className="text-slate-400">New Policy No:</span>
-                              <p className="text-green-400 font-bold">{customer.new_policy_no || 'N/A'}</p>
-                            </div>
-                            <div>
-                              <span className="text-slate-400">New Company:</span>
-                              <p className="text-green-400 font-bold">{customer.new_company || 'N/A'}</p>
-                            </div>
-                          </>
-                        );
-                      } else {
-                        return (
-                          <>
-                            {customer.company && (
-                              <div>
-                                <span className="text-slate-400">Company:</span>
-                                <p className="text-white">{customer.company}</p>
-                              </div>
-                            )}
-                            {customer.current_policy_no && (
-                              <div>
-                                <span className="text-slate-400">Policy No:</span>
-                                <p className="text-cyan-400 font-bold">{customer.current_policy_no}</p>
-                              </div>
-                            )}
-                          </>
-                        );
-                      }
-                    })()}
-                    {customer.g_code && (
-                      <div>
-                        <span className="text-slate-400">G Code:</span>
-                        <p className="text-cyan-400 font-bold">{customer.g_code}</p>
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-slate-400">Renewal Date:</span>
-                      <p className="text-orange-400 font-medium">{getDisplayDate(customer)}</p>
-                    </div>
-                    <div>
-                      <span className="text-slate-400">Premium:</span>
-                      <p className="text-white font-bold">₹{parseAmount(customer.premium).toLocaleString()}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                      <span className="text-slate-300">{customer.mobile_number}</span>
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                        customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
+                        customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
+                        customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
+                        'bg-yellow-500/20 text-yellow-300'
+                      }`}>
+                        {customer.status.toUpperCase()}
+                      </span>
+                      {(() => {
+                        const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
+                        if (isRenewed && customer.new_policy_no) {
+                          return <span className="text-green-400 font-medium">New: {customer.new_policy_no}</span>;
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 flex-shrink-0">
                     <Button size="sm" onClick={(e) => {
                       e.stopPropagation();
                       const message = generatePolicyDetailsMessage({
@@ -1914,7 +1904,7 @@ export default function InsuranceDashboard() {
                       });
                       logWhatsAppMessage(customer.id, customer.name, message);
                       window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-                    }}>💬 WhatsApp</Button>
+                    }} className="px-2 py-1 text-xs">💬</Button>
                     <Button 
                       size="sm" 
                       variant="outline"
@@ -1923,9 +1913,10 @@ export default function InsuranceDashboard() {
                         e.stopPropagation();
                         setNoteCustomerId(customer.id);
                         setShowNoteModal(true);
-                      }} 
+                      }}
+                      className="px-2 py-1 text-xs"
                     >
-                      📝 Note
+                      📝
                     </Button>
                   </div>
                 </div>
