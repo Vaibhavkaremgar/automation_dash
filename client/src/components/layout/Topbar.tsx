@@ -1,7 +1,7 @@
 import { memo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { Menu, RefreshCw, Search } from 'lucide-react'
+import { Menu, RefreshCw, Search, X } from 'lucide-react'
 import AICube from '../ui/AICube'
 import Modal from '../ui/Modal'
 import { Input } from '../ui/Input'
@@ -33,6 +33,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
+  const [showVerticalMenu, setShowVerticalMenu] = useState(false)
 
   const handleSync = async () => {
     try {
@@ -161,6 +162,17 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       window.open(`https://wa.me/${firstCustomer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(summary)}`, '_blank', 'noopener,noreferrer')
     }
   }
+
+  const handleSelectVertical = (vertical: string, subFilter?: string) => {
+    setSelectedVertical(vertical)
+    localStorage.setItem('insuranceVerticalFilter', vertical)
+    if (subFilter) {
+      localStorage.setItem('insuranceGeneralSubFilter', subFilter)
+      window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: subFilter }))
+    }
+    window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: vertical }))
+    setShowVerticalMenu(false)
+  }
   
   return (
     <>
@@ -184,59 +196,33 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {isInsuranceClient && (
-          <div className="relative z-[9999]">
-            <button 
-              className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all peer"
-            >
-              <span className="md:hidden">
-                {selectedVertical === 'all' ? '📋' : 
-                 selectedVertical === 'general' ? '🏢' : 
-                 selectedVertical === '4-wheeler' ? '🚗' :
-                 selectedVertical === 'motor' ? '🚙' : 
-                 selectedVertical === '2-wheeler' ? '🏍️' : 
-                 selectedVertical === 'health' ? '🏥' : 
-                 selectedVertical === 'non-motor' ? '🏠' : 
-                 selectedVertical === 'life' ? '👤' : '📋'}
-              </span>
-              <span className="hidden md:inline">
-                {selectedVertical === 'all' ? '📋 All Types' : 
-                 selectedVertical === 'general' ? '🏢 General' : 
-                 selectedVertical === '4-wheeler' ? '🚗 4-Wheeler' :
-                 selectedVertical === 'motor' ? '🚙 All Motor' : 
-                 selectedVertical === '2-wheeler' ? '🏍️ 2-Wheeler' : 
-                 selectedVertical === 'health' ? '🏥 Health' : 
-                 selectedVertical === 'non-motor' ? '🏠 Non-Motor' : 
-                 selectedVertical === 'life' ? '👤 Life' : '📋 All Types'}
-              </span>
-            </button>
-            <div className="absolute top-full left-0 mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl z-[9999] min-w-[160px] opacity-0 invisible peer-hover:opacity-100 peer-hover:visible transition-all pointer-events-none peer-hover:pointer-events-auto">
-              <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm" onClick={() => { setSelectedVertical('all'); localStorage.setItem('insuranceVerticalFilter', 'all'); window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'all' })); }}>📋 All Types</button>
-              <div className="relative group/general">
-                <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm flex items-center justify-between border-t border-slate-600 peer/general">🏢 General <span>›</span></button>
-                <div className="absolute left-full top-0 ml-1 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl min-w-[140px] z-[9999] opacity-0 invisible peer-hover/general:opacity-100 peer-hover/general:visible transition-all pointer-events-none peer-hover/general:pointer-events-auto">
-                  <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm" onClick={() => { setSelectedVertical('general'); localStorage.setItem('insuranceVerticalFilter', 'general'); localStorage.setItem('insuranceGeneralSubFilter', 'all'); window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'general' })); window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'all' })); }}>General</button>
-                  <div className="relative group/motor">
-                    <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm flex items-center justify-between border-t border-slate-600 peer/motor">🚗 Motor <span>›</span></button>
-                    <div className="absolute left-full top-0 ml-1 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl min-w-[140px] z-[9999] opacity-0 invisible peer-hover/motor:opacity-100 peer-hover/motor:visible transition-all pointer-events-none peer-hover/motor:pointer-events-auto">
-                      <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm" onClick={() => { setSelectedVertical('4-wheeler'); localStorage.setItem('insuranceVerticalFilter', '4-wheeler'); localStorage.setItem('insuranceGeneralSubFilter', '4-wheeler'); window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: '4-wheeler' })); window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: '4-wheeler' })); }}>🚗 4-Wheeler</button>
-                      <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm" onClick={() => { setSelectedVertical('2-wheeler'); localStorage.setItem('insuranceVerticalFilter', '2-wheeler'); localStorage.setItem('insuranceGeneralSubFilter', '2-wheeler'); window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: '2-wheeler' })); window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: '2-wheeler' })); }}>🏍️ 2-Wheeler</button>
-                      <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm" onClick={() => { setSelectedVertical('motor'); localStorage.setItem('insuranceVerticalFilter', 'motor'); localStorage.setItem('insuranceGeneralSubFilter', 'motor'); window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'motor' })); window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'motor' })); }}>🚙 All Motor</button>
-                    </div>
-                  </div>
-                  <div className="relative group/health">
-                    <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm flex items-center justify-between border-t border-slate-600 peer/health">🏥 Health <span>›</span></button>
-                    <div className="absolute left-full top-0 ml-1 bg-slate-800 border border-slate-700 rounded-lg shadow-2xl min-w-[140px] z-[9999] opacity-0 invisible peer-hover/health:opacity-100 peer-hover/health:visible transition-all pointer-events-none peer-hover/health:pointer-events-auto">
-                      <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm" onClick={() => { setSelectedVertical('health-base'); localStorage.setItem('insuranceVerticalFilter', 'health-base'); localStorage.setItem('insuranceGeneralSubFilter', 'health-base'); window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health-base' })); window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health-base' })); }}>🏥 Base</button>
-                      <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm" onClick={() => { setSelectedVertical('health-topup'); localStorage.setItem('insuranceVerticalFilter', 'health-topup'); localStorage.setItem('insuranceGeneralSubFilter', 'health-topup'); window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health-topup' })); window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health-topup' })); }}>🏥 Topup</button>
-                      <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm" onClick={() => { setSelectedVertical('health'); localStorage.setItem('insuranceVerticalFilter', 'health'); localStorage.setItem('insuranceGeneralSubFilter', 'health'); window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'health' })); window.dispatchEvent(new CustomEvent('insuranceGeneralSubFilterChange', { detail: 'health' })); }}>🏥 All Health</button>
-                    </div>
-                  </div>
-                  <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm border-t border-slate-600" onClick={() => { setSelectedVertical('non-motor'); localStorage.setItem('insuranceVerticalFilter', 'non-motor'); window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'non-motor' })); }}>🏠 Non-Motor</button>
-                </div>
-              </div>
-              <button className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 transition-all text-sm border-t border-slate-600" onClick={() => { setSelectedVertical('life'); localStorage.setItem('insuranceVerticalFilter', 'life'); window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: 'life' })); }}>👤 Life</button>
-            </div>
-          </div>
+          <button 
+            onClick={() => setShowVerticalMenu(!showVerticalMenu)}
+            className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all"
+          >
+            <span className="md:hidden">
+              {selectedVertical === 'all' ? '📋' : 
+               selectedVertical === 'general' ? '🏢' : 
+               selectedVertical === '4-wheeler' ? '🚗' :
+               selectedVertical === 'motor' ? '🚙' : 
+               selectedVertical === '2-wheeler' ? '🏍️' : 
+               selectedVertical === 'health' || selectedVertical === 'health-base' || selectedVertical === 'health-topup' ? '🏥' : 
+               selectedVertical === 'non-motor' ? '🏠' : 
+               selectedVertical === 'life' ? '👤' : '📋'}
+            </span>
+            <span className="hidden md:inline">
+              {selectedVertical === 'all' ? '📋 All Types' : 
+               selectedVertical === 'general' ? '🏢 General' : 
+               selectedVertical === '4-wheeler' ? '🚗 4-Wheeler' :
+               selectedVertical === 'motor' ? '🚙 All Motor' : 
+               selectedVertical === '2-wheeler' ? '🏍️ 2-Wheeler' : 
+               selectedVertical === 'health-base' ? '🏥 Health Base' :
+               selectedVertical === 'health-topup' ? '🏥 Health Topup' :
+               selectedVertical === 'health' ? '🏥 All Health' : 
+               selectedVertical === 'non-motor' ? '🏠 Non-Motor' : 
+               selectedVertical === 'life' ? '👤 Life' : '📋 All Types'}
+            </span>
+          </button>
         )}
         
         {isInsuranceClient && (
@@ -273,6 +259,22 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
         </button>
       </div>
     </header>
+
+    {/* Vertical Filter Modal */}
+    <Modal open={showVerticalMenu} onClose={() => setShowVerticalMenu(false)} title="Select Insurance Type">
+      <div className="space-y-2">
+        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('all')}>📋 All Types</button>
+        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('general', 'all')}>🏢 General</button>
+        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('4-wheeler', '4-wheeler')}>🚗 4-Wheeler</button>
+        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('2-wheeler', '2-wheeler')}>🏍️ 2-Wheeler</button>
+        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('motor', 'motor')}>🚙 All Motor</button>
+        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('health-base', 'health-base')}>🏥 Health Base</button>
+        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('health-topup', 'health-topup')}>🏥 Health Topup</button>
+        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('health', 'health')}>🏥 All Health</button>
+        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('non-motor')}>🏠 Non-Motor</button>
+        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('life')}>👤 Life</button>
+      </div>
+    </Modal>
     
     {/* Search Modal */}
     <Modal open={showSearch} onClose={() => { setShowSearch(false); setSearchTerm(''); setSearchResults([]); }} title="Search Customers">
