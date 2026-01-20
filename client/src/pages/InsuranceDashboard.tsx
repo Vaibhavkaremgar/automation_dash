@@ -561,17 +561,17 @@ export default function InsuranceDashboard() {
       if (actualIsRenewed) {
         return (
           <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all hover:scale-[1.01]`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
                 <h4 className="font-medium text-white text-sm truncate">{customer.name}</h4>
-                <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
+                <div className="text-xs space-y-0.5 mt-1">
+                  {customer.g_code && <div className="text-cyan-400 font-semibold">G: {customer.g_code}</div>}
+                  <div className="text-green-400">Pol: {customer.new_policy_no || '-'}</div>
+                  <div className="text-green-400">{customer.new_company || '-'}</div>
+                  <div className="text-green-400 font-medium">Next: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</div>
+                </div>
               </div>
-              <div className="text-xs space-y-1">
-                {customer.g_code && <div className="text-cyan-400 font-semibold">G: {customer.g_code}</div>}
-                <div className="text-green-400">New Policy No: {customer.new_policy_no || '-'}</div>
-                <div className="text-green-400">New Company: {customer.new_company || '-'}</div>
-                <div className="text-green-400 font-medium">Next Renewal: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</div>
-              </div>
+              <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
             </div>
           </div>
         );
@@ -1020,6 +1020,7 @@ export default function InsuranceDashboard() {
   const renderDashboardTab = () => {
     const { expiringToday, expiring1Day, expiring3, expiring7 } = categorizeCustomers();
     const todayTasks = [...expiringToday, ...expiring1Day, ...expiring3, ...expiring7];
+    const expired = customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due');
     
     return (
       <div className="space-y-4">
@@ -1534,6 +1535,23 @@ export default function InsuranceDashboard() {
           </div>
         )}
 
+        {/* In Process */}
+        {inProcess.length > 0 && (
+          <div id="inprocess-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-blue-400">🔵 In Process ({inProcess.length})</h3>
+            <div className="space-y-3">
+              {inProcess.slice(0, showAllInProcess ? inProcess.length : 5).map(c => renderRenewalCard(c, 'In Process', 'border-blue-500/50', false, true))}
+            </div>
+            {inProcess.length > 5 && (
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAllInProcess(!showAllInProcess)}>
+                  {showAllInProcess ? 'Show Less' : `Show All (${inProcess.length - 5} more)`}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Recently Renewed */}
         {renewed.length > 0 && (
           <div id="renewed-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
@@ -1545,23 +1563,6 @@ export default function InsuranceDashboard() {
               <div className="text-center mt-4">
                 <Button variant="outline" onClick={() => setShowAllRenewed(!showAllRenewed)}>
                   {showAllRenewed ? 'Show Less' : `Show All (${renewed.length - 5} more)`}
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* In Process */}
-        {inProcess.length > 0 && (
-          <div id="inprocess-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
-            <h3 className="text-base font-semibold mb-3 text-blue-400">🔵 In Process ({inProcess.length})</h3>
-            <div className="space-y-3">
-              {inProcess.slice(0, showAllInProcess ? inProcess.length : 5).map(c => renderRenewalCard(c, 'In Process', 'border-blue-500/50', false))}
-            </div>
-            {inProcess.length > 5 && (
-              <div className="text-center mt-4">
-                <Button variant="outline" onClick={() => setShowAllInProcess(!showAllInProcess)}>
-                  {showAllInProcess ? 'Show Less' : `Show All (${inProcess.length - 5} more)`}
                 </Button>
               </div>
             )}
