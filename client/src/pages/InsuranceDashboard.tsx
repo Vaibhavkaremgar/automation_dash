@@ -1671,9 +1671,7 @@ export default function InsuranceDashboard() {
           </div>
         </div>
       )}
-      <div style={{marginTop: '120px'}}>
-        {renderTabContent()}
-      </div>
+      {renderTabContent()}
     </div>
 
 
