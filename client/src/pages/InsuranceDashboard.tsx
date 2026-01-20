@@ -561,13 +561,6 @@ export default function InsuranceDashboard() {
       return (
         <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
           <div className="flex items-center justify-between gap-3">
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={(e) => { e.stopPropagation(); toggleCustomerSelection(customer.id); }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-4 h-4 flex-shrink-0"
-            />
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                 <h4 className="font-medium text-white text-sm">{customer.name}</h4>
@@ -589,6 +582,15 @@ export default function InsuranceDashboard() {
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
+              {isSelected && (
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={(e) => { e.stopPropagation(); toggleCustomerSelection(customer.id); }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-4 h-4 flex-shrink-0"
+                />
+              )}
               <button
                 className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
                 onClick={(e) => {
