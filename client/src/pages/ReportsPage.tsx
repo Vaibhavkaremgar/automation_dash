@@ -453,8 +453,14 @@ export default function ReportsPage() {
                           {item.company && <span className="text-slate-300">• {item.company}</span>}
                         </>
                       )}
-                      {item.renewal_date && <span className="text-orange-400 font-medium">• {isRenewed ? calculateNextRenewalDate(item.renewal_date || item.od_expiry_date, item.premium_mode) : item.renewal_date}</span>}
-                      {item.od_expiry_date && !item.renewal_date && <span className="text-orange-400 font-medium">• {isRenewed ? calculateNextRenewalDate(item.od_expiry_date, item.premium_mode) : item.od_expiry_date}</span>}
+                      {isRenewed ? (
+                        <span className="text-green-400 font-medium">• Next Renewal: {calculateNextRenewalDate(item.renewal_date || item.od_expiry_date, item.premium_mode)}</span>
+                      ) : (
+                        <>
+                          {item.renewal_date && <span className="text-orange-400 font-medium">• {item.renewal_date}</span>}
+                          {item.od_expiry_date && !item.renewal_date && <span className="text-orange-400 font-medium">• {item.od_expiry_date}</span>}
+                        </>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                       {item.claim_type && <span className="text-slate-400">Type: {getClaimTypeLabel(item.claim_type)}</span>}

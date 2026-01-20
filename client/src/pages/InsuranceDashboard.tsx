@@ -11,7 +11,26 @@ import CustomerTable from '../components/CustomerTable';
 import { api } from '../lib/api';
 import { generateRenewalReminder, generateThankYouMessage, generatePolicyDetailsMessage } from '../utils/whatsappTemplates';
 
-// Dynamic config
+const calculateNextRenewalDate = (expiryDate: string, premiumMode: string) => {
+  if (!expiryDate) return '';
+  try {
+    const [d, m, y] = expiryDate.split('/');
+    const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+    if (premiumMode?.toLowerCase().includes('month')) {
+      const months = parseInt(premiumMode) || 1;
+      date.setMonth(date.getMonth() + months);
+    } else {
+      const years = parseInt(premiumMode) || 1;
+      date.setFullYear(date.getFullYear() + years);
+    }
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch (e) {
+    return expiryDate;
+  }
+};
 let SHEET_TAB_NAME = 'updating_input';
 
 interface Customer {
@@ -1623,7 +1642,7 @@ export default function InsuranceDashboard() {
     <div>
       {/* Sticky Stats - Visible across all sections */}
       {analytics && (
-        <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 rounded-lg p-3 shadow-lg mb-4">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 p-3 shadow-lg">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all">
               <h3 className="text-xs text-slate-400">Total Policies</h3>
@@ -1652,7 +1671,9 @@ export default function InsuranceDashboard() {
           </div>
         </div>
       )}
-      {renderTabContent()}
+      <div style={{marginTop: '120px'}}>
+        {renderTabContent()}
+      </div>
     </div>
 
 
@@ -1828,16 +1849,36 @@ export default function InsuranceDashboard() {
                       {customer.registration_no && (
                         <span className="text-slate-300">• {customer.registration_no}</span>
                       )}
-                      {customer.company && (
-                        <span className="text-slate-300">• {customer.company}</span>
-                      )}
+                      {(() => {
+                        const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
+                        if (isRenewed) {
+                          return (
+                            <>
+                              {customer.new_company && <span className="text-green-400 font-medium">• {customer.new_company}</span>}
+                              {customer.new_policy_no && <span className="text-green-400 font-medium">• New Pol: {customer.new_policy_no}</span>}
+                            </>
+                          );
+                        } else {
+                          return (
+                            <>
+                              {customer.company && <span className="text-slate-300">• {customer.company}</span>}
+                              {customer.current_policy_no && <span className="text-cyan-400 font-medium">• Pol: {customer.current_policy_no}</span>}
+                            </>
+                          );
+                        }
+                      })()}
                       {customer.g_code && (
                         <span className="text-cyan-400 font-medium">• G: {customer.g_code}</span>
                       )}
-                      {customer.current_policy_no && (
-                        <span className="text-cyan-400 font-medium">• Pol: {customer.current_policy_no}</span>
-                      )}
-                      <span className="text-orange-400 font-medium">• {getDisplayDate(customer)}</span>
+                      {(() => {
+                        const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
+                        const displayDate = getDisplayDate(customer);
+                        if (isRenewed) {
+                          return <span className="text-green-400 font-medium">• Next Renewal: {calculateNextRenewalDate(displayDate, customer.premium_mode)}</span>;
+                        } else {
+                          return <span className="text-orange-400 font-medium">• {displayDate}</span>;
+                        }
+                      })()}
                       <span className="font-bold text-white text-base">• ₹{parseAmount(customer.premium).toLocaleString()}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
@@ -1852,8 +1893,13 @@ export default function InsuranceDashboard() {
                       </span>
                       {(() => {
                         const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
-                        if (isRenewed && customer.new_policy_no) {
-                          return <span className="text-green-400 font-medium">New: {customer.new_policy_no}</span>;
+                        if (isRenewed) {
+                          return (
+                            <>
+                              {customer.new_policy_no && <span className="text-green-400 font-medium">New Pol: {customer.new_policy_no}</span>}
+                              {customer.new_company && <span className="text-green-400 font-medium">New Co: {customer.new_company}</span>}
+                            </>
+                          );
                         }
                         return null;
                       })()}
