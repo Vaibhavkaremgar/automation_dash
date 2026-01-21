@@ -560,16 +560,16 @@ export default function InsuranceDashboard() {
     if (compact) {
       return (
         <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
             <input
               type="checkbox"
               checked={isSelected}
               onChange={(e) => { e.stopPropagation(); toggleCustomerSelection(customer.id); }}
               onClick={(e) => e.stopPropagation()}
-              className="w-4 h-4 flex-shrink-0"
+              className="w-4 h-4 flex-shrink-0 mt-1"
             />
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mb-2">
                 <h4 className="font-medium text-white text-sm">{customer.name}</h4>
                 {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
                 {actualIsRenewed ? (
@@ -586,9 +586,25 @@ export default function InsuranceDashboard() {
                   </>
                 )}
               </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
+                {isSelected && (
+                  <select 
+                    className="px-2 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium hover:bg-slate-700 cursor-pointer"
+                    onChange={(e) => { e.stopPropagation(); if (e.target.value) { handleBulkStatusUpdate(e.target.value); e.target.value = ''; } }}
+                    onClick={(e) => e.stopPropagation()}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Mark as...</option>
+                    <option value="due">🔴 DUE</option>
+                    <option value="renewed">🟢 Renewed</option>
+                    <option value="not renewed">⚫ Not Renewed</option>
+                    <option value="inprocess">🔵 In Process</option>
+                  </select>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
               <button
                 className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
                 onClick={(e) => {
