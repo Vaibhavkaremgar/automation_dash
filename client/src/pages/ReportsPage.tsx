@@ -60,7 +60,7 @@ interface ReportData {
     pendingRenewals: number;
     expiredWithoutRenewal: number;
     conversionRate: number;
-    monthlyTrend: Array<{ month: string; count: number }>;
+    monthlyTrend: Array<{ month: string; renewed: number; expired: number; lost: number }>;
     customers: Array<any>;
   };
   premiumCollection: {
@@ -128,11 +128,7 @@ export default function ReportsPage() {
     });
   };
 
-  const [verticalFilter, setVerticalFilter] = useState(() => {
-    // Clear old cached value and default to 'general' for insurance clients
-    localStorage.removeItem('insuranceVertical');
-    return 'general';
-  });
+  const [verticalFilter, setVerticalFilter] = useState('general');
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [activeTab, setActiveTab] = useState('renewal');
@@ -144,6 +140,15 @@ export default function ReportsPage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+
+  useEffect(() => {
+    const handleVerticalChange = (e: any) => {
+      setVerticalFilter(e.detail);
+    };
+    
+    window.addEventListener('insuranceVerticalChange', handleVerticalChange);
+    return () => window.removeEventListener('insuranceVerticalChange', handleVerticalChange);
+  }, []);
 
   useEffect(() => {
     loadReports();
@@ -273,16 +278,28 @@ export default function ReportsPage() {
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Monthly Renewal Trend (Last 12 Months)</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Monthly Renewal Trend (Last 3 Months)</h3>
             <div className="flex items-end gap-2 h-48 overflow-x-auto">
               {reportData.renewalPerformance.monthlyTrend.map((item, idx) => (
-                <div key={idx} className="flex-1 min-w-[60px] flex flex-col items-center">
-                  <div className="w-full bg-indigo-500/30 rounded-t" style={{ height: `${(item.count / Math.max(...reportData.renewalPerformance.monthlyTrend.map(t => t.count))) * 100}%` }}>
-                    <div className="text-center text-white text-xs pt-1">{item.count}</div>
+                <div key={idx} className="flex-1 min-w-[80px] flex flex-col items-center gap-1">
+                  <div className="w-full flex gap-1 items-end justify-center h-32">
+                    <div className="flex-1 bg-green-500/50 rounded" style={{ height: `${(item.renewed / Math.max(...reportData.renewalPerformance.monthlyTrend.map(t => Math.max(t.renewed, t.expired, t.lost)))) * 100}%` }} title="Renewed"></div>
+                    <div className="flex-1 bg-red-500/50 rounded" style={{ height: `${(item.expired / Math.max(...reportData.renewalPerformance.monthlyTrend.map(t => Math.max(t.renewed, t.expired, t.lost)))) * 100}%` }} title="Expired"></div>
+                    <div className="flex-1 bg-orange-500/50 rounded" style={{ height: `${(item.lost / Math.max(...reportData.renewalPerformance.monthlyTrend.map(t => Math.max(t.renewed, t.expired, t.lost)))) * 100}%` }} title="Lost"></div>
                   </div>
-                  <div className="text-slate-400 text-xs mt-2">{item.month}</div>
+                  <div className="text-slate-400 text-xs">{item.month}</div>
+                  <div className="text-xs text-slate-500 space-y-0.5">
+                    <div>R:{item.renewed}</div>
+                    <div>E:{item.expired}</div>
+                    <div>L:{item.lost}</div>
+                  </div>
                 </div>
               ))}
+            </div>
+            <div className="flex gap-4 mt-4 text-xs justify-center">
+              <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-500/50 rounded"></div><span>Renewed</span></div>
+              <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-500/50 rounded"></div><span>Expired</span></div>
+              <div className="flex items-center gap-1"><div className="w-3 h-3 bg-orange-500/50 rounded"></div><span>Lost</span></div>
             </div>
           </div>
 
