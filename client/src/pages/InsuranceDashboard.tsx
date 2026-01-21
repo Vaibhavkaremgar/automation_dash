@@ -2469,40 +2469,35 @@ export default function InsuranceDashboard() {
           </div>
           <div className="max-h-[60vh] overflow-y-auto space-y-3">
           {(() => {
-            const [filterYear, filterMonth] = uniqueCustomersMonthFilter.split('-').map(Number);
             const filtered = getUniqueCustomers().filter(customerGroup => {
               const primaryCustomer = customerGroup[0];
               const searchLower = uniqueCustomersSearchTerm.toLowerCase();
               
-              const matchesSearch = !uniqueCustomersSearchTerm || 
+              return !uniqueCustomersSearchTerm || 
                 primaryCustomer.name?.toLowerCase().includes(searchLower) ||
                 primaryCustomer.mobile_number?.includes(uniqueCustomersSearchTerm) ||
                 primaryCustomer.g_code?.toLowerCase().includes(searchLower);
-              
-              if (!matchesSearch) return false;
-              
-              const hasMatchingMonth = customerGroup.some(c => {
-                const dateStr = getDisplayDate(c);
-                if (!dateStr) return false;
-                try {
-                  const [d, m, y] = dateStr.split('/');
-                  return parseInt(y) === filterYear && parseInt(m) === filterMonth;
-                } catch (e) {
-                  return false;
-                }
-              });
-              
-              return hasMatchingMonth;
             });
             
             if (filtered.length === 0) {
-              return <p className="text-center text-slate-400 py-8">No unique customers found for selected month</p>;
+              return <p className="text-center text-slate-400 py-8">No unique customers found</p>;
             }
             
             return filtered.map((customerGroup, idx) => {
+            const [filterYear, filterMonth] = uniqueCustomersMonthFilter.split('-').map(Number);
+            const filteredPolicies = customerGroup.filter(c => {
+              const dateStr = getDisplayDate(c);
+              if (!dateStr) return true;
+              try {
+                const [d, m, y] = dateStr.split('/');
+                return parseInt(y) === filterYear && parseInt(m) === filterMonth;
+              } catch (e) {
+                return true;
+              }
+            });
             const primaryCustomer = customerGroup[0];
-            const totalPolicies = customerGroup.length;
-            const totalPremium = customerGroup.reduce((sum, c) => sum + parseAmount(c.premium), 0);
+            const totalPolicies = filteredPolicies.length;
+            const totalPremium = filteredPolicies.reduce((sum, c) => sum + parseAmount(c.premium), 0);
             
             return (
               <div key={idx} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all space-y-3">
@@ -2522,7 +2517,7 @@ export default function InsuranceDashboard() {
                 
                 <div className="space-y-2">
                   <h5 className="text-xs font-semibold text-slate-300 uppercase">Policies Owned:</h5>
-                  {customerGroup.map((customer, pIdx) => {
+                  {filteredPolicies.map((customer, pIdx) => {
                     const displayDate = getDisplayDate(customer);
                     const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
                     
