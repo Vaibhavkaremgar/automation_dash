@@ -2460,12 +2460,6 @@ export default function InsuranceDashboard() {
               onChange={(e) => setUniqueCustomersSearchTerm(e.target.value)}
               className="w-full sm:flex-1"
             />
-            <input
-              type="month"
-              value={uniqueCustomersMonthFilter}
-              onChange={(e) => setUniqueCustomersMonthFilter(e.target.value)}
-              className="px-3 py-2 border rounded bg-slate-700 text-white text-sm"
-            />
           </div>
           <div className="max-h-[60vh] overflow-y-auto space-y-3">
           {(() => {
@@ -2484,20 +2478,9 @@ export default function InsuranceDashboard() {
             }
             
             return filtered.map((customerGroup, idx) => {
-            const [filterYear, filterMonth] = uniqueCustomersMonthFilter.split('-').map(Number);
-            const filteredPolicies = customerGroup.filter(c => {
-              const dateStr = getDisplayDate(c);
-              if (!dateStr) return true;
-              try {
-                const [d, m, y] = dateStr.split('/');
-                return parseInt(y) === filterYear && parseInt(m) === filterMonth;
-              } catch (e) {
-                return true;
-              }
-            });
             const primaryCustomer = customerGroup[0];
-            const totalPolicies = filteredPolicies.length;
-            const totalPremium = filteredPolicies.reduce((sum, c) => sum + parseAmount(c.premium), 0);
+            const totalPolicies = customerGroup.length;
+            const totalPremium = customerGroup.reduce((sum, c) => sum + parseAmount(c.premium), 0);
             
             return (
               <div key={idx} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all space-y-3">
@@ -2517,7 +2500,7 @@ export default function InsuranceDashboard() {
                 
                 <div className="space-y-2">
                   <h5 className="text-xs font-semibold text-slate-300 uppercase">Policies Owned:</h5>
-                  {filteredPolicies.map((customer, pIdx) => {
+                  {customerGroup.map((customer, pIdx) => {
                     const displayDate = getDisplayDate(customer);
                     const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
                     
