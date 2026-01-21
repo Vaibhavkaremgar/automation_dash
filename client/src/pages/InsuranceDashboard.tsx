@@ -149,6 +149,7 @@ export default function InsuranceDashboard() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   }); // Track deleted customers for sync
+  const [showUniqueCustomersModal, setShowUniqueCustomersModal] = useState(false);
 
   // Field name mapping helper
   const mapFieldNameToBackend = (key: string): string => {
@@ -574,9 +575,9 @@ export default function InsuranceDashboard() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mb-2">
                 <h4 className="font-medium text-white text-sm">{customer.name}</h4>
                 {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
-                {customer.vertical && <span className="text-slate-300">• {customer.vertical}</span>}
-                {customer.product_type && <span className="text-slate-300">• {customer.product_type}</span>}
-                {customer.product_model && <span className="text-slate-300">• {customer.product_model}</span>}
+                {customer.vertical && <span className="text-slate-300">• {customer.vertical.toUpperCase()}</span>}
+                {customer.product_type && <span className="text-slate-300">• {customer.product_type.toUpperCase()}</span>}
+                {customer.product_model && <span className="text-slate-300">• {customer.product_model.toUpperCase()}</span>}
                 {actualIsRenewed ? (
                   <>
                     {customer.new_company && <span className="text-green-400 font-medium">• {customer.new_company}</span>}
@@ -1778,9 +1779,20 @@ export default function InsuranceDashboard() {
 
 
 
+  const getUniqueCustomers = () => {
+    const uniqueMap = new Map<string, Customer[]>();
+    customers.forEach(c => {
+      const key = `${c.name?.toLowerCase().trim()}|${c.g_code?.toLowerCase().trim() || ''}|${c.mobile_number?.trim() || ''}`;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, []);
+      }
+      uniqueMap.get(key)!.push(c);
+    });
+    return Array.from(uniqueMap.values());
+  };
+
   const getUniqueCustomerCount = () => {
-    const uniqueNames = new Set(customers.map(c => c.name?.toLowerCase().trim()));
-    return uniqueNames.size;
+    return getUniqueCustomers().length;
   };
 
   const getPageTitle = () => {
@@ -1828,6 +1840,10 @@ export default function InsuranceDashboard() {
             <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const statusOrder = { 'due': 0, 'inprocess': 1, 'inprogress': 1, 'renewed': 2, 'not renewed': 3 }; const sorted = [...customers].sort((a, b) => { const aStatus = a.status.trim().toLowerCase().replace(/[\s-]/g, ''); const bStatus = b.status.trim().toLowerCase().replace(/[\s-]/g, ''); const aOrder = statusOrder[aStatus] ?? 4; const bOrder = statusOrder[bStatus] ?? 4; if (aOrder !== bOrder) return aOrder - bOrder; return getDaysUntilExpiry(a) - getDaysUntilExpiry(b); }); setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Total</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{customers.length}</p>
+            </button>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => setShowUniqueCustomersModal(true)}>
+              <h3 className="text-xs text-slate-400 mb-1">Unique CX</h3>
+              <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{getUniqueCustomerCount()}</p>
             </button>
             <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const upcoming = customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Upcoming</h3>
@@ -2234,12 +2250,12 @@ export default function InsuranceDashboard() {
                   </div>
                   <div>
                     <label className="text-xs text-slate-300 mb-1 block">CHQ NO & DATE</label>
-                    <Input
+                    <input
                       type="text"
-                      placeholder={customer.cheque_no || 'Cheque number & date'}
+                      placeholder={customer.cheque_no || customer.paid_by || 'Cheque number & date'}
                       value={data.cheque_no}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, cheque_no: e.target.value}})}
-                      className="text-sm"
+                      className="w-full p-2 border rounded bg-slate-700 text-white text-sm"
                     />
                   </div>
                   <div className="relative">
@@ -2408,6 +2424,72 @@ export default function InsuranceDashboard() {
             }}>Update All & Sync to Sheet</Button>
             <Button variant="outline" onClick={() => { setShowRenewalUpdateModal(false); setBulkRenewalData({}); }}>Cancel</Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Unique Customers Modal */}
+      <Modal open={showUniqueCustomersModal} onClose={() => setShowUniqueCustomersModal(false)} title={`Unique Customers (${getUniqueCustomerCount()})`}>
+        <div className="space-y-3 max-h-[70vh] overflow-y-auto">
+          {getUniqueCustomers().map((customerGroup, idx) => {
+            const primaryCustomer = customerGroup[0];
+            const totalPolicies = customerGroup.length;
+            const totalPremium = customerGroup.reduce((sum, c) => sum + parseAmount(c.premium), 0);
+            
+            return (
+              <div key={idx} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all space-y-3">
+                <div className="border-b border-slate-600 pb-3">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-bold text-white text-lg">{primaryCustomer.name}</h4>
+                      <p className="text-xs text-slate-300 mt-1">📱 {primaryCustomer.mobile_number}</p>
+                      {primaryCustomer.g_code && <p className="text-xs text-cyan-400 font-medium">🔹 G Code: {primaryCustomer.g_code}</p>}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-slate-300">Policies: <span className="text-cyan-400 font-bold">{totalPolicies}</span></p>
+                      <p className="text-sm text-slate-300 mt-1">Total Premium: <span className="text-green-400 font-bold">₹{totalPremium.toLocaleString()}</span></p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <h5 className="text-xs font-semibold text-slate-300 uppercase">Policies Owned:</h5>
+                  {customerGroup.map((customer, pIdx) => {
+                    const displayDate = getDisplayDate(customer);
+                    const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
+                    
+                    return (
+                      <div key={pIdx} className="p-2 bg-slate-800/50 rounded border border-slate-600/30 text-xs space-y-1">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                                customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
+                                customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
+                                customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
+                                'bg-yellow-500/20 text-yellow-300'
+                              }`}>
+                                {customer.status.toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 text-slate-300">
+                              {customer.company && <div><span className="text-slate-400">Company:</span> <span className="text-white font-medium">{customer.company}</span></div>}
+                              {customer.current_policy_no && <div><span className="text-slate-400">Policy:</span> <span className="text-cyan-400 font-medium">{customer.current_policy_no}</span></div>}
+                              {customer.registration_no && <div><span className="text-slate-400">Vehicle:</span> <span className="text-white">{customer.registration_no}</span></div>}
+                              {customer.vertical && <div><span className="text-slate-400">Category:</span> <span className="text-white capitalize">{customer.vertical}</span></div>}
+                              {customer.product_type && <div><span className="text-slate-400">Type:</span> <span className="text-white">{customer.product_type}</span></div>}
+                              {customer.product_model && <div><span className="text-slate-400">Model:</span> <span className="text-white">{customer.product_model}</span></div>}
+                              {displayDate && <div><span className="text-slate-400">Expiry:</span> <span className={isRenewed ? 'text-green-400 font-medium' : 'text-orange-400 font-medium'}>{displayDate}</span></div>}
+                              {customer.premium && <div><span className="text-slate-400">Premium:</span> <span className="text-white font-bold">₹{parseAmount(customer.premium).toLocaleString()}</span></div>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </Modal>
 
