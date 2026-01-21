@@ -2459,8 +2459,8 @@ export default function InsuranceDashboard() {
 
       {/* Unique Customers Modal */}
       <Modal open={showUniqueCustomersModal} onClose={() => { setShowUniqueCustomersModal(false); setUniqueCustomersSearchTerm(''); }} title={`Unique Customers (${getUniqueCustomerCount()})`}>
-        <div className="flex flex-col h-full">
-          <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-3 mb-3 border-b border-slate-600 flex flex-col sm:flex-row gap-3">
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Input
               placeholder="Search by name, mobile, G code..."
               value={uniqueCustomersSearchTerm}
@@ -2471,116 +2471,101 @@ export default function InsuranceDashboard() {
               type="month"
               value={uniqueCustomersMonthFilter}
               onChange={(e) => setUniqueCustomersMonthFilter(e.target.value)}
-              className="px-3 py-2 border rounded bg-slate-700 text-white text-sm"
+              className="px-3 py-2 border rounded bg-slate-700 text-white text-sm whitespace-nowrap"
             />
           </div>
-          <div className="max-h-[60vh] overflow-y-auto space-y-3">
-          {(() => {
-            const uniqueGroups = getUniqueCustomers();
-            
-            if (uniqueGroups.length === 0) {
-              return <p className="text-center text-slate-400 py-8">No unique customers found. Load customers first.</p>;
-            }
-            
-            const filtered = uniqueGroups.filter(customerGroup => {
-              const primaryCustomer = customerGroup[0];
-              const searchLower = uniqueCustomersSearchTerm.toLowerCase();
+          <div className="max-h-[65vh] overflow-y-auto space-y-4">
+            {(() => {
+              const uniqueGroups = getUniqueCustomers();
+              if (uniqueGroups.length === 0) return <p className="text-center text-slate-400 py-8">No unique customers found</p>;
               
-              const matchesSearch = !uniqueCustomersSearchTerm || 
-                primaryCustomer.name?.toLowerCase().includes(searchLower) ||
-                primaryCustomer.mobile_number?.includes(uniqueCustomersSearchTerm) ||
-                primaryCustomer.g_code?.toLowerCase().includes(searchLower);
+              const filtered = uniqueGroups.filter(group => {
+                const primary = group[0];
+                const search = uniqueCustomersSearchTerm.toLowerCase();
+                const matchesSearch = !search || primary.name?.toLowerCase().includes(search) || primary.mobile_number?.includes(search) || primary.g_code?.toLowerCase().includes(search);
+                if (!matchesSearch) return false;
+                
+                if (uniqueCustomersMonthFilter) {
+                  const [year, month] = uniqueCustomersMonthFilter.split('-').map(Number);
+                  return group.some(c => {
+                    const date = getDisplayDate(c);
+                    if (!date) return false;
+                    try {
+                      const [d, m, y] = date.split('/');
+                      return parseInt(y) === year && parseInt(m) === month;
+                    } catch (e) { return false; }
+                  });
+                }
+                return true;
+              });
               
-              if (!matchesSearch) return false;
+              if (filtered.length === 0) return <p className="text-center text-slate-400 py-8">No matches found</p>;
               
-              if (uniqueCustomersMonthFilter) {
-                const [filterYear, filterMonth] = uniqueCustomersMonthFilter.split('-').map(Number);
-                return customerGroup.some(c => {
-                  const dateStr = getDisplayDate(c);
-                  if (!dateStr) return false;
-                  try {
-                    const [d, m, y] = dateStr.split('/');
-                    return parseInt(y) === filterYear && parseInt(m) === filterMonth;
-                  } catch (e) {
-                    return false;
-                  }
-                });
-              }
-              return true;
-            });
-            
-            if (filtered.length === 0) {
-              return <p className="text-center text-slate-400 py-8">No unique customers match your search</p>;
-            }
-            
-            return filtered.map((customerGroup, idx) => {
-            const primaryCustomer = customerGroup[0];
-            const totalPolicies = customerGroup.length;
-            const totalPremium = customerGroup.reduce((sum, c) => sum + parseAmount(c.premium), 0);
-            
-            return (
-              <div key={idx} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all space-y-3">
-                <div className="border-b border-slate-600 pb-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h4 className="font-bold text-white text-lg">{primaryCustomer.name}</h4>
-                      <p className="text-xs text-slate-300 mt-1">📱 {primaryCustomer.mobile_number}</p>
-                      {primaryCustomer.g_code && <p className="text-xs text-cyan-400 font-medium">🔹 G Code: {primaryCustomer.g_code}</p>}
+              return filtered.map((group, idx) => {
+                const primary = group[0];
+                const totalPremium = group.reduce((sum, c) => sum + parseAmount(c.premium), 0);
+                
+                return (
+                  <div key={idx} className="bg-slate-700/50 rounded-lg border border-slate-600/50 p-4 space-y-3">
+                    <div className="border-b border-slate-600 pb-3">
+                      <h4 className="font-bold text-white text-lg">{primary.name}</h4>
+                      <div className="flex justify-between items-start mt-2">
+                        <div className="text-xs text-slate-300 space-y-1">
+                          <p>📱 {primary.mobile_number}</p>
+                          {primary.g_code && <p className="text-cyan-400 font-medium">G Code: {primary.g_code}</p>}
+                        </div>
+                        <div className="text-right text-sm">
+                          <p className="text-slate-300">Policies: <span className="text-cyan-400 font-bold">{group.length}</span></p>
+                          <p className="text-slate-300 mt-1">Total: <span className="text-green-400 font-bold">₹{totalPremium.toLocaleString()}</span></p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-slate-300">Policies: <span className="text-cyan-400 font-bold">{totalPolicies}</span></p>
-                      <p className="text-sm text-slate-300 mt-1">Total Premium: <span className="text-green-400 font-bold">₹{totalPremium.toLocaleString()}</span></p>
+                    
+                    <div className="space-y-2">
+                      {group.map((customer, pIdx) => {
+                        const displayDate = getDisplayDate(customer);
+                        const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
+                        
+                        return (
+                          <div key={pIdx} className="bg-slate-800/50 rounded border border-slate-600/30 p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
+                                customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
+                                customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
+                                'bg-yellow-500/20 text-yellow-300'
+                              }`}>
+                                {customer.status.toUpperCase()}
+                              </span>
+                              <span className="text-sm font-bold text-white">₹{parseAmount(customer.premium).toLocaleString()}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {customer.company && <div><span className="text-slate-400">Company:</span> <span className="text-white">{customer.company}</span></div>}
+                              {customer.current_policy_no && <div><span className="text-slate-400">Policy:</span> <span className="text-cyan-400">{customer.current_policy_no}</span></div>}
+                              {customer.registration_no && <div><span className="text-slate-400">Vehicle:</span> <span className="text-white">{customer.registration_no}</span></div>}
+                              {customer.vertical && <div><span className="text-slate-400">Category:</span> <span className="text-white capitalize">{customer.vertical}</span></div>}
+                              {customer.product_type && <div><span className="text-slate-400">Type:</span> <span className="text-white">{customer.product_type}</span></div>}
+                              {customer.product_model && <div><span className="text-slate-400">Model:</span> <span className="text-white">{customer.product_model}</span></div>}
+                              {displayDate && <div><span className="text-slate-400">Expiry:</span> <span className={isRenewed ? 'text-green-400' : 'text-orange-400'}>{displayDate}</span></div>}
+                              {customer.premium_mode && <div><span className="text-slate-400">Mode:</span> <span className="text-white">{customer.premium_mode}</span></div>}
+                            </div>
+                            {isRenewed && (customer.new_company || customer.new_policy_no) && (
+                              <div className="pt-2 border-t border-slate-600/50 text-xs">
+                                <p className="text-green-400 font-semibold mb-1">NEW POLICY</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {customer.new_company && <div><span className="text-slate-400">Company:</span> <span className="text-green-400">{customer.new_company}</span></div>}
+                                  {customer.new_policy_no && <div><span className="text-slate-400">Policy:</span> <span className="text-green-400">{customer.new_policy_no}</span></div>}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <h5 className="text-xs font-semibold text-slate-300 uppercase">Policies Owned:</h5>
-                  {customerGroup.map((customer, pIdx) => {
-                    const displayDate = getDisplayDate(customer);
-                    const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
-                    
-                    return (
-                      <div key={pIdx} className="p-3 bg-slate-800/50 rounded border border-slate-600/30 space-y-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                            customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
-                            customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
-                            customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
-                            'bg-yellow-500/20 text-yellow-300'
-                          }`}>
-                            {customer.status.toUpperCase()}
-                          </span>
-                          <span className="text-sm font-bold text-white">₹{parseAmount(customer.premium).toLocaleString()}</span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          {customer.company && <div><span className="text-slate-400">Company:</span> <span className="text-white font-medium">{customer.company}</span></div>}
-                          {customer.current_policy_no && <div><span className="text-slate-400">Policy No:</span> <span className="text-cyan-400 font-medium">{customer.current_policy_no}</span></div>}
-                          {customer.registration_no && <div><span className="text-slate-400">Vehicle:</span> <span className="text-white">{customer.registration_no}</span></div>}
-                          {customer.vertical && <div><span className="text-slate-400">Category:</span> <span className="text-white capitalize">{customer.vertical}</span></div>}
-                          {customer.product_type && <div><span className="text-slate-400">Type:</span> <span className="text-white">{customer.product_type}</span></div>}
-                          {customer.product_model && <div><span className="text-slate-400">Model:</span> <span className="text-white">{customer.product_model}</span></div>}
-                          {displayDate && <div><span className="text-slate-400">Expiry:</span> <span className={isRenewed ? 'text-green-400 font-medium' : 'text-orange-400 font-medium'}>{displayDate}</span></div>}
-                          {customer.premium_mode && <div><span className="text-slate-400">Premium Mode:</span> <span className="text-white">{customer.premium_mode}</span></div>}
-                          {customer.email && <div><span className="text-slate-400">Email:</span> <span className="text-white">{customer.email}</span></div>}
-                          {customer.payment_date && <div><span className="text-slate-400">Payment Date:</span> <span className="text-white">{customer.payment_date}</span></div>}
-                        </div>
-                        {isRenewed && (customer.new_company || customer.new_policy_no) && (
-                          <div className="mt-2 pt-2 border-t border-slate-600/50">
-                            <p className="text-xs text-green-400 font-semibold mb-1">NEW POLICY:</p>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              {customer.new_company && <div><span className="text-slate-400">Company:</span> <span className="text-green-400 font-medium">{customer.new_company}</span></div>}
-                              {customer.new_policy_no && <div><span className="text-slate-400">Policy No:</span> <span className="text-green-400 font-medium">{customer.new_policy_no}</span></div>}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })})}
+                );
+              });
+            })()}
           </div>
         </div>
       </Modal>
