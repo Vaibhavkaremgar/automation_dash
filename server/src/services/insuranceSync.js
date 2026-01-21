@@ -744,7 +744,7 @@ class InsuranceSyncService {
             od_expiry_date: customer.od_expiry_date,
             tp_expiry_date: customer.tp_expiry_date,
             payment_date: customer.payment_date,
-            status: customer.status,
+            status: customer.status === 'INPROCESS' ? 'IN PROCESS' : customer.status,
             thank_you_sent: customer.thank_you_sent,
             new_policy_no: customer.new_policy_no,
             new_company: customer.new_company,
