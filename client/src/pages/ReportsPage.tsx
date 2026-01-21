@@ -128,7 +128,9 @@ export default function ReportsPage() {
     });
   };
 
-  const [verticalFilter, setVerticalFilter] = useState('general');
+  const [verticalFilter, setVerticalFilter] = useState(() => {
+    return localStorage.getItem('insuranceVerticalFilter') || 'general';
+  });
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [activeTab, setActiveTab] = useState('renewal');
@@ -143,7 +145,9 @@ export default function ReportsPage() {
 
   useEffect(() => {
     const handleVerticalChange = (e: any) => {
+      console.log('📊 Reports: Vertical filter changed to:', e.detail);
       setVerticalFilter(e.detail);
+      localStorage.setItem('insuranceVerticalFilter', e.detail);
     };
     
     window.addEventListener('insuranceVerticalChange', handleVerticalChange);
@@ -151,13 +155,18 @@ export default function ReportsPage() {
   }, []);
 
   useEffect(() => {
+    console.log('📊 Reports: Loading data with vertical filter:', verticalFilter);
     loadReports();
   }, [verticalFilter, reportMonthFilter]);
 
   const loadReports = async () => {
     try {
       setLoading(true);
-      const params = `?vertical=${verticalFilter}&reportMonth=${reportMonthFilter}&_t=${Date.now()}`;
+      let vertical = verticalFilter;
+      if (verticalFilter === 'general') {
+        vertical = 'general';
+      }
+      const params = `?vertical=${vertical}&reportMonth=${reportMonthFilter}&_t=${Date.now()}`;
       const response = await api.get(`/api/insurance/reports${params}`);
       setReportData(response.data);
     } catch (error) {

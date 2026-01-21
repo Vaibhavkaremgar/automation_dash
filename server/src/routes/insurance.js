@@ -1103,6 +1103,7 @@ router.get('/reports', async (req, res) => {
   try {
     const userId = req.user.id;
     const { vertical, reportMonth } = req.query;
+    console.log(`📊 Reports API called with vertical: ${vertical}, reportMonth: ${reportMonth}`);
     let whereClause = 'WHERE user_id = ?';
     const params = [userId];
     
