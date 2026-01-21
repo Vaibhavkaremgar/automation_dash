@@ -423,13 +423,14 @@ export default function InsuranceDashboard() {
     return { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed, inProcess };
   };
 
-  const handleBulkStatusUpdate = async (newStatus: string) => {
-    if (selectedCustomers.length === 0) {
+  const handleBulkStatusUpdate = async (newStatus: string, customerIds?: number[]) => {
+    const ids = customerIds || selectedCustomers;
+    if (ids.length === 0) {
       alert('Please select customers');
       return;
     }
     
-    const selectedCustomerData = customers.filter(c => selectedCustomers.includes(c.id));
+    const selectedCustomerData = customers.filter(c => ids.includes(c.id));
     
     try {
       for (const customerId of selectedCustomers) {
@@ -471,7 +472,7 @@ export default function InsuranceDashboard() {
       
       setSelectedCustomers([]);
       await reloadDataAfterUpdate();
-      alert(`${selectedCustomers.length} customers marked as ${newStatus}`);
+      alert(`${ids.length} customer${ids.length > 1 ? 's' : ''} marked as ${newStatus}`);
     } catch (error) {
       console.error('Failed to update status:', error);
       alert('Failed to update customer status');
@@ -2104,7 +2105,7 @@ export default function InsuranceDashboard() {
                 <div className="flex gap-2 pt-2 border-t border-slate-600 flex-wrap">
                   <select 
                     className="px-2 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium hover:bg-slate-700 cursor-pointer"
-                    onChange={(e) => { if (e.target.value) { handleBulkStatusUpdate(e.target.value); e.target.value = ''; } }}
+                    onChange={(e) => { if (e.target.value) { handleBulkStatusUpdate(e.target.value, [customer.id]); e.target.value = ''; } }}
                     defaultValue=""
                   >
                     <option value="" disabled>Mark as...</option>
