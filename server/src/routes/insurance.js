@@ -1328,9 +1328,11 @@ router.get('/reports', async (req, res) => {
       renewalPerformance: {
         expiringThisMonth: expiringThisMonth,
         renewedSoFar: renewedCount,
+        inProcess: inprocessCount,
+        lost: notRenewedCount,
         pendingRenewals: dueCount - expiredCount,
         expiredWithoutRenewal: expiredCount,
-        conversionRate: (expiringThisMonth + renewedCount) > 0 ? Math.round((renewedCount / (expiringThisMonth + renewedCount)) * 100) : 0,
+        conversionRate: expiringThisMonth > 0 ? Math.round(((renewedCount + inprocessCount) / expiringThisMonth) * 100) : 0,
         monthlyTrend: [{ month: 'Current', count: renewedCount }],
         customers: allCustomers
       },
@@ -1344,11 +1346,37 @@ router.get('/reports', async (req, res) => {
         customers: sortedByPremium
       },
       customerGrowth: {
-        newThisMonth: newThisMonth || allCustomers.length,
+        newThisMonth: newThisMonth,
         totalActive: renewedCount,
         totalInactive: dueCount + inprocessCount + notRenewedCount,
         retentionRate: allCustomers.length > 0 ? Math.round((renewedCount / allCustomers.length) * 100) : 0,
-        growthTrend: [{ month: 'Current', count: newThisMonth || allCustomers.length }],
+        churnRate: allCustomers.length > 0 ? Math.round((notRenewedCount / allCustomers.length) * 100) : 0,
+        growthTrend: (() => {
+          const trend = [];
+          const now = new Date();
+          for (let i = 5; i >= 0; i--) {
+            const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthStr = monthDate.toLocaleString('default', { month: 'short', year: '2-digit' });
+            const monthCount = allCustomers.filter(c => {
+              const dateStr = c.created_at || c.policy_start_date;
+              if (!dateStr) return false;
+              try {
+                let date;
+                if (dateStr.includes('/')) {
+                  const [d, m, y] = dateStr.split('/');
+                  date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                } else {
+                  date = new Date(dateStr);
+                }
+                return date.getMonth() === monthDate.getMonth() && date.getFullYear() === monthDate.getFullYear();
+              } catch (e) {
+                return false;
+              }
+            }).length;
+            trend.push({ month: monthStr, count: monthCount });
+          }
+          return trend;
+        })(),
         customers: allCustomers
       },
       claimsSummary: {
