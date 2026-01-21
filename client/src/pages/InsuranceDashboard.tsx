@@ -150,6 +150,11 @@ export default function InsuranceDashboard() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   }); // Track deleted customers for sync
   const [showUniqueCustomersModal, setShowUniqueCustomersModal] = useState(false);
+  const [uniqueCustomersSearchTerm, setUniqueCustomersSearchTerm] = useState('');
+  const [uniqueCustomersMonthFilter, setUniqueCustomersMonthFilter] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   // Field name mapping helper
   const mapFieldNameToBackend = (key: string): string => {
@@ -2446,9 +2451,53 @@ export default function InsuranceDashboard() {
       </Modal>
 
       {/* Unique Customers Modal */}
-      <Modal open={showUniqueCustomersModal} onClose={() => setShowUniqueCustomersModal(false)} title={`Unique Customers (${getUniqueCustomerCount()})`}>
-        <div className="space-y-3 max-h-[70vh] overflow-y-auto">
-          {getUniqueCustomers().map((customerGroup, idx) => {
+      <Modal open={showUniqueCustomersModal} onClose={() => { setShowUniqueCustomersModal(false); setUniqueCustomersSearchTerm(''); }} title={`Unique Customers (${getUniqueCustomerCount()})`}>
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3 pb-3 border-b border-slate-600">
+            <Input
+              placeholder="Search by name, mobile, G code..."
+              value={uniqueCustomersSearchTerm}
+              onChange={(e) => setUniqueCustomersSearchTerm(e.target.value)}
+              className="w-full sm:flex-1"
+            />
+            <input
+              type="month"
+              value={uniqueCustomersMonthFilter}
+              onChange={(e) => setUniqueCustomersMonthFilter(e.target.value)}
+              className="px-3 py-2 border rounded bg-slate-700 text-white text-sm"
+            />
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto space-y-3">
+          {(() => {
+            const [filterYear, filterMonth] = uniqueCustomersMonthFilter.split('-').map(Number);
+            const filtered = getUniqueCustomers().filter(customerGroup => {
+              const primaryCustomer = customerGroup[0];
+              const searchLower = uniqueCustomersSearchTerm.toLowerCase();
+              
+              // Search filter
+              const matchesSearch = !uniqueCustomersSearchTerm || 
+                primaryCustomer.name?.toLowerCase().includes(searchLower) ||
+                primaryCustomer.mobile_number?.includes(uniqueCustomersSearchTerm) ||
+                primaryCustomer.g_code?.toLowerCase().includes(searchLower);
+              
+              if (!matchesSearch) return false;
+              
+              // Month filter - check if any policy in the group expires in the selected month
+              const hasMatchingMonth = customerGroup.some(c => {
+                const dateStr = getDisplayDate(c);
+                if (!dateStr) return false;
+                try {
+                  const [d, m, y] = dateStr.split('/');
+                  return parseInt(y) === filterYear && parseInt(m) === filterMonth;
+                } catch (e) {
+                  return false;
+                }
+              });
+              
+              return hasMatchingMonth;
+            });
+            
+            return filtered.map((customerGroup, idx) => {
             const primaryCustomer = customerGroup[0];
             const totalPolicies = customerGroup.length;
             const totalPremium = customerGroup.reduce((sum, c) => sum + parseAmount(c.premium), 0);
@@ -2507,7 +2556,8 @@ export default function InsuranceDashboard() {
                 </div>
               </div>
             );
-          })}
+          })})}
+          </div>
         </div>
       </Modal>
 
