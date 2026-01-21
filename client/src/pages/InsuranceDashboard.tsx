@@ -433,7 +433,7 @@ export default function InsuranceDashboard() {
     const selectedCustomerData = customers.filter(c => ids.includes(c.id));
     
     try {
-      for (const customerId of selectedCustomers) {
+      for (const customerId of ids) {
         await api.put(`/api/insurance/customers/${customerId}`, {
           ...customers.find(c => c.id === customerId),
           status: newStatus
