@@ -2474,7 +2474,6 @@ export default function InsuranceDashboard() {
               const primaryCustomer = customerGroup[0];
               const searchLower = uniqueCustomersSearchTerm.toLowerCase();
               
-              // Search filter
               const matchesSearch = !uniqueCustomersSearchTerm || 
                 primaryCustomer.name?.toLowerCase().includes(searchLower) ||
                 primaryCustomer.mobile_number?.includes(uniqueCustomersSearchTerm) ||
@@ -2482,7 +2481,6 @@ export default function InsuranceDashboard() {
               
               if (!matchesSearch) return false;
               
-              // Month filter - check if any policy in the group expires in the selected month
               const hasMatchingMonth = customerGroup.some(c => {
                 const dateStr = getDisplayDate(c);
                 if (!dateStr) return false;
@@ -2496,6 +2494,10 @@ export default function InsuranceDashboard() {
               
               return hasMatchingMonth;
             });
+            
+            if (filtered.length === 0) {
+              return <p className="text-center text-slate-400 py-8">No unique customers found for selected month</p>;
+            }
             
             return filtered.map((customerGroup, idx) => {
             const primaryCustomer = customerGroup[0];
