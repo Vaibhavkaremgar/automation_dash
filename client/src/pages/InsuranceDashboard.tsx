@@ -1797,7 +1797,7 @@ export default function InsuranceDashboard() {
 
   const getPageTitle = () => {
     switch (currentTab) {
-      case 'customers': return `Customer Management (${getUniqueCustomerCount()} unique)`;
+      case 'customers': return 'Customer Management';
       case 'policies': return 'Policy Overview';
       case 'renewals': return 'Upcoming Renewals';
       default: return 'Insurance Agency Dashboard';
@@ -1809,9 +1809,19 @@ export default function InsuranceDashboard() {
     {/* Header */}
     <div className="flex justify-between items-center mb-4 relative z-30">
       <div>
-        <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
-          {getPageTitle()}
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
+            {getPageTitle()}
+          </h1>
+          {currentTab === 'customers' && (
+            <button
+              onClick={() => setShowUniqueCustomersModal(true)}
+              className="px-3 py-1 text-sm font-medium bg-purple-500/20 border border-purple-500/50 rounded-lg text-purple-300 hover:bg-purple-500/30 transition-all"
+            >
+              👥 Unique CX ({getUniqueCustomerCount()})
+            </button>
+          )}
+        </div>
         {verticalFilter !== 'all' && (
           <p className="text-sm text-slate-400 mt-1">📊 Filter: <span className="text-cyan-400 font-medium">{verticalFilter === 'health-base' ? 'Health Base' : verticalFilter === 'health-topup' ? 'Health Topup' : verticalFilter === '4-wheeler' ? '4-Wheeler' : verticalFilter === '2-wheeler' ? '2-Wheeler' : verticalFilter === 'health' ? 'All Health' : verticalFilter === 'non-motor' ? 'Non-Motor' : verticalFilter === 'motor' ? 'All Motor' : verticalFilter === 'life' ? 'Life' : 'General'}</span></p>
         )}
@@ -1840,10 +1850,6 @@ export default function InsuranceDashboard() {
             <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const statusOrder = { 'due': 0, 'inprocess': 1, 'inprogress': 1, 'renewed': 2, 'not renewed': 3 }; const sorted = [...customers].sort((a, b) => { const aStatus = a.status.trim().toLowerCase().replace(/[\s-]/g, ''); const bStatus = b.status.trim().toLowerCase().replace(/[\s-]/g, ''); const aOrder = statusOrder[aStatus] ?? 4; const bOrder = statusOrder[bStatus] ?? 4; if (aOrder !== bOrder) return aOrder - bOrder; return getDaysUntilExpiry(a) - getDaysUntilExpiry(b); }); setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Total</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{customers.length}</p>
-            </button>
-            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => setShowUniqueCustomersModal(true)}>
-              <h3 className="text-xs text-slate-400 mb-1">Unique CX</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">{getUniqueCustomerCount()}</p>
             </button>
             <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const upcoming = customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Upcoming</h3>
