@@ -2452,8 +2452,8 @@ export default function InsuranceDashboard() {
 
       {/* Unique Customers Modal */}
       <Modal open={showUniqueCustomersModal} onClose={() => { setShowUniqueCustomersModal(false); setUniqueCustomersSearchTerm(''); }} title={`Unique Customers (${getUniqueCustomerCount()})`}>
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row gap-3 pb-3 border-b border-slate-600">
+        <div className="flex flex-col h-full">
+          <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-3 mb-3 border-b border-slate-600 flex flex-col sm:flex-row gap-3">
             <Input
               placeholder="Search by name, mobile, G code..."
               value={uniqueCustomersSearchTerm}
