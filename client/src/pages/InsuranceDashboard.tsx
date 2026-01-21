@@ -574,6 +574,9 @@ export default function InsuranceDashboard() {
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs mb-2">
                 <h4 className="font-medium text-white text-sm">{customer.name}</h4>
                 {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
+                {customer.vertical && <span className="text-slate-300">• {customer.vertical}</span>}
+                {customer.product_type && <span className="text-slate-300">• {customer.product_type}</span>}
+                {customer.product_model && <span className="text-slate-300">• {customer.product_model}</span>}
                 {actualIsRenewed ? (
                   <>
                     {customer.new_company && <span className="text-green-400 font-medium">• {customer.new_company}</span>}
@@ -2076,7 +2079,18 @@ export default function InsuranceDashboard() {
                     {customer.reason && <div className="col-span-2"><span className="text-slate-400">Remarks:</span> <span className="text-white">{customer.reason}</span></div>}
                   </div>
                 </div>
-                <div className="flex gap-2 pt-2 border-t border-slate-600">
+                <div className="flex gap-2 pt-2 border-t border-slate-600 flex-wrap">
+                  <select 
+                    className="px-2 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium hover:bg-slate-700 cursor-pointer"
+                    onChange={(e) => { if (e.target.value) { handleBulkStatusUpdate(e.target.value); e.target.value = ''; } }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Mark as...</option>
+                    <option value="due">🔴 DUE</option>
+                    <option value="renewed">🟢 Renewed</option>
+                    <option value="not renewed">⚫ Not Renewed</option>
+                    <option value="inprocess">🔵 In Process</option>
+                  </select>
                   <Button size="sm" onClick={(e) => {
                     e.stopPropagation();
                     const message = generatePolicyDetailsMessage({
@@ -2212,6 +2226,7 @@ export default function InsuranceDashboard() {
                     <label className="text-xs text-slate-300 mb-1 block">DEPOSITED/PAYMENT DATE</label>
                     <Input
                       type="date"
+                      placeholder={customer.payment_date || 'YYYY-MM-DD'}
                       value={data.payment_date}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, payment_date: e.target.value}})}
                       className="text-sm"
@@ -2221,27 +2236,57 @@ export default function InsuranceDashboard() {
                     <label className="text-xs text-slate-300 mb-1 block">CHQ NO & DATE</label>
                     <Input
                       type="text"
-                      placeholder="Cheque number & date"
+                      placeholder={customer.cheque_no || 'Cheque number & date'}
                       value={data.cheque_no}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, cheque_no: e.target.value}})}
                       className="text-sm"
                     />
                   </div>
-                  <div>
+                  <div className="relative">
                     <label className="text-xs text-slate-300 mb-1 block">BANK NAME</label>
-                    <Input
+                    <input
                       type="text"
-                      placeholder="Bank name"
+                      placeholder={customer.bank_name || 'Search bank...'}
                       value={data.bank_name}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, bank_name: e.target.value}})}
-                      className="text-sm"
+                      className="w-full p-2 border rounded bg-slate-700 text-white text-sm"
+                      autoComplete="off"
                     />
+                    {data.bank_name && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-slate-700 border border-slate-600 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                        {['HDFC Bank', 'ICICI Bank', 'Axis Bank', 'SBI', 'Kotak Mahindra Bank', 'IndusInd Bank', 'IDBI Bank', 'Bank of Baroda', 'Punjab National Bank', 'Canara Bank', 'Union Bank of India', 'Bank of India', 'Central Bank of India', 'Indian Bank', 'Yes Bank', 'RBL Bank', 'IDFCFIRST Bank', 'Federal Bank', 'Karur Vysya Bank', 'South Indian Bank', 'Bandhan Bank', 'ICICI Prudential', 'HDFC Life', 'LIC', 'Bajaj Allianz', 'Reliance General', 'TATA AIG', 'New India Assurance', 'Oriental Insurance', 'United India Insurance'].filter(bank => bank.toLowerCase().includes(data.bank_name.toLowerCase())).map(bank => (
+                          <div
+                            key={bank}
+                            className="px-3 py-2 hover:bg-slate-600 cursor-pointer text-white text-sm"
+                            onClick={() => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, bank_name: bank}})}
+                          >
+                            {bank}
+                          </div>
+                        ))}
+                        <div
+                          className="px-3 py-2 hover:bg-slate-600 cursor-pointer text-white text-sm border-t border-slate-600 font-medium"
+                          onClick={() => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, bank_name: 'Others', show_other_bank: true}})}
+                        >
+                          Others
+                        </div>
+                      </div>
+                    )}
+                    {data.show_other_bank && (
+                      <input
+                        type="text"
+                        placeholder="Enter bank name"
+                        value={data.other_bank_name || ''}
+                        onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, other_bank_name: e.target.value, bank_name: e.target.value}})}
+                        className="w-full p-2 border rounded bg-slate-700 text-white text-sm mt-2"
+                        autoFocus
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="text-xs text-slate-300 mb-1 block">CUSTOMER ID</label>
                     <Input
                       type="text"
-                      placeholder="Customer ID"
+                      placeholder={customer.customer_id || 'Customer ID'}
                       value={data.customer_id}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, customer_id: e.target.value}})}
                       className="text-sm"
@@ -2251,7 +2296,7 @@ export default function InsuranceDashboard() {
                     <label className="text-xs text-slate-300 mb-1 block">AGENT CODE</label>
                     <Input
                       type="text"
-                      placeholder="Agent code"
+                      placeholder={customer.agent_code || 'Agent code'}
                       value={data.agent_code}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, agent_code: e.target.value}})}
                       className="text-sm"
@@ -2271,7 +2316,7 @@ export default function InsuranceDashboard() {
                     <label className="text-xs text-slate-300 mb-1 block">NEW POLICY NO</label>
                     <Input
                       type="text"
-                      placeholder="New policy number"
+                      placeholder={customer.new_policy_no || 'New policy number'}
                       value={data.new_policy_no}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, new_policy_no: e.target.value}})}
                       className="text-sm"
@@ -2281,7 +2326,7 @@ export default function InsuranceDashboard() {
                     <label className="text-xs text-slate-300 mb-1 block">NEW POLICY COMPANY</label>
                     <Input
                       type="text"
-                      placeholder={customer.company || 'Company'}
+                      placeholder={customer.new_company || customer.company || 'Company'}
                       value={data.new_company}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, new_company: e.target.value}})}
                       className="text-sm"
@@ -2291,7 +2336,7 @@ export default function InsuranceDashboard() {
                     <label className="text-xs text-slate-300 mb-1 block">Paid By</label>
                     <Input
                       type="text"
-                      placeholder="Payment method"
+                      placeholder={customer.paid_by || 'Payment method'}
                       value={data.paid_by}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, paid_by: e.target.value}})}
                       className="text-sm"
