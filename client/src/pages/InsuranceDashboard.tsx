@@ -1832,8 +1832,15 @@ export default function InsuranceDashboard() {
           </h1>
           {currentTab === 'customers' && (
             <button
-              onClick={() => setShowUniqueCustomersModal(true)}
-              className="px-3 py-1 text-sm font-medium bg-purple-500/20 border border-purple-500/50 rounded-lg text-purple-300 hover:bg-purple-500/30 transition-all"
+              onClick={() => {
+                if (customers.length === 0) {
+                  alert('⏳ Please wait for customers to load first, or sync from sheets.');
+                  return;
+                }
+                setShowUniqueCustomersModal(true);
+              }}
+              className="px-3 py-1 text-sm font-medium bg-purple-500/20 border border-purple-500/50 rounded-lg text-purple-300 hover:bg-purple-500/30 transition-all disabled:opacity-50"
+              disabled={customers.length === 0}
             >
               👥 Unique CX ({getUniqueCustomerCount()})
             </button>
@@ -2460,21 +2467,50 @@ export default function InsuranceDashboard() {
               onChange={(e) => setUniqueCustomersSearchTerm(e.target.value)}
               className="w-full sm:flex-1"
             />
+            <input
+              type="month"
+              value={uniqueCustomersMonthFilter}
+              onChange={(e) => setUniqueCustomersMonthFilter(e.target.value)}
+              className="px-3 py-2 border rounded bg-slate-700 text-white text-sm"
+            />
           </div>
           <div className="max-h-[60vh] overflow-y-auto space-y-3">
           {(() => {
-            const filtered = getUniqueCustomers().filter(customerGroup => {
+            const uniqueGroups = getUniqueCustomers();
+            
+            if (uniqueGroups.length === 0) {
+              return <p className="text-center text-slate-400 py-8">No unique customers found. Load customers first.</p>;
+            }
+            
+            const filtered = uniqueGroups.filter(customerGroup => {
               const primaryCustomer = customerGroup[0];
               const searchLower = uniqueCustomersSearchTerm.toLowerCase();
               
-              return !uniqueCustomersSearchTerm || 
+              const matchesSearch = !uniqueCustomersSearchTerm || 
                 primaryCustomer.name?.toLowerCase().includes(searchLower) ||
                 primaryCustomer.mobile_number?.includes(uniqueCustomersSearchTerm) ||
                 primaryCustomer.g_code?.toLowerCase().includes(searchLower);
+              
+              if (!matchesSearch) return false;
+              
+              if (uniqueCustomersMonthFilter) {
+                const [filterYear, filterMonth] = uniqueCustomersMonthFilter.split('-').map(Number);
+                return customerGroup.some(c => {
+                  const dateStr = getDisplayDate(c);
+                  if (!dateStr) return false;
+                  try {
+                    const [d, m, y] = dateStr.split('/');
+                    return parseInt(y) === filterYear && parseInt(m) === filterMonth;
+                  } catch (e) {
+                    return false;
+                  }
+                });
+              }
+              return true;
             });
             
             if (filtered.length === 0) {
-              return <p className="text-center text-slate-400 py-8">No unique customers found</p>;
+              return <p className="text-center text-slate-400 py-8">No unique customers match your search</p>;
             }
             
             return filtered.map((customerGroup, idx) => {
@@ -2498,38 +2534,46 @@ export default function InsuranceDashboard() {
                   </div>
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <h5 className="text-xs font-semibold text-slate-300 uppercase">Policies Owned:</h5>
                   {customerGroup.map((customer, pIdx) => {
                     const displayDate = getDisplayDate(customer);
                     const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
                     
                     return (
-                      <div key={pIdx} className="p-2 bg-slate-800/50 rounded border border-slate-600/30 text-xs space-y-1">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
-                                customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
-                                customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
-                                customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
-                                'bg-yellow-500/20 text-yellow-300'
-                              }`}>
-                                {customer.status.toUpperCase()}
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-1 text-slate-300">
-                              {customer.company && <div><span className="text-slate-400">Company:</span> <span className="text-white font-medium">{customer.company}</span></div>}
-                              {customer.current_policy_no && <div><span className="text-slate-400">Policy:</span> <span className="text-cyan-400 font-medium">{customer.current_policy_no}</span></div>}
-                              {customer.registration_no && <div><span className="text-slate-400">Vehicle:</span> <span className="text-white">{customer.registration_no}</span></div>}
-                              {customer.vertical && <div><span className="text-slate-400">Category:</span> <span className="text-white capitalize">{customer.vertical}</span></div>}
-                              {customer.product_type && <div><span className="text-slate-400">Type:</span> <span className="text-white">{customer.product_type}</span></div>}
-                              {customer.product_model && <div><span className="text-slate-400">Model:</span> <span className="text-white">{customer.product_model}</span></div>}
-                              {displayDate && <div><span className="text-slate-400">Expiry:</span> <span className={isRenewed ? 'text-green-400 font-medium' : 'text-orange-400 font-medium'}>{displayDate}</span></div>}
-                              {customer.premium && <div><span className="text-slate-400">Premium:</span> <span className="text-white font-bold">₹{parseAmount(customer.premium).toLocaleString()}</span></div>}
+                      <div key={pIdx} className="p-3 bg-slate-800/50 rounded border border-slate-600/30 space-y-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                            customer.status === 'renewed' ? 'bg-green-500/20 text-green-300' : 
+                            customer.status === 'not renewed' ? 'bg-red-500/20 text-red-300' : 
+                            customer.status === 'inprocess' ? 'bg-blue-500/20 text-blue-300' : 
+                            'bg-yellow-500/20 text-yellow-300'
+                          }`}>
+                            {customer.status.toUpperCase()}
+                          </span>
+                          <span className="text-sm font-bold text-white">₹{parseAmount(customer.premium).toLocaleString()}</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {customer.company && <div><span className="text-slate-400">Company:</span> <span className="text-white font-medium">{customer.company}</span></div>}
+                          {customer.current_policy_no && <div><span className="text-slate-400">Policy No:</span> <span className="text-cyan-400 font-medium">{customer.current_policy_no}</span></div>}
+                          {customer.registration_no && <div><span className="text-slate-400">Vehicle:</span> <span className="text-white">{customer.registration_no}</span></div>}
+                          {customer.vertical && <div><span className="text-slate-400">Category:</span> <span className="text-white capitalize">{customer.vertical}</span></div>}
+                          {customer.product_type && <div><span className="text-slate-400">Type:</span> <span className="text-white">{customer.product_type}</span></div>}
+                          {customer.product_model && <div><span className="text-slate-400">Model:</span> <span className="text-white">{customer.product_model}</span></div>}
+                          {displayDate && <div><span className="text-slate-400">Expiry:</span> <span className={isRenewed ? 'text-green-400 font-medium' : 'text-orange-400 font-medium'}>{displayDate}</span></div>}
+                          {customer.premium_mode && <div><span className="text-slate-400">Premium Mode:</span> <span className="text-white">{customer.premium_mode}</span></div>}
+                          {customer.email && <div><span className="text-slate-400">Email:</span> <span className="text-white">{customer.email}</span></div>}
+                          {customer.payment_date && <div><span className="text-slate-400">Payment Date:</span> <span className="text-white">{customer.payment_date}</span></div>}
+                        </div>
+                        {isRenewed && (customer.new_company || customer.new_policy_no) && (
+                          <div className="mt-2 pt-2 border-t border-slate-600/50">
+                            <p className="text-xs text-green-400 font-semibold mb-1">NEW POLICY:</p>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {customer.new_company && <div><span className="text-slate-400">Company:</span> <span className="text-green-400 font-medium">{customer.new_company}</span></div>}
+                              {customer.new_policy_no && <div><span className="text-slate-400">Policy No:</span> <span className="text-green-400 font-medium">{customer.new_policy_no}</span></div>}
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   })}
