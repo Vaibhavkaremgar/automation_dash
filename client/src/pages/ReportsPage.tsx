@@ -55,6 +55,8 @@ interface ReportData {
   renewalPerformance: {
     expiringThisMonth: number;
     renewedSoFar: number;
+    inProcess: number;
+    lost: number;
     pendingRenewals: number;
     expiredWithoutRenewal: number;
     conversionRate: number;
@@ -248,7 +250,7 @@ export default function ReportsPage() {
       {/* Renewal Performance Report */}
       {activeTab === 'renewal' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
             <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers))); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Total Policies</span><span className="md:hidden">Total</span></h4>
               <p className="text-xl font-semibold text-blue-400">{applyMonthFilter(reportData.renewalPerformance.customers).length}</p>
@@ -256,6 +258,14 @@ export default function ReportsPage() {
             <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const renewed = sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers.filter(c => c.status?.toLowerCase().trim() === 'renewed'))); setDetailsModalTitle('Renewed So Far'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Renewed So Far</span><span className="md:hidden">Renewed</span></h4>
               <p className="text-xl font-semibold text-green-400">{applyMonthFilter(reportData.renewalPerformance.customers).filter(c => c.status?.toLowerCase().trim() === 'renewed').length}</p>
+            </div>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const inProcess = sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers.filter(c => { const status = c.status?.toLowerCase().trim().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }))); setDetailsModalTitle('In Process'); setDetailsModalCustomers(inProcess); setShowDetailsModal(true); }}>
+              <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">In Process</span><span className="md:hidden">Process</span></h4>
+              <p className="text-xl font-semibold text-blue-400">{applyMonthFilter(reportData.renewalPerformance.customers).filter(c => { const status = c.status?.toLowerCase().trim().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).length}</p>
+            </div>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const lost = sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers.filter(c => c.status?.toLowerCase().trim() === 'not renewed'))); setDetailsModalTitle('Lost Customers'); setDetailsModalCustomers(lost); setShowDetailsModal(true); }}>
+              <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Lost</span><span className="md:hidden">Lost</span></h4>
+              <p className="text-xl font-semibold text-red-400">{applyMonthFilter(reportData.renewalPerformance.customers).filter(c => c.status?.toLowerCase().trim() === 'not renewed').length}</p>
             </div>
             <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const isExpired = (dateStr) => { if (!dateStr) return false; try { const parts = dateStr.split('/'); if (parts.length === 3) { const day = parseInt(parts[0]); const month = parseInt(parts[1]) - 1; const year = parseInt(parts[2]); const renewalDate = new Date(year, month, day); const today = new Date(); today.setHours(0, 0, 0, 0); return renewalDate < today; } } catch (e) { return false; } return false; }; const upcoming = sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers.filter(c => c.status?.toLowerCase().trim() === 'due' && !isExpired(c.renewal_date || c.od_expiry_date)))); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Upcoming Renewals</span><span className="md:hidden">Upcoming</span></h4>

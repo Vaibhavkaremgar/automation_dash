@@ -1332,8 +1332,32 @@ router.get('/reports', async (req, res) => {
         lost: notRenewedCount,
         pendingRenewals: dueCount - expiredCount,
         expiredWithoutRenewal: expiredCount,
-        conversionRate: expiringThisMonth > 0 ? Math.round(((renewedCount + inprocessCount) / expiringThisMonth) * 100) : 0,
-        monthlyTrend: [{ month: 'Current', count: renewedCount }],
+        conversionRate: (() => {
+          const denominator = renewedCount + expiredCount + notRenewedCount;
+          return denominator > 0 ? Math.round((renewedCount / denominator) * 100) : 0;
+        })(),
+        monthlyTrend: (() => {
+          const trend = [];
+          const now = new Date();
+          for (let i = 11; i >= 0; i--) {
+            const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthStr = monthDate.toLocaleString('default', { month: 'short', year: '2-digit' });
+            const monthCount = allCustomers.filter(c => {
+              const isDue = c.status?.toLowerCase().trim() === 'due';
+              const renewalDate = c.renewal_date?.trim() || c.od_expiry_date?.trim();
+              if (!isDue || !renewalDate) return false;
+              try {
+                const [d, m, y] = renewalDate.split('/');
+                const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                return date.getMonth() === monthDate.getMonth() && date.getFullYear() === monthDate.getFullYear();
+              } catch (e) {
+                return false;
+              }
+            }).length;
+            trend.push({ month: monthStr, count: monthCount });
+          }
+          return trend;
+        })(),
         customers: allCustomers
       },
       premiumCollection: {
@@ -1341,7 +1365,29 @@ router.get('/reports', async (req, res) => {
         collectedThisYear: collectedThisYear,
         highestCustomer: { name: topCustomer.name, premium: topCustomer.premium || 0 },
         highestCompany: { name: topCompany[0], premium: topCompany[1] },
-        monthlyPremium: [{ month: 'Current', amount: collectedThisMonth }],
+        monthlyPremium: (() => {
+          const trend = [];
+          const now = new Date();
+          for (let i = 11; i >= 0; i--) {
+            const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthStr = monthDate.toLocaleString('default', { month: 'short', year: '2-digit' });
+            const monthAmount = allCustomers.filter(c => {
+              const status = c.status?.toLowerCase().trim().replace(/[\s-]/g, '');
+              if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false;
+              const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim());
+              if (!dateStr) return false;
+              try {
+                const [d, m, y] = dateStr.split('/');
+                const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                return date.getMonth() === monthDate.getMonth() && date.getFullYear() === monthDate.getFullYear();
+              } catch (e) {
+                return false;
+              }
+            }).reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
+            trend.push({ month: monthStr, amount: monthAmount });
+          }
+          return trend;
+        })(),
         byCompany: byCompany,
         customers: sortedByPremium
       },
@@ -1354,7 +1400,7 @@ router.get('/reports', async (req, res) => {
         growthTrend: (() => {
           const trend = [];
           const now = new Date();
-          for (let i = 5; i >= 0; i--) {
+          for (let i = 11; i >= 0; i--) {
             const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const monthStr = monthDate.toLocaleString('default', { month: 'short', year: '2-digit' });
             const monthCount = allCustomers.filter(c => {
