@@ -1091,8 +1091,66 @@ export default function InsuranceDashboard() {
                 const daysLeft = getDaysUntilExpiry(customer);
                 const isOverdue = daysLeft < 0;
                 const colorClass = isOverdue ? 'border-red-500/30' : 'border-orange-500/30';
+                const displayDate = getDisplayDate(customer);
                 
-                return renderRenewalCard(customer, '', colorClass, false, true);
+                return (
+                  <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                          <h4 className="font-medium text-white text-sm">{customer.name}</h4>
+                          {customer.g_code && <span className="text-cyan-400 font-semibold">G: {customer.g_code}</span>}
+                          <>
+                            {customer.company && <span className="text-slate-300">• {customer.company}</span>}
+                            {customer.current_policy_no && <span className="text-cyan-400">• Pol: {customer.current_policy_no}</span>}
+                            <span className="text-orange-400 font-medium">• {displayDate}</span>
+                          </>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
+                        <button
+                          className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            let message = '';
+                            const days = getDaysUntilExpiry(customer);
+                            message = generateRenewalReminder({ 
+                              customerName: customer.name, 
+                              renewalDate: displayDate, 
+                              daysRemaining: days,
+                              policyNumber: customer.current_policy_no,
+                              companyName: customer.company,
+                              premiumAmount: customer.premium?.toString(),
+                              clientKey,
+                              vehicleNumber: customer.registration_no,
+                              productModel: customer.product
+                            });
+                            logWhatsAppMessage(customer.id, customer.name, message);
+                            window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+                          }}
+                          title="Send WhatsApp"
+                        >
+                          💬
+                        </button>
+                        <button
+                          type="button"
+                          className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setNoteCustomerId(customer.id);
+                            setShowNoteModal(true);
+                          }}
+                          title="Add Note"
+                        >
+                          📝
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
               })}
               
               {todayTasks.length > quickActionsLimit && (
@@ -1737,31 +1795,39 @@ export default function InsuranceDashboard() {
     <div>
       {/* Sticky Stats - Visible across all sections */}
       {analytics && (
-        <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 rounded-lg p-3 shadow-lg mb-4">
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-            <button className="w-full bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const statusOrder = { 'due': 0, 'inprocess': 1, 'inprogress': 1, 'renewed': 2, 'not renewed': 3 }; const sorted = [...customers].sort((a, b) => { const aStatus = a.status.trim().toLowerCase().replace(/[\s-]/g, ''); const bStatus = b.status.trim().toLowerCase().replace(/[\s-]/g, ''); const aOrder = statusOrder[aStatus] ?? 4; const bOrder = statusOrder[bStatus] ?? 4; if (aOrder !== bOrder) return aOrder - bOrder; return getDaysUntilExpiry(a) - getDaysUntilExpiry(b); }); setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
-              <h3 className="text-xs text-slate-400">Total Policies</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{customers.length}</p>
+        <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 rounded-lg p-2 shadow-lg mb-4 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            <button className="flex-shrink-0 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all text-left min-w-fit" onClick={() => { const statusOrder = { 'due': 0, 'inprocess': 1, 'inprogress': 1, 'renewed': 2, 'not renewed': 3 }; const sorted = [...customers].sort((a, b) => { const aStatus = a.status.trim().toLowerCase().replace(/[\s-]/g, ''); const bStatus = b.status.trim().toLowerCase().replace(/[\s-]/g, ''); const aOrder = statusOrder[aStatus] ?? 4; const bOrder = statusOrder[bStatus] ?? 4; if (aOrder !== bOrder) return aOrder - bOrder; return getDaysUntilExpiry(a) - getDaysUntilExpiry(b); }); setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Total</h3>
+              <p className="text-lg font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{customers.length}</p>
             </button>
-            <button className="w-full bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const upcoming = customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
-              <h3 className="text-xs text-slate-400">Upcoming Renewals</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">{customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).length}</p>
+            <button className="flex-shrink-0 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all text-left min-w-fit" onClick={() => { const upcoming = customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Upcoming</h3>
+              <p className="text-lg font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">{customers.filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).length}</p>
             </button>
-            <button className="w-full bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const activePolicies = customers.filter(c => c.status.trim().toLowerCase() === 'renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(activePolicies); setShowDetailsModal(true); }}>
-              <h3 className="text-xs text-slate-400">Renewed Policies</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{customers.filter(c => c.status.trim().toLowerCase() === 'renewed').length}</p>
+            <button className="flex-shrink-0 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all text-left min-w-fit" onClick={() => { const renewed = customers.filter(c => c.status.trim().toLowerCase() === 'renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Renewed</h3>
+              <p className="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{customers.filter(c => c.status.trim().toLowerCase() === 'renewed').length}</p>
             </button>
-            <button className="w-full bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const expired = customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
-              <h3 className="text-xs text-slate-400">Expired Policies</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">{customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').length}</p>
+            <button className="flex-shrink-0 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all text-left min-w-fit" onClick={() => { const inprocess = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('In Process'); setDetailsModalCustomers(inprocess); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">In Process</h3>
+              <p className="text-lg font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).length}</p>
             </button>
-            <button className="w-full bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Year Premium'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
-              <h3 className="text-xs text-slate-400">This Year Premium</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+            <button className="flex-shrink-0 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all text-left min-w-fit" onClick={() => { const expired = customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Expired</h3>
+              <p className="text-lg font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">{customers.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').length}</p>
             </button>
-            <button className="w-full bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Month Premium'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
-              <h3 className="text-xs text-slate-400">This Month Premium</h3>
-              <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+            <button className="flex-shrink-0 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all text-left min-w-fit" onClick={() => { const lost = customers.filter(c => c.status.trim().toLowerCase() === 'not renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Lost Policies'); setDetailsModalCustomers(lost); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Lost</h3>
+              <p className="text-lg font-bold bg-gradient-to-r from-gray-400 to-slate-400 bg-clip-text text-transparent">{customers.filter(c => c.status.trim().toLowerCase() === 'not renewed').length}</p>
+            </button>
+            <button className="flex-shrink-0 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all text-left min-w-fit" onClick={() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Month Premium'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Month Prem</h3>
+              <p className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisMonth = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+            </button>
+            <button className="flex-shrink-0 bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-2 cursor-pointer hover:bg-slate-800/70 transition-all text-left min-w-fit" onClick={() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Year Premium'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
+              <h3 className="text-xs text-slate-400">Year Prem</h3>
+              <p className="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">₹{(() => { const now = new Date(); const thisYear = customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </button>
           </div>
         </div>
