@@ -2063,8 +2063,10 @@ export default function InsuranceDashboard() {
                     {displayDate && <div><span className="text-slate-400">Policy Expiry Date:</span> <span className="text-orange-400 font-medium">{displayDate}</span></div>}
                     {customer.tp_expiry_date && <div><span className="text-slate-400">TP Expiry Date:</span> <span className="text-white">{customer.tp_expiry_date}</span></div>}
                     {customer.premium_mode && <div><span className="text-slate-400">Premium Mode:</span> <span className="text-white">{customer.premium_mode}</span></div>}
-                    {customer.vertical && <div><span className="text-slate-400">Type:</span> <span className="text-white">{customer.vertical}</span></div>}
-                    {customer.product && <div><span className="text-slate-400">Product:</span> <span className="text-white">{customer.product}</span></div>}
+                    {customer.vertical && <div><span className="text-slate-400">Category:</span> <span className="text-white capitalize">{customer.vertical}</span></div>}
+                    {customer.vertical === 'motor' && customer.product && <div><span className="text-slate-400">Product Model:</span> <span className="text-white">{customer.product}</span></div>}
+                    {customer.vertical !== 'motor' && customer.vertical !== '2-wheeler' && customer.product && <div><span className="text-slate-400">Product Type:</span> <span className="text-white">{customer.product}</span></div>}
+                    {customer.vertical === '2-wheeler' && customer.product && <div><span className="text-slate-400">Product Model:</span> <span className="text-white">{customer.product}</span></div>}
                     {customer.payment_date && <div><span className="text-slate-400">Payment Date:</span> <span className="text-white">{customer.payment_date}</span></div>}
                     {customer.cheque_no && <div><span className="text-slate-400">Cheque No:</span> <span className="text-white">{customer.cheque_no}</span></div>}
                     {customer.bank_name && <div><span className="text-slate-400">Bank Name:</span> <span className="text-white">{customer.bank_name}</span></div>}
