@@ -147,22 +147,13 @@ export default function ReportsPage() {
 
   useEffect(() => {
     loadReports();
-    localStorage.setItem('insuranceVertical', verticalFilter);
-    
-    const handleVerticalChange = (e: any) => {
-      setVerticalFilter(e.detail);
-      localStorage.setItem('insuranceVertical', e.detail);
-    };
-    
-    window.addEventListener('insuranceVerticalChange', handleVerticalChange);
-    return () => window.removeEventListener('insuranceVerticalChange', handleVerticalChange);
-  }, [verticalFilter]);
+  }, [verticalFilter, reportMonthFilter]);
 
   const loadReports = async () => {
     try {
       setLoading(true);
-      const verticalParam = `?vertical=${verticalFilter}&_t=${Date.now()}`;
-      const response = await api.get(`/api/insurance/reports${verticalParam}`);
+      const params = `?vertical=${verticalFilter}&reportMonth=${reportMonthFilter}&_t=${Date.now()}`;
+      const response = await api.get(`/api/insurance/reports${params}`);
       setReportData(response.data);
     } catch (error) {
       console.error('Failed to load reports:', error);

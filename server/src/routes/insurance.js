@@ -1102,7 +1102,7 @@ router.post('/claims/:id/notify', validateClaimOwnership, async (req, res) => {
 router.get('/reports', async (req, res) => {
   try {
     const userId = req.user.id;
-    const { vertical } = req.query;
+    const { vertical, reportMonth } = req.query;
     let whereClause = 'WHERE user_id = ?';
     const params = [userId];
     
@@ -1339,22 +1339,58 @@ router.get('/reports', async (req, res) => {
         monthlyTrend: (() => {
           const trend = [];
           const now = new Date();
-          for (let i = 11; i >= 0; i--) {
+          let monthsToShow = 3;
+          let startOffset = 2;
+          
+          if (reportMonth) {
+            const [filterYear, filterMonth] = reportMonth.split('-').map(Number);
+            monthsToShow = 1;
+            startOffset = 0;
+            now.setFullYear(filterYear, filterMonth - 1, 1);
+          }
+          
+          for (let i = startOffset; i >= 0; i--) {
             const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const monthStr = monthDate.toLocaleString('default', { month: 'short', year: '2-digit' });
-            const monthCount = allCustomers.filter(c => {
-              const isDue = c.status?.toLowerCase().trim() === 'due';
-              const renewalDate = c.renewal_date?.trim() || c.od_expiry_date?.trim();
-              if (!isDue || !renewalDate) return false;
+            const renewed = allCustomers.filter(c => {
+              const status = c.status?.toLowerCase().trim() === 'renewed';
+              const dateStr = c.renewal_date?.trim() || c.od_expiry_date?.trim();
+              if (!status || !dateStr) return false;
               try {
-                const [d, m, y] = renewalDate.split('/');
+                const [d, m, y] = dateStr.split('/');
                 const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
                 return date.getMonth() === monthDate.getMonth() && date.getFullYear() === monthDate.getFullYear();
               } catch (e) {
                 return false;
               }
             }).length;
-            trend.push({ month: monthStr, count: monthCount });
+            const expired = allCustomers.filter(c => {
+              const isDue = c.status?.toLowerCase().trim() === 'due';
+              const dateStr = c.renewal_date?.trim() || c.od_expiry_date?.trim();
+              if (!isDue || !dateStr) return false;
+              try {
+                const [d, m, y] = dateStr.split('/');
+                const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return date < today && date.getMonth() === monthDate.getMonth() && date.getFullYear() === monthDate.getFullYear();
+              } catch (e) {
+                return false;
+              }
+            }).length;
+            const lost = allCustomers.filter(c => {
+              const status = c.status?.toLowerCase().trim() === 'not renewed';
+              const dateStr = c.renewal_date?.trim() || c.od_expiry_date?.trim();
+              if (!status || !dateStr) return false;
+              try {
+                const [d, m, y] = dateStr.split('/');
+                const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                return date.getMonth() === monthDate.getMonth() && date.getFullYear() === monthDate.getFullYear();
+              } catch (e) {
+                return false;
+              }
+            }).length;
+            trend.push({ month: monthStr, renewed, expired, lost });
           }
           return trend;
         })(),
@@ -1368,7 +1404,7 @@ router.get('/reports', async (req, res) => {
         monthlyPremium: (() => {
           const trend = [];
           const now = new Date();
-          for (let i = 11; i >= 0; i--) {
+          for (let i = 5; i >= 0; i--) {
             const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const monthStr = monthDate.toLocaleString('default', { month: 'short', year: '2-digit' });
             const monthAmount = allCustomers.filter(c => {
@@ -1400,7 +1436,7 @@ router.get('/reports', async (req, res) => {
         growthTrend: (() => {
           const trend = [];
           const now = new Date();
-          for (let i = 11; i >= 0; i--) {
+          for (let i = 5; i >= 0; i--) {
             const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const monthStr = monthDate.toLocaleString('default', { month: 'short', year: '2-digit' });
             const monthCount = allCustomers.filter(c => {
