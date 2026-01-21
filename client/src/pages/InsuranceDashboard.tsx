@@ -472,6 +472,17 @@ export default function InsuranceDashboard() {
       
       setSelectedCustomers([]);
       await reloadDataAfterUpdate();
+      
+      // Auto-sync to sheet
+      try {
+        const syncResult = await api.post('/api/insurance/sync/to-sheet', { tabName: SHEET_TAB_NAME });
+        if (syncResult.data.message !== 'No changes to sync') {
+          console.log('Auto-synced bulk status update to sheet');
+        }
+      } catch (syncError) {
+        console.error('Auto-sync failed:', syncError);
+      }
+      
       alert(`${ids.length} customer${ids.length > 1 ? 's' : ''} marked as ${newStatus}`);
     } catch (error) {
       console.error('Failed to update status:', error);
