@@ -65,7 +65,7 @@ router.get('/customers', (req, res) => {
         params.push('health');
       } else if (vertical === 'health-base') {
         query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'base');
+        params.push('health', 'health base');
       } else if (vertical === 'health-topup') {
         query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
         params.push('health', 'topup');
@@ -1113,7 +1113,7 @@ router.get('/reports', async (req, res) => {
         params.push('motor', 'health', 'non-motor');
       } else if (vertical === 'health-base') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'base');
+        params.push('health', 'health base');
       } else if (vertical === 'health-topup') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
         params.push('health', 'topup');
@@ -1492,7 +1492,7 @@ router.get('/analytics', (req, res) => {
         params.push('motor', 'health', 'non-motor');
       } else if (vertical === 'health-base') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'base');
+        params.push('health', 'health base');
       } else if (vertical === 'health-topup') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
         params.push('health', 'topup');
