@@ -165,7 +165,7 @@ export default function InsuranceDashboard() {
       'veh_no': 'registration_no',
       'type': 'vertical',
       'chq_no_&_date': 'cheque_no',
-      'remarks': 'reason'
+      'remarks': 'notes'
     };
     return mappings[key] || key;
   };
