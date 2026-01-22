@@ -25,10 +25,19 @@ interface Customer {
 }
 
 const ALL_POLICY_TYPES = [
-  { key: 'motor', label: 'Motor Insurance', icon: '🚗', description: 'Car/Bike Insurance' },
+  { key: 'motor', label: 'Motor Insurance', icon: '🚗', description: 'Car/Bike Insurance', subcategories: [
+    { key: 'motor-2wh', label: '2-Wheeler', icon: '🏍️' },
+    { key: 'motor-4wh', label: '4-Wheeler', icon: '🚗' },
+    { key: 'motor-commercial', label: 'Commercial Vehicle', icon: '🚚' }
+  ]},
   { key: 'health', label: 'Health Insurance', icon: '🏥', description: 'Medical Coverage' },
   { key: 'life', label: 'Life Insurance', icon: '👤', description: 'Life Coverage' },
-  { key: 'non-motor', label: 'Non-Motor Insurance', icon: '🏠', description: 'Home/Travel/Other' },
+  { key: 'non-motor', label: 'Non-Motor Insurance', icon: '🏠', description: 'Home/Travel/Other', subcategories: [
+    { key: 'non-motor-home', label: 'Home Insurance', icon: '🏠' },
+    { key: 'non-motor-travel', label: 'Travel Insurance', icon: '✈️' },
+    { key: 'non-motor-personal', label: 'Personal Accident', icon: '🛡️' },
+    { key: 'non-motor-cyber', label: 'Cyber Insurance', icon: '💻' }
+  ]},
 ];
 
 export default function UpsellCrossSell() {
@@ -44,6 +53,8 @@ export default function UpsellCrossSell() {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteCustomerId, setNoteCustomerId] = useState<number | null>(null);
   const [note, setNote] = useState('');
+  const [showCustomMessageModal, setShowCustomMessageModal] = useState(false);
+  const [customMessage, setCustomMessage] = useState('');
 
   useEffect(() => {
     loadCustomers();
@@ -83,7 +94,21 @@ export default function UpsellCrossSell() {
   };
 
   const getMissingPolicies = () => {
-    return ALL_POLICY_TYPES.filter(policy => !customerPolicies.includes(policy.key));
+    const missing = ALL_POLICY_TYPES.filter(policy => !customerPolicies.includes(policy.key));
+    
+    // If customer has 2-wheeler, add all non-motor subcategories
+    const has2Wheeler = customerPolicies.some(p => p.includes('2wh') || p === 'motor');
+    if (has2Wheeler) {
+      const nonMotorPolicy = missing.find(p => p.key === 'non-motor');
+      if (nonMotorPolicy && nonMotorPolicy.subcategories) {
+        // Ensure non-motor is in the list with subcategories
+        if (!missing.find(p => p.key === 'non-motor')) {
+          missing.push(nonMotorPolicy);
+        }
+      }
+    }
+    
+    return missing;
   };
 
   const getExistingPolicies = () => {
@@ -128,6 +153,15 @@ export default function UpsellCrossSell() {
     } catch (error) {
       console.error('Failed to log message:', error);
     }
+  };
+
+  const sendCustomMessage = () => {
+    if (!selectedCustomer || !customMessage.trim()) return;
+    
+    logWhatsAppMessage(selectedCustomer.id, selectedCustomer.name, customMessage);
+    window.open(`https://wa.me/${selectedCustomer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(customMessage)}`, '_blank', 'noopener,noreferrer');
+    setShowCustomMessageModal(false);
+    setCustomMessage('');
   };
 
   const sendUpsellMessage = () => {
@@ -344,31 +378,42 @@ export default function UpsellCrossSell() {
             {getMissingPolicies().length > 0 ? (
               <div className="space-y-2">
                 {getMissingPolicies().map((policy) => (
-                  <div 
-                    key={policy.key} 
-                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                      selectedPolicies.includes(policy.key)
-                        ? 'bg-indigo-500/20 border-indigo-500/50'
-                        : 'bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-500/50'
-                    }`}
-                    onClick={() => togglePolicy(policy.key)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                  <div key={policy.key}>
+                    <div 
+                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
                         selectedPolicies.includes(policy.key)
-                          ? 'bg-indigo-500 border-indigo-500'
-                          : 'border-slate-500'
-                      }`}>
-                        {selectedPolicies.includes(policy.key) && (
-                          <span className="text-white text-xs">✓</span>
-                        )}
-                      </div>
-                      <span className="text-2xl">{policy.icon}</span>
-                      <div className="flex-1">
-                        <p className="font-medium text-white">{policy.label}</p>
-                        <p className="text-xs text-slate-400">{policy.description}</p>
+                          ? 'bg-indigo-500/20 border-indigo-500/50'
+                          : 'bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-500/50'
+                      }`}
+                      onClick={() => togglePolicy(policy.key)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                          selectedPolicies.includes(policy.key)
+                            ? 'bg-indigo-500 border-indigo-500'
+                            : 'border-slate-500'
+                        }`}>
+                          {selectedPolicies.includes(policy.key) && (
+                            <span className="text-white text-xs">✓</span>
+                          )}
+                        </div>
+                        <span className="text-2xl">{policy.icon}</span>
+                        <div className="flex-1">
+                          <p className="font-medium text-white">{policy.label}</p>
+                          <p className="text-xs text-slate-400">{policy.description}</p>
+                        </div>
                       </div>
                     </div>
+                    {policy.subcategories && (
+                      <div className="ml-8 mt-2 space-y-1">
+                        {policy.subcategories.map((sub) => (
+                          <div key={sub.key} className="text-xs text-slate-400 flex items-center gap-2">
+                            <span>{sub.icon}</span>
+                            <span>{sub.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -393,6 +438,13 @@ export default function UpsellCrossSell() {
             )}
             <Button 
               variant="outline"
+              onClick={() => setShowCustomMessageModal(true)}
+              className="flex-1 sm:flex-none"
+            >
+              💬 Send Custom Message
+            </Button>
+            <Button 
+              variant="outline"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -403,6 +455,26 @@ export default function UpsellCrossSell() {
               className="sm:w-auto"
             >
               📝 Add Note
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Custom Message Modal */}
+      <Modal open={showCustomMessageModal} onClose={() => { setShowCustomMessageModal(false); setCustomMessage(''); }} title="Send Custom Message">
+        <div className="space-y-4">
+          <textarea
+            className="w-full p-3 border rounded bg-slate-700 text-white min-h-[150px]"
+            placeholder="Type your custom message here..."
+            value={customMessage}
+            onChange={(e) => setCustomMessage(e.target.value)}
+          />
+          <div className="flex gap-3">
+            <Button onClick={sendCustomMessage} disabled={!customMessage.trim()} className="flex-1">
+              📱 Send via WhatsApp
+            </Button>
+            <Button variant="outline" onClick={() => { setShowCustomMessageModal(false); setCustomMessage(''); }} className="flex-1">
+              Cancel
             </Button>
           </div>
         </div>

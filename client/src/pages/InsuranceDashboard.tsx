@@ -148,6 +148,13 @@ export default function InsuranceDashboard() {
   const [renewalMonthFilter, setRenewalMonthFilter] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [globalYearFilter, setGlobalYearFilter] = useState(() => {
+    return localStorage.getItem('insuranceYearFilter') || new Date().getFullYear().toString();
+  });
+  const [globalMonthFilter, setGlobalMonthFilter] = useState(() => {
+    const stored = localStorage.getItem('insuranceMonthFilter');
+    return stored ? JSON.parse(stored) : [];
   }); // Track deleted customers for sync
   const [showUniqueCustomersModal, setShowUniqueCustomersModal] = useState(false);
   const [uniqueCustomersSearchTerm, setUniqueCustomersSearchTerm] = useState('');
@@ -246,12 +253,24 @@ export default function InsuranceDashboard() {
       localStorage.setItem('insuranceGeneralSubFilter', e.detail);
     };
     
+    const handleYearFilterChange = (e: any) => {
+      setGlobalYearFilter(e.detail);
+    };
+    
+    const handleMonthFilterChange = (e: any) => {
+      setGlobalMonthFilter(e.detail);
+    };
+    
     window.addEventListener('insuranceVerticalChange', handleVerticalChange);
     window.addEventListener('insuranceGeneralSubFilterChange', handleGeneralSubFilterChange);
+    window.addEventListener('insuranceYearFilterChange', handleYearFilterChange);
+    window.addEventListener('insuranceMonthFilterChange', handleMonthFilterChange);
     
     return () => {
       window.removeEventListener('insuranceVerticalChange', handleVerticalChange);
       window.removeEventListener('insuranceGeneralSubFilterChange', handleGeneralSubFilterChange);
+      window.removeEventListener('insuranceYearFilterChange', handleYearFilterChange);
+      window.removeEventListener('insuranceMonthFilterChange', handleMonthFilterChange);
     };
   }, []);
 
@@ -384,15 +403,20 @@ export default function InsuranceDashboard() {
       );
     }
     
-    // Apply month filter
-    if (currentTab === 'renewals' && renewalMonthFilter) {
-      const [filterYear, filterMonth] = renewalMonthFilter.split('-').map(Number);
+    // Apply global year/month filter
+    if (globalMonthFilter.length > 0 || globalYearFilter) {
+      const filterYear = parseInt(globalYearFilter);
       filtered = filtered.filter(c => {
         const dateStr = getDisplayDate(c);
         if (!dateStr) return false;
         try {
           const [d, m, y] = dateStr.split('/');
-          return parseInt(y) === filterYear && parseInt(m) === filterMonth;
+          const year = parseInt(y);
+          const month = String(parseInt(m)).padStart(2, '0');
+          
+          if (year !== filterYear) return false;
+          if (globalMonthFilter.length === 0) return true;
+          return globalMonthFilter.includes(month);
         } catch (e) {
           return false;
         }
@@ -2583,85 +2607,79 @@ export default function InsuranceDashboard() {
       >
         {editingCustomer && (
           <div className="space-y-3 max-h-[75vh] overflow-y-auto p-1">
-            {sheetFields.length === 0 ? (
-              <p className="text-center text-slate-400 py-8">Loading form fields...</p>
-            ) : (
-              sheetFields
-                .filter(field => !['S NO', 's no', 'S_NO'].includes(field)) // Skip serial number
-                .map((field) => {
-                const key = field.toLowerCase().replace(/\s+/g, '_').replace(/&amp;/g, '&');
-                const isRequired = key === 'name' || key === 'mobile_number' || key === 'mobile_no';
-                const isDate = key.includes('date') || key.includes('expiry');
-                const isTextarea = key === 'notes' || key === 'remarks';
-                const isSelect = key === 'status';
-                
-                if (isTextarea) {
-                  return (
-                    <div key={key}>
-                      <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
-                      <textarea
-                        className="w-full p-2 border rounded bg-slate-700 text-white"
-                        placeholder={field}
-                        value={editingCustomer[key] || ''}
-                        onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
-                        rows={3}
-                      />
-                    </div>
-                  );
-                }
-                
-                if (isSelect) {
-                  return (
-                    <div key={key}>
-                      <label className="text-sm text-slate-300 mb-1 block">{field}</label>
-                      <select
-                        className="w-full p-2 border rounded bg-slate-700 text-white"
-                        value={editingCustomer[key] || 'due'}
-                        onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
-                      >
-                        <option value="due">DUE</option>
-                        <option value="renewed">Renewed</option>
-                        <option value="not renewed">Not Renewed</option>
-                        <option value="inprocess">In Process</option>
-                      </select>
-                    </div>
-                  );
-                }
-                
-                if (isDate) {
-                  const dateValue = editingCustomer[key];
-                  const formattedDate = dateValue?.includes('/') 
-                    ? dateValue.split('/').reverse().join('-') 
-                    : dateValue || '';
-                  
-                  return (
-                    <div key={key}>
-                      <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
-                      <Input
-                        type="date"
-                        value={formattedDate}
-                        onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
-                      />
-                    </div>
-                  );
-                }
-                
-                const inputType = key.includes('email') ? 'email' : (key === 'premium' || key === 'amount') ? 'number' : 'text';
-                
-                return (
-                  <div key={key}>
-                    <label className="text-sm text-slate-300 mb-1 block">{field}{isRequired && ' *'}</label>
-                    <Input
-                      type={inputType}
-                      placeholder={field}
-                      value={editingCustomer[key] || ''}
-                      onChange={(e) => setEditingCustomer({...editingCustomer, [key]: e.target.value})}
-                      required={isRequired}
-                    />
-                  </div>
-                );
-              })
-            )}
+            <div>
+              <label className="text-sm text-slate-300 mb-1 block">Name *</label>
+              <Input
+                type="text"
+                placeholder="Name"
+                value={editingCustomer.name || ''}
+                onChange={(e) => setEditingCustomer({...editingCustomer, name: e.target.value})}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-300 mb-1 block">DOB</label>
+              <Input
+                type="date"
+                value={editingCustomer.dob?.includes('/') ? editingCustomer.dob.split('/').reverse().join('-') : editingCustomer.dob || ''}
+                onChange={(e) => setEditingCustomer({...editingCustomer, dob: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-300 mb-1 block">G Code</label>
+              <Input
+                type="text"
+                placeholder="G Code"
+                value={editingCustomer.g_code || ''}
+                onChange={(e) => setEditingCustomer({...editingCustomer, g_code: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-300 mb-1 block">Mobile No *</label>
+              <Input
+                type="text"
+                placeholder="Mobile No"
+                value={editingCustomer.mobile_number || ''}
+                onChange={(e) => setEditingCustomer({...editingCustomer, mobile_number: e.target.value})}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-300 mb-1 block">Email</label>
+              <Input
+                type="email"
+                placeholder="Email"
+                value={editingCustomer.email || ''}
+                onChange={(e) => setEditingCustomer({...editingCustomer, email: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-300 mb-1 block">PAN Number</label>
+              <Input
+                type="text"
+                placeholder="PAN Number"
+                value={editingCustomer.pancard || ''}
+                onChange={(e) => setEditingCustomer({...editingCustomer, pancard: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-300 mb-1 block">Aadhar Number</label>
+              <Input
+                type="text"
+                placeholder="Aadhar Number"
+                value={editingCustomer.aadhar_card || ''}
+                onChange={(e) => setEditingCustomer({...editingCustomer, aadhar_card: e.target.value})}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-slate-300 mb-1 block">GST No</label>
+              <Input
+                type="text"
+                placeholder="GST No"
+                value={editingCustomer.gst_no || ''}
+                onChange={(e) => setEditingCustomer({...editingCustomer, gst_no: e.target.value})}
+              />
+            </div>
             
             <div className="flex gap-3 pt-4 border-t border-slate-600">
               <Button onClick={handleUpdateCustomer}>Update Customer</Button>
