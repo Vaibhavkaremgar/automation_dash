@@ -39,7 +39,9 @@ const insuranceClients = {
           pancard: 'PANCARD',
           aadhar_card: 'AADHAR CARD',
           others_doc: 'OTHERS - VI/DL/PP',
-          g_code: 'G CODE'
+          g_code: 'G CODE',
+          dob: 'DOB',
+          gst_no: 'GST NO'
         }
       },
       life: {
@@ -119,7 +121,9 @@ const insuranceClients = {
           notes: 'REMARKS',
           pancard: 'PANCARD',
           aadhar_card: 'AADHAR CARD',
-          others: 'OTHERS - VI/DL/PP'
+          others: 'OTHERS - VI/DL/PP',
+          dob: 'DOB',
+          gst_no: 'GST NO'
         }
       },
       life: {

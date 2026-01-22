@@ -34,6 +34,15 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
   const [showVerticalMenu, setShowVerticalMenu] = useState(false)
+  const [hoveredMenu, setHoveredMenu] = useState<string | null>(null)
+  const [selectedMonths, setSelectedMonths] = useState<string[]>(() => {
+    const stored = localStorage.getItem('insuranceMonthFilter')
+    return stored ? JSON.parse(stored) : []
+  })
+  const [selectedYear, setSelectedYear] = useState<string>(() => {
+    return localStorage.getItem('insuranceYearFilter') || new Date().getFullYear().toString()
+  })
+  const [showMonthFilter, setShowMonthFilter] = useState(false)
 
   const handleSync = async () => {
     try {
@@ -173,6 +182,90 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: vertical }))
     setShowVerticalMenu(false)
   }
+
+  const handleMonthToggle = (month: string) => {
+    const updated = selectedMonths.includes(month)
+      ? selectedMonths.filter(m => m !== month)
+      : [...selectedMonths, month]
+    setSelectedMonths(updated)
+    localStorage.setItem('insuranceMonthFilter', JSON.stringify(updated))
+    window.dispatchEvent(new CustomEvent('insuranceMonthFilterChange', { detail: updated }))
+  }
+
+  const handleYearChange = (year: string) => {
+    setSelectedYear(year)
+    localStorage.setItem('insuranceYearFilter', year)
+    window.dispatchEvent(new CustomEvent('insuranceYearFilterChange', { detail: year }))
+  }
+
+  const currentYear = new Date().getFullYear()
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
+
+  const months = [
+    { value: '01', label: 'January' },
+    { value: '02', label: 'February' },
+    { value: '03', label: 'March' },
+    { value: '04', label: 'April' },
+    { value: '05', label: 'May' },
+    { value: '06', label: 'June' },
+    { value: '07', label: 'July' },
+    { value: '08', label: 'August' },
+    { value: '09', label: 'September' },
+    { value: '10', label: 'October' },
+    { value: '11', label: 'November' },
+    { value: '12', label: 'December' }
+  ]
+
+  const menuStructure = [
+    { label: '📋 All Types', value: 'all' },
+    { 
+      label: '🏢 General', 
+      value: 'general',
+      submenu: [
+        { label: '🚙 All Motor', value: 'motor', submenu: [
+          { label: '🏍️ 2-Wheeler', value: '2-wheeler' },
+          { label: '🚗 4-Wheeler', value: '4-wheeler' }
+        ]},
+        { label: '🏥 Health', value: 'health', submenu: [
+          { label: '🏥 Health Base', value: 'health-base' },
+          { label: '🏥 Health Topup', value: 'health-topup' },
+          { label: '🏥 GHI/GPA', value: 'ghi-gpa' },
+          { label: '🏥 PA', value: 'pa' }
+        ]},
+        { label: '🏠 Non-Motor', value: 'non-motor', submenu: [
+          { label: '🌊 Marine', value: 'marine' },
+          { label: '🔥 Fire', value: 'fire' },
+          { label: '🔐 Burglary', value: 'burglary' },
+          { label: '📦 Others', value: 'non-motor-others' }
+        ]}
+      ]
+    },
+    { label: '👤 Life', value: 'life' }
+  ]
+
+  const renderSubmenu = (items: any[], level: number = 0) => (
+    <div className={`absolute top-0 ${level === 0 ? 'left-full' : 'left-full'} mt-0 bg-slate-800 border border-slate-700 rounded shadow-lg min-w-max z-50`}>
+      {items.map((item) => (
+        <div
+          key={item.value}
+          className="relative"
+          onMouseEnter={() => setHoveredMenu(`${level}-${item.value}`)}
+          onMouseLeave={() => setHoveredMenu(null)}
+        >
+          <button
+            className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 transition-all flex items-center justify-between"
+            onClick={() => handleSelectVertical(item.value, item.value)}
+          >
+            <span>{item.label}</span>
+            {item.submenu && <span className="ml-2">›</span>}
+          </button>
+          {item.submenu && hoveredMenu === `${level}-${item.value}` && (
+            renderSubmenu(item.submenu, level + 1)
+          )}
+        </div>
+      ))}
+    </div>
+  )
   
   return (
     <>
@@ -196,33 +289,43 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {isInsuranceClient && (
-          <button 
-            onClick={() => setShowVerticalMenu(!showVerticalMenu)}
-            className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all"
-          >
-            <span className="md:hidden">
-              {selectedVertical === 'all' ? '📋' : 
-               selectedVertical === 'general' ? '🏢' : 
-               selectedVertical === '4-wheeler' ? '🚗' :
-               selectedVertical === 'motor' ? '🚙' : 
-               selectedVertical === '2-wheeler' ? '🏍️' : 
-               selectedVertical === 'health' || selectedVertical === 'health-base' || selectedVertical === 'health-topup' ? '🏥' : 
-               selectedVertical === 'non-motor' ? '🏠' : 
-               selectedVertical === 'life' ? '👤' : '📋'}
-            </span>
-            <span className="hidden md:inline">
-              {selectedVertical === 'all' ? '📋 All Types' : 
-               selectedVertical === 'general' ? '🏢 General' : 
-               selectedVertical === '4-wheeler' ? '🚗 4-Wheeler' :
-               selectedVertical === 'motor' ? '🚙 All Motor' : 
-               selectedVertical === '2-wheeler' ? '🏍️ 2-Wheeler' : 
-               selectedVertical === 'health-base' ? '🏥 Health Base' :
-               selectedVertical === 'health-topup' ? '🏥 Health Topup' :
-               selectedVertical === 'health' ? '🏥 All Health' : 
-               selectedVertical === 'non-motor' ? '🏠 Non-Motor' : 
-               selectedVertical === 'life' ? '👤 Life' : '📋 All Types'}
-            </span>
-          </button>
+          <>
+            <button 
+              onClick={() => setShowVerticalMenu(!showVerticalMenu)}
+              className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all"
+            >
+              <span className="md:hidden">
+                {selectedVertical === 'all' ? '📋' : 
+                 selectedVertical === 'general' ? '🏢' : 
+                 selectedVertical === '4-wheeler' ? '🚗' :
+                 selectedVertical === 'motor' ? '🚙' : 
+                 selectedVertical === '2-wheeler' ? '🏍️' : 
+                 selectedVertical === 'health' || selectedVertical === 'health-base' || selectedVertical === 'health-topup' ? '🏥' : 
+                 selectedVertical === 'non-motor' ? '🏠' : 
+                 selectedVertical === 'life' ? '👤' : '📋'}
+              </span>
+              <span className="hidden md:inline">
+                {selectedVertical === 'all' ? '📋 All Types' : 
+                 selectedVertical === 'general' ? '🏢 General' : 
+                 selectedVertical === '4-wheeler' ? '🚗 4-Wheeler' :
+                 selectedVertical === 'motor' ? '🚙 All Motor' : 
+                 selectedVertical === '2-wheeler' ? '🏍️ 2-Wheeler' : 
+                 selectedVertical === 'health-base' ? '🏥 Health Base' :
+                 selectedVertical === 'health-topup' ? '🏥 Health Topup' :
+                 selectedVertical === 'health' ? '🏥 All Health' : 
+                 selectedVertical === 'non-motor' ? '🏠 Non-Motor' : 
+                 selectedVertical === 'life' ? '👤 Life' : '📋 All Types'}
+              </span>
+            </button>
+            <button
+              onClick={() => setShowMonthFilter(!showMonthFilter)}
+              className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all"
+              title="Filter by Year & Months"
+            >
+              <span className="md:hidden">📅</span>
+              <span className="hidden md:inline">📅 {selectedYear} {selectedMonths.length > 0 ? `(${selectedMonths.length}m)` : '(All)'}</span>
+            </button>
+          </>
         )}
         
         {isInsuranceClient && (
@@ -260,19 +363,91 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       </div>
     </header>
 
-    {/* Vertical Filter Modal */}
-    <Modal open={showVerticalMenu} onClose={() => setShowVerticalMenu(false)} title="Select Insurance Type">
-      <div className="space-y-2">
-        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('all')}>📋 All Types</button>
-        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('general', 'all')}>🏢 General</button>
-        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('4-wheeler', '4-wheeler')}>🚗 4-Wheeler</button>
-        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('2-wheeler', '2-wheeler')}>🏍️ 2-Wheeler</button>
-        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('motor', 'motor')}>🚙 All Motor</button>
-        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('health-base', 'health-base')}>🏥 Health Base</button>
-        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('health-topup', 'health-topup')}>🏥 Health Topup</button>
-        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('health', 'health')}>🏥 All Health</button>
-        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('non-motor')}>🏠 Non-Motor</button>
-        <button className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all" onClick={() => handleSelectVertical('life')}>👤 Life</button>
+    {/* Month & Year Filter Modal */}
+    <Modal open={showMonthFilter} onClose={() => setShowMonthFilter(false)} title="Filter by Year & Months">
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm text-slate-300 mb-2 block">Select Year</label>
+          <select
+            value={selectedYear}
+            onChange={(e) => handleYearChange(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm"
+          >
+            {years.map((year) => (
+              <option key={year} value={year}>
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-sm text-slate-300 mb-2 block">Select Months</label>
+          <div className="grid grid-cols-3 gap-2">
+            {months.map((month) => (
+              <button
+                key={month.value}
+                onClick={() => handleMonthToggle(month.value)}
+                className={`px-3 py-2 rounded text-sm font-medium transition-all ${
+                  selectedMonths.includes(month.value)
+                    ? 'bg-cyan-500/30 border border-cyan-500 text-cyan-300'
+                    : 'bg-slate-700/50 border border-slate-600 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                {month.label.slice(0, 3)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            onClick={() => {
+              setSelectedMonths([])
+              localStorage.setItem('insuranceMonthFilter', JSON.stringify([]))
+              window.dispatchEvent(new CustomEvent('insuranceMonthFilterChange', { detail: [] }))
+            }}
+            variant="outline"
+          >
+            Clear Months
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              const allMonths = months.map(m => m.value)
+              setSelectedMonths(allMonths)
+              localStorage.setItem('insuranceMonthFilter', JSON.stringify(allMonths))
+              window.dispatchEvent(new CustomEvent('insuranceMonthFilterChange', { detail: allMonths }))
+            }}
+            variant="outline"
+          >
+            Select All Months
+          </Button>
+        </div>
+      </div>
+    </Modal>
+
+    {/* Vertical Filter Modal with Hierarchical Menu */}
+    <Modal open={showVerticalMenu} onClose={() => { setShowVerticalMenu(false); setHoveredMenu(null); }} title="Select Insurance Type">
+      <div className="relative">
+        {menuStructure.map((item) => (
+          <div
+            key={item.value}
+            className="relative"
+            onMouseEnter={() => item.submenu && setHoveredMenu(`0-${item.value}`)}
+            onMouseLeave={() => setHoveredMenu(null)}
+          >
+            <button
+              className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all flex items-center justify-between"
+              onClick={() => handleSelectVertical(item.value, item.value)}
+            >
+              <span>{item.label}</span>
+              {item.submenu && <span className="ml-2">›</span>}
+            </button>
+            {item.submenu && hoveredMenu === `0-${item.value}` && (
+              renderSubmenu(item.submenu, 1)
+            )}
+          </div>
+        ))}
       </div>
     </Modal>
     

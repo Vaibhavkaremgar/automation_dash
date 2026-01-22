@@ -17,6 +17,11 @@ interface Customer {
   premium: number;
   renewal_date: string;
   status: string;
+  dob?: string;
+  g_code?: string;
+  pancard?: string;
+  aadhar_card?: string;
+  product_type?: string;
 }
 
 const ALL_POLICY_TYPES = [
@@ -59,11 +64,17 @@ export default function UpsellCrossSell() {
   const openPortfolio = async (customer: Customer) => {
     setSelectedCustomer(customer);
     
-    // Get all policies for this customer
+    // Get all policies for this customer using priority-based matching
     const res = await api.get(`/api/insurance/customers?vertical=all`);
-    const allCustomerPolicies = res.data.filter((c: Customer) => 
-      c.name === customer.name && c.mobile_number === customer.mobile_number
-    );
+    const allCustomerPolicies = res.data.filter((c: Customer) => {
+      // Priority matching: Name > DOB > G Code > PAN > Aadhar
+      if (customer.name && c.name && customer.name.toLowerCase().trim() === c.name.toLowerCase().trim()) return true;
+      if (customer.dob && c.dob && customer.dob.trim() === c.dob.trim()) return true;
+      if (customer.g_code && c.g_code && customer.g_code.toLowerCase().trim() === c.g_code.toLowerCase().trim()) return true;
+      if (customer.pancard && c.pancard && customer.pancard.toUpperCase().trim() === c.pancard.toUpperCase().trim()) return true;
+      if (customer.aadhar_card && c.aadhar_card && customer.aadhar_card.trim() === c.aadhar_card.trim()) return true;
+      return false;
+    });
     
     const policyTypes = [...new Set(allCustomerPolicies.map((p: Customer) => p.vertical))];
     setCustomerPolicies(policyTypes);
@@ -76,7 +87,18 @@ export default function UpsellCrossSell() {
   };
 
   const getExistingPolicies = () => {
-    return ALL_POLICY_TYPES.filter(policy => customerPolicies.includes(policy.key));
+    const policies = ALL_POLICY_TYPES.filter(policy => customerPolicies.includes(policy.key));
+    return policies.map(policy => {
+      const res = customers.filter((c: Customer) => {
+        if (selectedCustomer?.name && c.name && selectedCustomer.name.toLowerCase().trim() === c.name.toLowerCase().trim()) return true;
+        if (selectedCustomer?.dob && c.dob && selectedCustomer.dob.trim() === c.dob.trim()) return true;
+        if (selectedCustomer?.g_code && c.g_code && selectedCustomer.g_code.toLowerCase().trim() === c.g_code.toLowerCase().trim()) return true;
+        if (selectedCustomer?.pancard && c.pancard && selectedCustomer.pancard.toUpperCase().trim() === c.pancard.toUpperCase().trim()) return true;
+        if (selectedCustomer?.aadhar_card && c.aadhar_card && selectedCustomer.aadhar_card.trim() === c.aadhar_card.trim()) return true;
+        return false;
+      }).find(c => c.vertical === policy.key);
+      return { ...policy, productType: res?.product_type };
+    });
   };
 
   const togglePolicy = (policyKey: string) => {
@@ -176,10 +198,17 @@ export default function UpsellCrossSell() {
     customer.mobile_number.includes(searchTerm)
   );
 
-  // Group customers by unique name + mobile
+  // Group customers by priority-based matching: Name > DOB > G Code > PAN > Aadhar
   const uniqueCustomers = filteredCustomers.reduce((acc, customer) => {
-    const key = `${customer.name}_${customer.mobile_number}`;
-    if (!acc.find(c => `${c.name}_${c.mobile_number}` === key)) {
+    const isDuplicate = acc.some(c => {
+      if (customer.name && c.name && customer.name.toLowerCase().trim() === c.name.toLowerCase().trim()) return true;
+      if (customer.dob && c.dob && customer.dob.trim() === c.dob.trim()) return true;
+      if (customer.g_code && c.g_code && customer.g_code.toLowerCase().trim() === c.g_code.toLowerCase().trim()) return true;
+      if (customer.pancard && c.pancard && customer.pancard.toUpperCase().trim() === c.pancard.toUpperCase().trim()) return true;
+      if (customer.aadhar_card && c.aadhar_card && customer.aadhar_card.trim() === c.aadhar_card.trim()) return true;
+      return false;
+    });
+    if (!isDuplicate) {
       acc.push(customer);
     }
     return acc;
@@ -285,6 +314,7 @@ export default function UpsellCrossSell() {
                       <div>
                         <p className="font-medium text-white">{policy.label}</p>
                         <p className="text-xs text-slate-400">{policy.description}</p>
+                        {policy.productType && <p className="text-xs text-green-400 mt-1">📋 {policy.productType}</p>}
                       </div>
                     </div>
                   </div>

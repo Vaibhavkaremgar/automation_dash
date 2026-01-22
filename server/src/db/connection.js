@@ -430,6 +430,12 @@ async function runMigrations() {
       if (!colNames.includes('amount')) {
         await run(`ALTER TABLE insurance_customers ADD COLUMN amount REAL`);
       }
+      if (!colNames.includes('dob')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN dob TEXT`);
+      }
+      if (!colNames.includes('gst_no')) {
+        await run(`ALTER TABLE insurance_customers ADD COLUMN gst_no TEXT`);
+      }
     } catch (e) {
       console.log('Column migration check:', e.message);
     }

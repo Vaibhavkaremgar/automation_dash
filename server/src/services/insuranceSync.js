@@ -275,6 +275,8 @@ class InsuranceSyncService {
           aadhar_card: getCell(row, 'aadhar_card'),
           others_doc: getCell(row, 'others_doc'),
           g_code: getCell(row, 'g_code'),
+          dob: getCell(row, 'dob'),
+          gst_no: getCell(row, 'gst_no'),
           insurance_activated_date: '',
           policy_doc_link: '',
           reason: ''
@@ -309,9 +311,9 @@ class InsuranceSyncService {
           
           await run(`
             UPDATE insurance_customers 
-            SET name = ?, mobile_number = ?, insurance_activated_date = ?, renewal_date = ?, od_expiry_date = ?, tp_expiry_date = ?, premium_mode = ?, premium = ?, last_year_premium = ?, vertical = ?, product = ?, registration_no = ?, current_policy_no = ?, company = ?, status = ?, new_policy_no = ?, new_company = ?, policy_doc_link = ?, thank_you_sent = ?, reason = ?, email = ?, payment_date = ?, notes = ?, product_type = ?, product_model = ?, modified_expiry_date = ?, cheque_no = ?, bank_name = ?, customer_id = ?, agent_code = ?, pancard = ?, aadhar_card = ?, others_doc = ?, g_code = ?, s_no = ?, sheet_row_number = ?, updated_at = CURRENT_TIMESTAMP
+            SET name = ?, mobile_number = ?, insurance_activated_date = ?, renewal_date = ?, od_expiry_date = ?, tp_expiry_date = ?, premium_mode = ?, premium = ?, last_year_premium = ?, vertical = ?, product = ?, registration_no = ?, current_policy_no = ?, company = ?, status = ?, new_policy_no = ?, new_company = ?, policy_doc_link = ?, thank_you_sent = ?, reason = ?, email = ?, payment_date = ?, notes = ?, product_type = ?, product_model = ?, modified_expiry_date = ?, cheque_no = ?, bank_name = ?, customer_id = ?, agent_code = ?, pancard = ?, aadhar_card = ?, others_doc = ?, g_code = ?, dob = ?, gst_no = ?, s_no = ?, sheet_row_number = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-          `, [customer.name, customer.mobile_number, customer.insurance_activated_date || '', customer.renewal_date, customer.od_expiry_date || '', customer.tp_expiry_date || '', customer.premium_mode || '', customer.premium, customer.last_year_premium || '', customer.vertical, customer.product || '', customer.registration_no || '', customer.current_policy_no || '', customer.company || '', customer.status, customer.new_policy_no || '', customer.new_company || '', customer.policy_doc_link || '', customer.thank_you_sent || '', customer.reason || '', customer.email || '', customer.payment_date || '', customer.notes || '', customer.product_type || '', customer.product_model || '', customer.modified_expiry_date || '', customer.cheque_no || '', customer.bank_name || '', customer.customer_id || '', customer.agent_code || '', customer.pancard || '', customer.aadhar_card || '', customer.others_doc || '', customer.g_code || '', customer.s_no || '', sheetRowNumber, existingCustomer.id]);
+          `, [customer.name, customer.mobile_number, customer.insurance_activated_date || '', customer.renewal_date, customer.od_expiry_date || '', customer.tp_expiry_date || '', customer.premium_mode || '', customer.premium, customer.last_year_premium || '', customer.vertical, customer.product || '', customer.registration_no || '', customer.current_policy_no || '', customer.company || '', customer.status, customer.new_policy_no || '', customer.new_company || '', customer.policy_doc_link || '', customer.thank_you_sent || '', customer.reason || '', customer.email || '', customer.payment_date || '', customer.notes || '', customer.product_type || '', customer.product_model || '', customer.modified_expiry_date || '', customer.cheque_no || '', customer.bank_name || '', customer.customer_id || '', customer.agent_code || '', customer.pancard || '', customer.aadhar_card || '', customer.others_doc || '', customer.g_code || '', customer.dob || '', customer.gst_no || '', customer.s_no || '', sheetRowNumber, existingCustomer.id]);
           updated++;
           if (updated <= 2) {
             console.log(`✅ Updated row ${sheetRowNumber}: ${customer.name} (ID: ${existingCustomer.id})`);
@@ -319,9 +321,9 @@ class InsuranceSyncService {
         } else {
           // INSERT new customer
           await run(`
-            INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, payment_date, notes, product_type, product_model, modified_expiry_date, cheque_no, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, s_no, sheet_row_number)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `, [userId, customer.name, customer.mobile_number, customer.insurance_activated_date || '', customer.renewal_date, customer.od_expiry_date || '', customer.tp_expiry_date || '', customer.premium_mode || '', customer.premium, customer.last_year_premium || '', customer.vertical, customer.product || '', customer.registration_no || '', customer.current_policy_no || '', customer.company || '', customer.status, customer.new_policy_no || '', customer.new_company || '', customer.policy_doc_link || '', customer.thank_you_sent || '', customer.reason || '', customer.email || '', customer.payment_date || '', customer.notes || '', customer.product_type || '', customer.product_model || '', customer.modified_expiry_date || '', customer.cheque_no || '', customer.bank_name || '', customer.customer_id || '', customer.agent_code || '', customer.pancard || '', customer.aadhar_card || '', customer.others_doc || '', customer.g_code || '', customer.s_no || '', sheetRowNumber]);
+            INSERT INTO insurance_customers (user_id, name, mobile_number, insurance_activated_date, renewal_date, od_expiry_date, tp_expiry_date, premium_mode, premium, last_year_premium, vertical, product, registration_no, current_policy_no, company, status, new_policy_no, new_company, policy_doc_link, thank_you_sent, reason, email, payment_date, notes, product_type, product_model, modified_expiry_date, cheque_no, bank_name, customer_id, agent_code, pancard, aadhar_card, others_doc, g_code, dob, gst_no, s_no, sheet_row_number)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [userId, customer.name, customer.mobile_number, customer.insurance_activated_date || '', customer.renewal_date, customer.od_expiry_date || '', customer.tp_expiry_date || '', customer.premium_mode || '', customer.premium, customer.last_year_premium || '', customer.vertical, customer.product || '', customer.registration_no || '', customer.current_policy_no || '', customer.company || '', customer.status, customer.new_policy_no || '', customer.new_company || '', customer.policy_doc_link || '', customer.thank_you_sent || '', customer.reason || '', customer.email || '', customer.payment_date || '', customer.notes || '', customer.product_type || '', customer.product_model || '', customer.modified_expiry_date || '', customer.cheque_no || '', customer.bank_name || '', customer.customer_id || '', customer.agent_code || '', customer.pancard || '', customer.aadhar_card || '', customer.others_doc || '', customer.g_code || '', customer.dob || '', customer.gst_no || '', customer.s_no || '', sheetRowNumber]);
           imported++;
           if (imported <= 2) {
             console.log(`✅ Inserted row ${sheetRowNumber}: ${customer.name}`);
@@ -762,6 +764,8 @@ class InsuranceSyncService {
             aadhar_card: customer.aadhar_card,
             others_doc: customer.others_doc,
             g_code: customer.g_code,
+            dob: customer.dob,
+            gst_no: customer.gst_no,
             paid_by: customer.paid_by,
             policy_start_date: customer.policy_start_date,
             insurance_activated_date: customer.insurance_activated_date,

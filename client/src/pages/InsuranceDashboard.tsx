@@ -612,74 +612,76 @@ export default function InsuranceDashboard() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
-                {isSelected && (
-                  <select 
-                    className="px-2 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium hover:bg-slate-700 cursor-pointer"
-                    onChange={(e) => { e.stopPropagation(); if (e.target.value) { handleBulkStatusUpdate(e.target.value); e.target.value = ''; } }}
-                    onClick={(e) => e.stopPropagation()}
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Mark as...</option>
-                    <option value="due">🔴 DUE</option>
-                    <option value="renewed">🟢 Renewed</option>
-                    <option value="not renewed">⚫ Not Renewed</option>
-                    <option value="inprocess">🔵 In Process</option>
-                  </select>
-                )}
               </div>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <button
-                className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  let message = '';
-                  const days = getDaysUntilExpiry(customer);
-                  if (actualIsRenewed) {
-                    message = generateThankYouMessage({ 
-                      customerName: customer.name, 
-                      renewalDate: displayDate,
-                      policyNumber: customer.current_policy_no,
-                      companyName: customer.company,
-                      premiumAmount: customer.premium?.toString(),
-                      clientKey,
-                      vehicleNumber: customer.registration_no,
-                      productModel: customer.product
-                    });
-                  } else {
-                    message = generateRenewalReminder({ 
-                      customerName: customer.name, 
-                      renewalDate: displayDate, 
-                      daysRemaining: days,
-                      policyNumber: customer.current_policy_no,
-                      companyName: customer.company,
-                      premiumAmount: customer.premium?.toString(),
-                      clientKey,
-                      vehicleNumber: customer.registration_no,
-                      productModel: customer.product
-                    });
-                  }
-                  logWhatsAppMessage(customer.id, customer.name, message);
-                  window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
-                }}
-                title="Send WhatsApp"
-              >
-                💬
-              </button>
-              <button
-                type="button"
-                className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setNoteCustomerId(customer.id);
-                  setShowNoteModal(true);
-                }}
-                title="Add Note"
-              >
-                📝
-              </button>
+              {isSelected ? (
+                <button
+                  className="px-3 py-1 text-xs border border-green-500/50 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all font-medium"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowRenewalUpdateModal(true);
+                  }}
+                  title="Update & Sync"
+                >
+                  ✏️ Update & Sync
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      let message = '';
+                      const days = getDaysUntilExpiry(customer);
+                      if (actualIsRenewed) {
+                        message = generateThankYouMessage({ 
+                          customerName: customer.name, 
+                          renewalDate: displayDate,
+                          policyNumber: customer.current_policy_no,
+                          companyName: customer.company,
+                          premiumAmount: customer.premium?.toString(),
+                          clientKey,
+                          vehicleNumber: customer.registration_no,
+                          productModel: customer.product
+                        });
+                      } else {
+                        message = generateRenewalReminder({ 
+                          customerName: customer.name, 
+                          renewalDate: displayDate, 
+                          daysRemaining: days,
+                          policyNumber: customer.current_policy_no,
+                          companyName: customer.company,
+                          premiumAmount: customer.premium?.toString(),
+                          clientKey,
+                          vehicleNumber: customer.registration_no,
+                          productModel: customer.product
+                        });
+                      }
+                      logWhatsAppMessage(customer.id, customer.name, message);
+                      window.open(`https://wa.me/${customer.mobile_number.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+                    }}
+                    title="Send WhatsApp"
+                  >
+                    💬
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setNoteCustomerId(customer.id);
+                      setShowNoteModal(true);
+                    }}
+                    title="Add Note"
+                  >
+                    📝
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -2123,6 +2125,8 @@ export default function InsuranceDashboard() {
                     {customer.bank_name && <div><span className="text-slate-400">Bank Name:</span> <span className="text-white">{customer.bank_name}</span></div>}
                     {customer.customer_id && <div><span className="text-slate-400">Customer ID:</span> <span className="text-white">{customer.customer_id}</span></div>}
                     {customer.agent_code && <div><span className="text-slate-400">Agent Code:</span> <span className="text-white">{customer.agent_code}</span></div>}
+                    {(customer as any).dob && <div><span className="text-slate-400">DOB:</span> <span className="text-white">{(customer as any).dob}</span></div>}
+                    {(customer as any).gst_no && <div><span className="text-slate-400">GST NO:</span> <span className="text-white">{(customer as any).gst_no}</span></div>}
                     {customer.reason && <div className="col-span-2"><span className="text-slate-400">Remarks:</span> <span className="text-white">{customer.reason}</span></div>}
                   </div>
                 </div>
