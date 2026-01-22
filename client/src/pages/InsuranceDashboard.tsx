@@ -164,7 +164,8 @@ export default function InsuranceDashboard() {
       'policy_no': 'current_policy_no',
       'veh_no': 'registration_no',
       'type': 'vertical',
-      'chq_no_&_date': 'cheque_no'
+      'chq_no_&_date': 'cheque_no',
+      'remarks': 'reason'
     };
     return mappings[key] || key;
   };
@@ -2298,7 +2299,7 @@ export default function InsuranceDashboard() {
                       className="w-full p-2 border rounded bg-slate-700 text-white text-sm"
                       autoComplete="off"
                     />
-                    {data.bank_name && (
+                    {data.bank_name && !['HDFC Bank', 'ICICI Bank', 'Axis Bank', 'SBI', 'Kotak Mahindra Bank', 'IndusInd Bank', 'IDBI Bank', 'Bank of Baroda', 'Punjab National Bank', 'Canara Bank', 'Union Bank of India', 'Bank of India', 'Central Bank of India', 'Indian Bank', 'Yes Bank', 'RBL Bank', 'IDFCFIRST Bank', 'Federal Bank', 'Karur Vysya Bank', 'South Indian Bank', 'Bandhan Bank', 'ICICI Prudential', 'HDFC Life', 'LIC', 'Bajaj Allianz', 'Reliance General', 'TATA AIG', 'New India Assurance', 'Oriental Insurance', 'United India Insurance'].includes(data.bank_name) && (
                       <div className="absolute top-full left-0 right-0 mt-1 bg-slate-700 border border-slate-600 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
                         {['HDFC Bank', 'ICICI Bank', 'Axis Bank', 'SBI', 'Kotak Mahindra Bank', 'IndusInd Bank', 'IDBI Bank', 'Bank of Baroda', 'Punjab National Bank', 'Canara Bank', 'Union Bank of India', 'Bank of India', 'Central Bank of India', 'Indian Bank', 'Yes Bank', 'RBL Bank', 'IDFCFIRST Bank', 'Federal Bank', 'Karur Vysya Bank', 'South Indian Bank', 'Bandhan Bank', 'ICICI Prudential', 'HDFC Life', 'LIC', 'Bajaj Allianz', 'Reliance General', 'TATA AIG', 'New India Assurance', 'Oriental Insurance', 'United India Insurance'].filter(bank => bank.toLowerCase().includes(data.bank_name.toLowerCase())).map(bank => (
                           <div
@@ -2425,7 +2426,7 @@ export default function InsuranceDashboard() {
                     new_policy_no: data.new_policy_no || customer.new_policy_no,
                     new_company: data.new_company || customer.new_company,
                     paid_by: data.paid_by || customer.paid_by,
-                    reason: data.remarks ? `${customer.reason || ''}\n${data.remarks} [${new Date().toLocaleString()}]` : customer.reason,
+                    reason: data.remarks || customer.reason,
                     status: data.status || 'RENEWED'
                   };
                   
