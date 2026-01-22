@@ -2426,7 +2426,7 @@ export default function InsuranceDashboard() {
                     new_policy_no: data.new_policy_no || customer.new_policy_no,
                     new_company: data.new_company || customer.new_company,
                     paid_by: data.paid_by || customer.paid_by,
-                    reason: data.remarks || customer.reason,
+                    notes: data.remarks || customer.notes,
                     status: data.status || 'RENEWED'
                   };
                   
