@@ -5,6 +5,7 @@ import Modal from '../components/ui/Modal';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { api } from '../lib/api';
 import { getThankYouMessage, getOverdueMessage, getUrgentMessage, get7DayMessage, get30DayMessage, getClaimUpdateMessage, getPolicySummaryMessage } from '../utils/messageTemplates';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
 
 const getClaimTypeLabel = (type: string) => {
   const labels: Record<string, string> = {
@@ -282,34 +283,24 @@ export default function ReportsPage() {
             </div>
             <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Renewals'); setDetailsModalCustomers(sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers))); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Conversion Rate</span><span className="md:hidden">Conv %</span></h4>
-              <p className="text-xl font-semibold text-cyan-400">{reportData.renewalPerformance.conversionRate}%</p>
+              <p className="text-xl font-semibold text-cyan-400">{(() => { const filtered = applyMonthFilter(reportData.renewalPerformance.customers); const renewed = filtered.filter(c => c.status?.toLowerCase().trim() === 'renewed').length; const total = filtered.length; return total > 0 ? Math.round((renewed / total) * 100) : 0; })()}%</p>
             </div>
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Monthly Renewal Trend (Last 3 Months)</h3>
-            <div className="flex items-end gap-2 h-48 overflow-x-auto">
-              {reportData.renewalPerformance.monthlyTrend.map((item, idx) => (
-                <div key={idx} className="flex-1 min-w-[80px] flex flex-col items-center gap-1">
-                  <div className="w-full flex gap-1 items-end justify-center h-32">
-                    <div className="flex-1 bg-green-500/50 rounded" style={{ height: `${(item.renewed / Math.max(...reportData.renewalPerformance.monthlyTrend.map(t => Math.max(t.renewed, t.expired, t.lost)))) * 100}%` }} title="Renewed"></div>
-                    <div className="flex-1 bg-red-500/50 rounded" style={{ height: `${(item.expired / Math.max(...reportData.renewalPerformance.monthlyTrend.map(t => Math.max(t.renewed, t.expired, t.lost)))) * 100}%` }} title="Expired"></div>
-                    <div className="flex-1 bg-orange-500/50 rounded" style={{ height: `${(item.lost / Math.max(...reportData.renewalPerformance.monthlyTrend.map(t => Math.max(t.renewed, t.expired, t.lost)))) * 100}%` }} title="Lost"></div>
-                  </div>
-                  <div className="text-slate-400 text-xs">{item.month}</div>
-                  <div className="text-xs text-slate-500 space-y-0.5">
-                    <div>R:{item.renewed}</div>
-                    <div>E:{item.expired}</div>
-                    <div>L:{item.lost}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-4 mt-4 text-xs justify-center">
-              <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-500/50 rounded"></div><span>Renewed</span></div>
-              <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-500/50 rounded"></div><span>Expired</span></div>
-              <div className="flex items-center gap-1"><div className="w-3 h-3 bg-orange-500/50 rounded"></div><span>Lost</span></div>
-            </div>
+            <h3 className="text-lg font-semibold text-white mb-4">Monthly Renewal Trend</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={reportData.renewalPerformance.monthlyTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="month" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
+                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }} />
+                <Legend />
+                <Bar dataKey="renewed" fill="#22c55e" name="Renewed" />
+                <Bar dataKey="expired" fill="#ef4444" name="Expired" />
+                <Bar dataKey="lost" fill="#f97316" name="Lost" />
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl overflow-hidden">
@@ -365,34 +356,30 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Month-wise Premium</h3>
-              <div className="flex items-end gap-2 h-48">
-                {reportData.premiumCollection.monthlyPremium.map((item, idx) => (
-                  <div key={idx} className="flex-1 flex flex-col items-center">
-                    <div className="w-full bg-green-500/30 rounded-t" style={{ height: `${(item.amount / Math.max(...reportData.premiumCollection.monthlyPremium.map(t => t.amount))) * 100}%` }}>
-                      <div className="text-center text-white text-xs pt-2">₹{item.amount}</div>
-                    </div>
-                    <div className="text-slate-400 text-xs mt-2">{item.month}</div>
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-lg font-semibold text-white mb-4">Month-wise Premium Trend</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={reportData.premiumCollection.monthlyPremium}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="month" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }} />
+                  <Line type="monotone" dataKey="amount" stroke="#22c55e" strokeWidth={2} name="Premium" />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
 
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Premium by Company</h3>
-              <div className="space-y-3">
-                {reportData.premiumCollection.byCompany.map((item, idx) => (
-                  <div key={idx}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-slate-300">{item.company}</span>
-                      <span className="text-white font-medium">₹{item.amount}</span>
-                    </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div className="bg-gradient-to-r from-indigo-500 to-cyan-500 h-2 rounded-full" style={{ width: `${(item.amount / Math.max(...reportData.premiumCollection.byCompany.map(c => c.amount))) * 100}%` }}></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-lg font-semibold text-white mb-4">Premium Distribution by Company</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={reportData.premiumCollection.byCompany} dataKey="amount" nameKey="company" cx="50%" cy="50%" outerRadius={80} label>
+                    {reportData.premiumCollection.byCompany.map((_, idx) => (
+                      <Cell key={idx} fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][idx % 6]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
@@ -455,16 +442,15 @@ export default function ReportsPage() {
 
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Customer Growth Trend</h3>
-            <div className="flex items-end gap-4 h-48">
-              {reportData.customerGrowth.growthTrend.map((item, idx) => (
-                <div key={idx} className="flex-1 flex flex-col items-center">
-                  <div className="w-full bg-cyan-500/30 rounded-t" style={{ height: `${(item.count / Math.max(...reportData.customerGrowth.growthTrend.map(t => t.count))) * 100}%` }}>
-                    <div className="text-center text-white text-sm pt-2">{item.count}</div>
-                  </div>
-                  <div className="text-slate-400 text-xs mt-2">{item.month}</div>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={reportData.customerGrowth.growthTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                <XAxis dataKey="month" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
+                <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }} />
+                <Line type="monotone" dataKey="count" stroke="#06b6d4" strokeWidth={2} name="Total Customers" />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl overflow-hidden">
@@ -596,37 +582,31 @@ export default function ReportsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Claims by Insurer</h3>
-              <div className="space-y-3">
-                {reportData.claimsSummary.byInsurer.map((item, idx) => (
-                  <div key={idx}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-slate-300">{item.company}</span>
-                      <span className="text-white font-medium">{item.count}</span>
-                    </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full" style={{ width: `${(item.count / Math.max(...reportData.claimsSummary.byInsurer.map(c => c.count))) * 100}%` }}></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-lg font-semibold text-white mb-4">Claims Distribution by Insurer</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={reportData.claimsSummary.byInsurer} dataKey="count" nameKey="company" cx="50%" cy="50%" outerRadius={80} label>
+                    {reportData.claimsSummary.byInsurer.map((_, idx) => (
+                      <Cell key={idx} fill={['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'][idx % 5]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
 
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Claims by Type</h3>
-              <div className="space-y-3">
-                {reportData.claimsSummary.byType.map((item, idx) => (
-                  <div key={idx}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-slate-300">{getClaimTypeLabel(item.type)}</span>
-                      <span className="text-white font-medium">{item.count}</span>
-                    </div>
-                    <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div className="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full" style={{ width: `${(item.count / Math.max(...reportData.claimsSummary.byType.map(c => c.count))) * 100}%` }}></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-lg font-semibold text-white mb-4">Claims Distribution by Type</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={reportData.claimsSummary.byType} dataKey="count" nameKey="type" cx="50%" cy="50%" outerRadius={80} label={({ type }) => getClaimTypeLabel(type)}>
+                    {reportData.claimsSummary.byType.map((_, idx) => (
+                      <Cell key={idx} fill={['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6'][idx % 7]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569' }} />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </div>
 
