@@ -238,33 +238,57 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   ]
 
   const menuStructure = [
-    { label: '📋 All Types', value: 'all' },
-    { 
-      label: '🏢 General', 
-      value: 'general',
-      submenu: [
-        { label: '🚙 All Motor', value: 'motor', submenu: [
-          { label: '🏍️ 2-Wheeler', value: '2-wheeler' },
-          { label: '🚗 4-Wheeler', value: '4-wheeler' }
-        ]},
-        { label: '🏥 Health', value: 'health', submenu: [
-          { label: '🏥 Health Base', value: 'health-base' },
-          { label: '🏥 Health Topup', value: 'health-topup' },
-          { label: '🏥 GHI/GPA', value: 'ghi-gpa' },
-          { label: '🏥 PA', value: 'pa' }
-        ]},
-        { label: '🏠 Non-Motor', value: 'non-motor', submenu: [
-          { label: '🌊 Marine', value: 'marine' },
-          { label: '🔥 Fire', value: 'fire' },
-          { label: '🔐 Burglary', value: 'burglary' },
-          { label: '📦 Others', value: 'non-motor-others' }
-        ]}
-      ]
-    },
+    { label: '📊 All', value: 'all' },
+    { label: '🏢 General', value: 'general', submenu: [
+      { label: '🏢 All General', value: 'general-all' },
+      { label: '🚙 Motor', value: 'motor', submenu: [
+        { label: '🏍️ 2-Wheeler', value: '2-wheeler' },
+        { label: '🚗 4-Wheeler', value: '4-wheeler' },
+        { label: '🚙 All Motor', value: 'motor-all' }
+      ]},
+      { label: '🏥 Health', value: 'health', submenu: [
+        { label: '🏥 Health Topup', value: 'health-topup' },
+        { label: '🏥 Health Base', value: 'health-base' },
+        { label: '🏥 GHI/GPA', value: 'ghi-gpa' },
+        { label: '🏥 PA', value: 'pa' },
+        { label: '🏥 All Health', value: 'health-all' }
+      ]},
+      { label: '🏠 Non-Motor', value: 'non-motor', submenu: [
+        { label: '🌊 Marine', value: 'marine' },
+        { label: '🔥 Fire', value: 'fire' },
+        { label: '🔐 Burglary', value: 'burglary' },
+        { label: '📦 Others', value: 'non-motor-others' },
+        { label: '🏠 All Non-Motor', value: 'non-motor-all' }
+      ]}
+    ]},
     { label: '👤 Life', value: 'life' }
   ]
 
-  const renderMenuItems = (items: any[], level: number = 0) => (
+  const getDisplayLabel = () => {
+    const labelMap: Record<string, string> = {
+      'all': '📊 All',
+      'general': '🏢 General',
+      'general-all': '🏢 All General',
+      'motor': '🚙 Motor',
+      'motor-all': '🚙 All Motor',
+      '2-wheeler': '🏍️ 2-Wheeler',
+      '4-wheeler': '🚗 4-Wheeler',
+      'health': '🏥 Health',
+      'health-all': '🏥 All Health',
+      'health-base': '🏥 Health Base',
+      'health-topup': '🏥 Health Topup',
+      'ghi-gpa': '🏥 GHI/GPA',
+      'pa': '🏥 PA',
+      'non-motor': '🏠 Non-Motor',
+      'non-motor-all': '🏠 All Non-Motor',
+      'marine': '🌊 Marine',
+      'fire': '🔥 Fire',
+      'burglary': '🔐 Burglary',
+      'non-motor-others': '📦 Others',
+      'life': '👤 Life'
+    }
+    return labelMap[selectedVertical] || '📊 All'
+  }
     <>
       {items.map((item) => {
         const itemKey = `${level}-${item.value}`
@@ -323,26 +347,10 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
               className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all"
             >
               <span className="md:hidden">
-                {selectedVertical === 'all' ? '📋' : 
-                 selectedVertical === 'general' ? '🏢' : 
-                 selectedVertical === '4-wheeler' ? '🚗' :
-                 selectedVertical === 'motor' ? '🚙' : 
-                 selectedVertical === '2-wheeler' ? '🏍️' : 
-                 selectedVertical === 'health' || selectedVertical === 'health-base' || selectedVertical === 'health-topup' ? '🏥' : 
-                 selectedVertical === 'non-motor' ? '🏠' : 
-                 selectedVertical === 'life' ? '👤' : '📋'}
+                {getDisplayLabel().split(' ')[0]}
               </span>
               <span className="hidden md:inline">
-                {selectedVertical === 'all' ? '📋 All Types' : 
-                 selectedVertical === 'general' ? '🏢 General' : 
-                 selectedVertical === '4-wheeler' ? '🚗 4-Wheeler' :
-                 selectedVertical === 'motor' ? '🚙 All Motor' : 
-                 selectedVertical === '2-wheeler' ? '🏍️ 2-Wheeler' : 
-                 selectedVertical === 'health-base' ? '🏥 Health Base' :
-                 selectedVertical === 'health-topup' ? '🏥 Health Topup' :
-                 selectedVertical === 'health' ? '🏥 All Health' : 
-                 selectedVertical === 'non-motor' ? '🏠 Non-Motor' : 
-                 selectedVertical === 'life' ? '👤 Life' : '📋 All Types'}
+                {getDisplayLabel()}
               </span>
             </button>
             <button
