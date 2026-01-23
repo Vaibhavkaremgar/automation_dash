@@ -368,43 +368,58 @@ export default function ReportsPage() {
       </div>
 
       {/* Renewal Performance Report */}
-      {activeTab === 'renewal' && (
+      {activeTab === 'renewal' && (() => {
+        const filtered = applyMonthFilter(reportData.renewalPerformance.customers);
+        const renewed = filtered.filter(c => c.status?.toLowerCase().trim() === 'renewed').length;
+        const inProcess = filtered.filter(c => { const s = c.status?.toLowerCase().trim().replace(/[\s-]/g, ''); return s === 'inprocess' || s === 'inprogress'; }).length;
+        const lost = filtered.filter(c => c.status?.toLowerCase().trim() === 'not renewed').length;
+        const isExpired = (d) => { if (!d) return false; try { const [dy, dm, dd] = d.split('/'); const date = new Date(parseInt(dd), parseInt(dm) - 1, parseInt(dy)); const today = new Date(); today.setHours(0, 0, 0, 0); return date < today; } catch (e) { return false; } };
+        const upcoming = filtered.filter(c => c.status?.toLowerCase().trim() === 'due' && !isExpired(c.renewal_date || c.od_expiry_date)).length;
+        const expired = filtered.filter(c => c.status?.toLowerCase().trim() === 'due' && isExpired(c.renewal_date || c.od_expiry_date)).length;
+        const conversionRate = filtered.length > 0 ? Math.round((renewed / filtered.length) * 100) : 0;
+        const filteredTrend = reportData.renewalPerformance.monthlyTrend.map(m => ({
+          month: m.month,
+          renewed: filterEnabled ? Math.round(m.renewed * (filtered.length / (reportData.renewalPerformance.customers.length || 1))) : m.renewed,
+          expired: filterEnabled ? Math.round(m.expired * (filtered.length / (reportData.renewalPerformance.customers.length || 1))) : m.expired,
+          lost: filterEnabled ? Math.round(m.lost * (filtered.length / (reportData.renewalPerformance.customers.length || 1))) : m.lost
+        }));
+        return (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers))); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sortCustomersByExpiry(filtered)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Total Policies</span><span className="md:hidden">Total</span></h4>
-              <p className="text-xl font-semibold text-blue-400">{applyMonthFilter(reportData.renewalPerformance.customers).length}</p>
+              <p className="text-xl font-semibold text-blue-400">{filtered.length}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const renewed = sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers.filter(c => c.status?.toLowerCase().trim() === 'renewed'))); setDetailsModalTitle('Renewed So Far'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Renewed So Far'); setDetailsModalCustomers(sortCustomersByExpiry(filtered.filter(c => c.status?.toLowerCase().trim() === 'renewed'))); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Renewed So Far</span><span className="md:hidden">Renewed</span></h4>
-              <p className="text-xl font-semibold text-green-400">{applyMonthFilter(reportData.renewalPerformance.customers).filter(c => c.status?.toLowerCase().trim() === 'renewed').length}</p>
+              <p className="text-xl font-semibold text-green-400">{renewed}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const inProcess = sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers.filter(c => { const status = c.status?.toLowerCase().trim().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }))); setDetailsModalTitle('In Process'); setDetailsModalCustomers(inProcess); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('In Process'); setDetailsModalCustomers(sortCustomersByExpiry(filtered.filter(c => { const s = c.status?.toLowerCase().trim().replace(/[\s-]/g, ''); return s === 'inprocess' || s === 'inprogress'; }))); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">In Process</span><span className="md:hidden">Process</span></h4>
-              <p className="text-xl font-semibold text-blue-400">{applyMonthFilter(reportData.renewalPerformance.customers).filter(c => { const status = c.status?.toLowerCase().trim().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).length}</p>
+              <p className="text-xl font-semibold text-blue-400">{inProcess}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const lost = sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers.filter(c => c.status?.toLowerCase().trim() === 'not renewed'))); setDetailsModalTitle('Lost Customers'); setDetailsModalCustomers(lost); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Lost Customers'); setDetailsModalCustomers(sortCustomersByExpiry(filtered.filter(c => c.status?.toLowerCase().trim() === 'not renewed'))); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Lost</span><span className="md:hidden">Lost</span></h4>
-              <p className="text-xl font-semibold text-red-400">{applyMonthFilter(reportData.renewalPerformance.customers).filter(c => c.status?.toLowerCase().trim() === 'not renewed').length}</p>
+              <p className="text-xl font-semibold text-red-400">{lost}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const isExpired = (dateStr) => { if (!dateStr) return false; try { const parts = dateStr.split('/'); if (parts.length === 3) { const day = parseInt(parts[0]); const month = parseInt(parts[1]) - 1; const year = parseInt(parts[2]); const renewalDate = new Date(year, month, day); const today = new Date(); today.setHours(0, 0, 0, 0); return renewalDate < today; } } catch (e) { return false; } return false; }; const upcoming = sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers.filter(c => c.status?.toLowerCase().trim() === 'due' && !isExpired(c.renewal_date || c.od_expiry_date)))); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(sortCustomersByExpiry(filtered.filter(c => c.status?.toLowerCase().trim() === 'due' && !isExpired(c.renewal_date || c.od_expiry_date)))); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Upcoming Renewals</span><span className="md:hidden">Upcoming</span></h4>
-              <p className="text-xl font-semibold text-yellow-400">{(() => { const isExpired = (dateStr) => { if (!dateStr) return false; try { const parts = dateStr.split('/'); if (parts.length === 3) { const day = parseInt(parts[0]); const month = parseInt(parts[1]) - 1; const year = parseInt(parts[2]); const renewalDate = new Date(year, month, day); const today = new Date(); today.setHours(0, 0, 0, 0); return renewalDate < today; } } catch (e) { return false; } return false; }; return applyMonthFilter(reportData.renewalPerformance.customers).filter(c => c.status?.toLowerCase().trim() === 'due' && !isExpired(c.renewal_date || c.od_expiry_date)).length; })()}</p>
+              <p className="text-xl font-semibold text-yellow-400">{upcoming}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const isExpired = (dateStr) => { if (!dateStr) return false; try { const parts = dateStr.split('/'); if (parts.length === 3) { const day = parseInt(parts[0]); const month = parseInt(parts[1]) - 1; const year = parseInt(parts[2]); const renewalDate = new Date(year, month, day); const today = new Date(); today.setHours(0, 0, 0, 0); return renewalDate < today; } } catch (e) { return false; } return false; }; const expired = sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers.filter(c => c.status?.toLowerCase().trim() === 'due' && isExpired(c.renewal_date || c.od_expiry_date)))); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(sortCustomersByExpiry(filtered.filter(c => c.status?.toLowerCase().trim() === 'due' && isExpired(c.renewal_date || c.od_expiry_date)))); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Expired Policies</span><span className="md:hidden">Expired</span></h4>
-              <p className="text-xl font-semibold text-red-400">{applyMonthFilter(reportData.renewalPerformance.customers).filter(c => { const isExpired = (dateStr) => { if (!dateStr) return false; try { const parts = dateStr.split('/'); if (parts.length === 3) { const day = parseInt(parts[0]); const month = parseInt(parts[1]) - 1; const year = parseInt(parts[2]); const renewalDate = new Date(year, month, day); const today = new Date(); today.setHours(0, 0, 0, 0); return renewalDate < today; } } catch (e) { return false; } return false; }; return c.status?.toLowerCase().trim() === 'due' && isExpired(c.renewal_date || c.od_expiry_date); }).length}</p>
+              <p className="text-xl font-semibold text-red-400">{expired}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Renewals'); setDetailsModalCustomers(sortCustomersByExpiry(applyMonthFilter(reportData.renewalPerformance.customers))); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Renewals'); setDetailsModalCustomers(sortCustomersByExpiry(filtered)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Conversion Rate</span><span className="md:hidden">Conv %</span></h4>
-              <p className="text-xl font-semibold text-cyan-400">{(() => { const filtered = applyMonthFilter(reportData.renewalPerformance.customers); const renewed = filtered.filter(c => c.status?.toLowerCase().trim() === 'renewed').length; const total = filtered.length; return total > 0 ? Math.round((renewed / total) * 100) : 0; })()}%</p>
+              <p className="text-xl font-semibold text-cyan-400">{conversionRate}%</p>
             </div>
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Monthly Renewal Trend</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={reportData.renewalPerformance.monthlyTrend}>
+              <ComposedChart data={filteredTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="month" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
@@ -429,7 +444,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
-                {applyMonthFilter(reportData.renewalPerformance.customers).map((customer, idx) => (
+                {filtered.map((customer, idx) => (
                   <tr key={idx} className="hover:bg-slate-700/30">
                     <td className="px-6 py-4 text-sm text-white">{customer.name}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.registration_no}</td>
@@ -442,29 +457,42 @@ export default function ReportsPage() {
             </table>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Premium Collection Report */}
-      {activeTab === 'premium' && (
+      {activeTab === 'premium' && (() => {
+        const filtered = applyMonthFilter(reportData.premiumCollection.customers);
+        const collectedThisMonth = filtered.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
+        const topCustomer = [...filtered].sort((a, b) => (parseFloat(b.premium) || 0) - (parseFloat(a.premium) || 0))[0] || { name: 'N/A', premium: 0 };
+        const companyTotals = {};
+        filtered.forEach(c => { const co = c.company || 'Unknown'; companyTotals[co] = (companyTotals[co] || 0) + (parseFloat(c.premium) || 0); });
+        const topCompany = Object.entries(companyTotals).sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
+        const byCompanyFiltered = Object.entries(companyTotals).map(([company, amount]) => ({ company, amount })).sort((a, b) => b.amount - a.amount);
+        const filteredMonthlyPremium = reportData.premiumCollection.monthlyPremium.map(m => ({
+          month: m.month,
+          amount: filterEnabled ? Math.round(m.amount * (filtered.length / (reportData.premiumCollection.customers.length || 1))) : m.amount
+        }));
+        return (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Premium Collection - This Month'); setDetailsModalCustomers(sortCustomersByExpiry(reportData.premiumCollection.customers)); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Premium Collection - This Month'); setDetailsModalCustomers(sortCustomersByExpiry(filtered)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Collected This Month</span><span className="md:hidden">Month</span></h4>
-              <p className="text-xl font-semibold text-green-400">₹{reportData.premiumCollection.collectedThisMonth}</p>
+              <p className="text-xl font-semibold text-green-400">₹{collectedThisMonth}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Premium Collection - This Year'); setDetailsModalCustomers(sortCustomersByExpiry(reportData.premiumCollection.customers)); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Premium Collection - This Year'); setDetailsModalCustomers(sortCustomersByExpiry(filtered)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Collected This Year</span><span className="md:hidden">Year</span></h4>
-              <p className="text-xl font-semibold text-cyan-400">₹{reportData.premiumCollection.collectedThisYear}</p>
+              <p className="text-xl font-semibold text-cyan-400">₹{filtered.reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0)}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const topCustomer = sortCustomersByExpiry(reportData.premiumCollection.customers.filter(c => c.name === reportData.premiumCollection.highestCustomer.name)); setDetailsModalTitle('Highest Premium Customer'); setDetailsModalCustomers(topCustomer); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const tc = filtered.filter(c => c.name === topCustomer.name); setDetailsModalTitle('Highest Premium Customer'); setDetailsModalCustomers(sortCustomersByExpiry(tc)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Highest Premium Customer</span><span className="md:hidden">Top Cust</span></h4>
-              <p className="text-base font-semibold text-purple-400 truncate">{reportData.premiumCollection.highestCustomer.name}</p>
-              <p className="text-xs text-slate-400">₹{reportData.premiumCollection.highestCustomer.premium}</p>
+              <p className="text-base font-semibold text-purple-400 truncate">{topCustomer.name}</p>
+              <p className="text-xs text-slate-400">₹{topCustomer.premium || 0}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const topCompany = sortCustomersByExpiry(reportData.premiumCollection.customers.filter(c => c.company === reportData.premiumCollection.highestCompany.name)); setDetailsModalTitle(`${reportData.premiumCollection.highestCompany.name} - Customers`); setDetailsModalCustomers(topCompany); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const tc = filtered.filter(c => c.company === topCompany[0]); setDetailsModalTitle(`${topCompany[0]} - Customers`); setDetailsModalCustomers(sortCustomersByExpiry(tc)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Top Insurance Company</span><span className="md:hidden">Top Co</span></h4>
-              <p className="text-base font-semibold text-orange-400 truncate">{reportData.premiumCollection.highestCompany.name}</p>
-              <p className="text-xs text-slate-400">₹{reportData.premiumCollection.highestCompany.premium}</p>
+              <p className="text-base font-semibold text-orange-400 truncate">{topCompany[0]}</p>
+              <p className="text-xs text-slate-400">₹{topCompany[1]}</p>
             </div>
           </div>
 
@@ -472,7 +500,7 @@ export default function ReportsPage() {
             <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Month-wise Premium Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={reportData.premiumCollection.monthlyPremium}>
+                <LineChart data={filteredMonthlyPremium}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                   <XAxis dataKey="month" stroke="#94a3b8" />
                   <YAxis stroke="#94a3b8" />
@@ -486,8 +514,8 @@ export default function ReportsPage() {
               <h3 className="text-lg font-semibold text-white mb-4">Premium Distribution by Company</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
-                  <Pie data={reportData.premiumCollection.byCompany} dataKey="amount" nameKey="company" cx="50%" cy="50%" outerRadius={80} label>
-                    {reportData.premiumCollection.byCompany.map((_, idx) => (
+                  <Pie data={byCompanyFiltered} dataKey="amount" nameKey="company" cx="50%" cy="50%" outerRadius={80} label>
+                    {byCompanyFiltered.map((_, idx) => (
                       <Cell key={idx} fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'][idx % 6]} />
                     ))}
                   </Pie>
@@ -509,7 +537,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
-                {reportData.premiumCollection.customers.map((customer, idx) => (
+                {filtered.map((customer, idx) => (
                   <tr key={idx} className="hover:bg-slate-700/30">
                     <td className="px-6 py-4 text-sm text-white">{customer.name}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.company}</td>
@@ -522,42 +550,53 @@ export default function ReportsPage() {
             </table>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Customer Growth Report */}
-      {activeTab === 'growth' && (
+      {activeTab === 'growth' && (() => {
+        const filtered = applyMonthFilter(reportData.customerGrowth.customers);
+        const renewed = filtered.filter(c => c.status?.toLowerCase().trim() === 'renewed').length;
+        const notRenewed = filtered.filter(c => c.status?.toLowerCase().trim() === 'not renewed').length;
+        const due = filtered.filter(c => c.status?.toLowerCase().trim() === 'due').length;
+        const retentionRate = filtered.length > 0 ? Math.round((renewed / filtered.length) * 100) : 0;
+        const filteredGrowthTrend = reportData.customerGrowth.growthTrend.map(m => ({
+          month: m.month,
+          count: filterEnabled ? Math.round(m.count * (filtered.length / (reportData.customerGrowth.customers.length || 1))) : m.count
+        }));
+        return (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Total Customers'); setDetailsModalCustomers(sortCustomersByExpiry(reportData.customerGrowth.customers)); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('Total Customers'); setDetailsModalCustomers(sortCustomersByExpiry(filtered)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Total Customers</span><span className="md:hidden">Total</span></h4>
-              <p className="text-xl font-semibold text-blue-400">{reportData.customerGrowth.customers.length}</p>
+              <p className="text-xl font-semibold text-blue-400">{filtered.length}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const renewed = sortCustomersByExpiry(reportData.customerGrowth.customers.filter(c => c.status?.toLowerCase().trim() === 'renewed')); setDetailsModalTitle('Renewed Customers'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const r = sortCustomersByExpiry(filtered.filter(c => c.status?.toLowerCase().trim() === 'renewed')); setDetailsModalTitle('Renewed Customers'); setDetailsModalCustomers(r); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Renewed</span><span className="md:hidden">Renewed</span></h4>
-              <p className="text-xl font-semibold text-green-400">{reportData.customerGrowth.totalActive}</p>
+              <p className="text-xl font-semibold text-green-400">{renewed}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const notRenewed = sortCustomersByExpiry(reportData.customerGrowth.customers.filter(c => c.status?.toLowerCase().trim() === 'not renewed')); setDetailsModalTitle('Not Renewed (Lost)'); setDetailsModalCustomers(notRenewed); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const nr = sortCustomersByExpiry(filtered.filter(c => c.status?.toLowerCase().trim() === 'not renewed')); setDetailsModalTitle('Not Renewed (Lost)'); setDetailsModalCustomers(nr); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Not Renewed</span><span className="md:hidden">Lost</span></h4>
-              <p className="text-xl font-semibold text-red-400">{reportData.customerGrowth.customers.filter(c => c.status?.toLowerCase().trim() === 'not renewed').length}</p>
+              <p className="text-xl font-semibold text-red-400">{notRenewed}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const due = sortCustomersByExpiry(reportData.customerGrowth.customers.filter(c => c.status?.toLowerCase().trim() === 'due')); setDetailsModalTitle('Due Customers'); setDetailsModalCustomers(due); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const d = sortCustomersByExpiry(filtered.filter(c => c.status?.toLowerCase().trim() === 'due')); setDetailsModalTitle('Due Customers'); setDetailsModalCustomers(d); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Due</span><span className="md:hidden">Due</span></h4>
-              <p className="text-xl font-semibold text-yellow-400">{reportData.customerGrowth.customers.filter(c => c.status?.toLowerCase().trim() === 'due').length}</p>
+              <p className="text-xl font-semibold text-yellow-400">{due}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(sortCustomersByExpiry(reportData.customerGrowth.customers)); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(sortCustomersByExpiry(filtered)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Retention Rate</span><span className="md:hidden">Retain %</span></h4>
-              <p className="text-xl font-semibold text-purple-400">{reportData.customerGrowth.retentionRate}%</p>
+              <p className="text-xl font-semibold text-purple-400">{retentionRate}%</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(sortCustomersByExpiry(reportData.customerGrowth.customers)); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Customers'); setDetailsModalCustomers(sortCustomersByExpiry(filtered)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Growth Trend</span><span className="md:hidden">Trend</span></h4>
-              <p className="text-xl font-semibold text-cyan-400">{reportData.customerGrowth.customers.length}</p>
+              <p className="text-xl font-semibold text-cyan-400">{filtered.length}</p>
             </div>
           </div>
 
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Customer Growth Trend</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={reportData.customerGrowth.growthTrend}>
+              <LineChart data={filteredGrowthTrend}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                 <XAxis dataKey="month" stroke="#94a3b8" />
                 <YAxis stroke="#94a3b8" />
@@ -578,7 +617,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
-                {reportData.customerGrowth.customers.map((customer, idx) => (
+                {filtered.map((customer, idx) => (
                   <tr key={idx} className="hover:bg-slate-700/30">
                     <td className="px-6 py-4 text-sm text-white">{customer.name}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.mobile_number}</td>
@@ -590,7 +629,8 @@ export default function ReportsPage() {
             </table>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Details Modal */}
       <Modal open={showDetailsModal} onClose={() => { setShowDetailsModal(false); setModalSearchTerm(''); }} title={detailsModalTitle}>
@@ -669,28 +709,38 @@ export default function ReportsPage() {
       </Modal>
 
       {/* Claims Summary Report */}
-      {activeTab === 'claims' && (
+      {activeTab === 'claims' && (() => {
+        const filteredClaims = applyMonthFilter(reportData.claimsSummary.claims);
+        const totalFiled = filteredClaims.length;
+        const approved = filteredClaims.filter(c => c.claim_status === 'approved' || c.claim_status === 'settled').length;
+        const rejected = filteredClaims.filter(c => c.claim_status === 'rejected').length;
+        const inProgress = filteredClaims.filter(c => c.claim_status === 'in_progress' || c.claim_status === 'filed' || c.claim_status === 'survey_done').length;
+        const byInsurerFiltered = {};
+        filteredClaims.forEach(c => { const co = c.insurance_company || 'Unknown'; if (!byInsurerFiltered[co]) byInsurerFiltered[co] = { company: co, count: 0 }; byInsurerFiltered[co].count++; });
+        const byTypeFiltered = {};
+        filteredClaims.forEach(c => { const t = c.claim_type || 'unknown'; if (!byTypeFiltered[t]) byTypeFiltered[t] = { type: t, count: 0 }; byTypeFiltered[t].count++; });
+        return (
         <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Filed Claims'); setDetailsModalCustomers(sortCustomersByExpiry(reportData.claimsSummary.claims)); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Filed Claims'); setDetailsModalCustomers(sortCustomersByExpiry(filteredClaims)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Total Filed</span><span className="md:hidden">Filed</span></h4>
-              <p className="text-xl font-semibold text-blue-400">{reportData.claimsSummary.totalFiled}</p>
+              <p className="text-xl font-semibold text-blue-400">{totalFiled}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const approved = sortCustomersByExpiry(reportData.claimsSummary.claims.filter(c => c.claim_status === 'approved' || c.claim_status === 'settled')); setDetailsModalTitle('Approved/Settled Claims'); setDetailsModalCustomers(approved); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const a = sortCustomersByExpiry(filteredClaims.filter(c => c.claim_status === 'approved' || c.claim_status === 'settled')); setDetailsModalTitle('Approved/Settled Claims'); setDetailsModalCustomers(a); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Approved</span><span className="md:hidden">Appr</span></h4>
-              <p className="text-xl font-semibold text-green-400">{reportData.claimsSummary.approved}</p>
+              <p className="text-xl font-semibold text-green-400">{approved}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const rejected = sortCustomersByExpiry(reportData.claimsSummary.claims.filter(c => c.claim_status === 'rejected')); setDetailsModalTitle('Rejected Claims'); setDetailsModalCustomers(rejected); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const r = sortCustomersByExpiry(filteredClaims.filter(c => c.claim_status === 'rejected')); setDetailsModalTitle('Rejected Claims'); setDetailsModalCustomers(r); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Rejected</span><span className="md:hidden">Rej</span></h4>
-              <p className="text-xl font-semibold text-red-400">{reportData.claimsSummary.rejected}</p>
+              <p className="text-xl font-semibold text-red-400">{rejected}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const inProgress = sortCustomersByExpiry(reportData.claimsSummary.claims.filter(c => c.claim_status === 'in_progress' || c.claim_status === 'filed' || c.claim_status === 'survey_done')); setDetailsModalTitle('Claims In Progress'); setDetailsModalCustomers(inProgress); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const ip = sortCustomersByExpiry(filteredClaims.filter(c => c.claim_status === 'in_progress' || c.claim_status === 'filed' || c.claim_status === 'survey_done')); setDetailsModalTitle('Claims In Progress'); setDetailsModalCustomers(ip); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">In Progress</span><span className="md:hidden">Prog</span></h4>
-              <p className="text-xl font-semibold text-orange-400">{reportData.claimsSummary.inProgress}</p>
+              <p className="text-xl font-semibold text-orange-400">{inProgress}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Claims'); setDetailsModalCustomers(sortCustomersByExpiry(reportData.claimsSummary.claims)); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { setDetailsModalTitle('All Claims'); setDetailsModalCustomers(sortCustomersByExpiry(filteredClaims)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Avg Settlement Time</span><span className="md:hidden">Avg Days</span></h4>
-              <p className="text-xl font-semibold text-purple-400">{reportData.claimsSummary.avgSettlementDays} days</p>
+              <p className="text-xl font-semibold text-purple-400">0 days</p>
             </div>
           </div>
 
@@ -699,8 +749,8 @@ export default function ReportsPage() {
               <h3 className="text-lg font-semibold text-white mb-4">Claims Distribution by Insurer</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
-                  <Pie data={reportData.claimsSummary.byInsurer} dataKey="count" nameKey="company" cx="50%" cy="50%" outerRadius={80} label>
-                    {reportData.claimsSummary.byInsurer.map((_, idx) => (
+                  <Pie data={Object.values(byInsurerFiltered)} dataKey="count" nameKey="company" cx="50%" cy="50%" outerRadius={80} label>
+                    {Object.values(byInsurerFiltered).map((_, idx) => (
                       <Cell key={idx} fill={['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'][idx % 5]} />
                     ))}
                   </Pie>
@@ -713,8 +763,8 @@ export default function ReportsPage() {
               <h3 className="text-lg font-semibold text-white mb-4">Claims Distribution by Type</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
-                  <Pie data={reportData.claimsSummary.byType} dataKey="count" nameKey="type" cx="50%" cy="50%" outerRadius={80} label={({ type }) => getClaimTypeLabel(type)}>
-                    {reportData.claimsSummary.byType.map((_, idx) => (
+                  <Pie data={Object.values(byTypeFiltered)} dataKey="count" nameKey="type" cx="50%" cy="50%" outerRadius={80} label={({ type }) => getClaimTypeLabel(type)}>
+                    {Object.values(byTypeFiltered).map((_, idx) => (
                       <Cell key={idx} fill={['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6'][idx % 7]} />
                     ))}
                   </Pie>
@@ -738,7 +788,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
-                {reportData.claimsSummary.claims.map((claim, idx) => (
+                {filteredClaims.map((claim, idx) => (
                   <tr key={idx} className="hover:bg-slate-700/30">
                     <td className="px-6 py-4 text-sm text-white">{claim.customer_name}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{claim.vehicle_number}</td>
@@ -753,7 +803,8 @@ export default function ReportsPage() {
             </table>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
