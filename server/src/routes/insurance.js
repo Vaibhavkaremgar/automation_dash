@@ -79,17 +79,17 @@ router.get('/customers', (req, res) => {
         query += ' AND LOWER(vertical) = ?';
         params.push('health');
       } else if (vertical === 'health-base') {
-        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) LIKE ?';
-        params.push('health', '%health base%');
+        query += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
+        params.push('health', '%base%');
       } else if (vertical === 'health-topup') {
-        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) LIKE ?';
+        query += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
         params.push('health', '%topup%');
       } else if (vertical === 'ghi-gpa') {
-        query += ' AND LOWER(vertical) = ? AND (LOWER(product_type) = ? OR LOWER(product_type) = ?)';
-        params.push('health', 'ghi', 'gpa');
+        query += ' AND LOWER(vertical) = ? AND (LOWER(COALESCE(product_type, "")) LIKE ? OR LOWER(COALESCE(product_type, "")) LIKE ?)';
+        params.push('health', '%ghi%', '%gpa%');
       } else if (vertical === 'pa') {
-        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'pa');
+        query += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
+        params.push('health', '%pa%');
       } else if (vertical === 'non-motor-all') {
         query += ' AND LOWER(vertical) = ?';
         params.push('non-motor');
@@ -1160,18 +1160,18 @@ router.get('/reports', async (req, res) => {
         whereClause += ' AND LOWER(vertical) = ?';
         params.push('health');
       } else if (vertical === 'health-base') {
-        whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'health base');
+        whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
+        params.push('health', '%base%');
       } else if (vertical === 'health-topup') {
-        whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'topup');
+        whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
+        params.push('health', '%topup%');
       } else if (vertical === 'ghi-gpa') {
-        whereClause += ' AND LOWER(vertical) = ? AND (LOWER(product_type) = ? OR LOWER(product_type) = ?)';
-        params.push('health', 'ghi', 'gpa');
+        whereClause += ' AND LOWER(vertical) = ? AND (LOWER(COALESCE(product_type, "")) LIKE ? OR LOWER(COALESCE(product_type, "")) LIKE ?)';
+        params.push('health', '%ghi%', '%gpa%');
       } else if (vertical === 'pa') {
-        whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'pa');
-      } else if (vertical === 'non-motor-all') {
+        whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
+        params.push('health', '%pa%');
+        } else if (vertical === 'non-motor-all') {
         whereClause += ' AND LOWER(vertical) = ?';
         params.push('non-motor');
       } else if (vertical === 'non-motor') {
@@ -1569,17 +1569,17 @@ router.get('/analytics', (req, res) => {
         whereClause += ' AND LOWER(vertical) = ?';
         params.push('health');
       } else if (vertical === 'health-base') {
-        whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'health base');
+        whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
+        params.push('health', '%base%');
       } else if (vertical === 'health-topup') {
-        whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'topup');
+        whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
+        params.push('health', '%topup%');
       } else if (vertical === 'ghi-gpa') {
-        whereClause += ' AND LOWER(vertical) = ? AND (LOWER(product_type) = ? OR LOWER(product_type) = ?)';
-        params.push('health', 'ghi', 'gpa');
+        whereClause += ' AND LOWER(vertical) = ? AND (LOWER(COALESCE(product_type, "")) LIKE ? OR LOWER(COALESCE(product_type, "")) LIKE ?)';
+        params.push('health', '%ghi%', '%gpa%');
       } else if (vertical === 'pa') {
-        whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'pa');
+        whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
+        params.push('health', '%pa%');
       } else if (vertical === 'non-motor-all') {
         whereClause += ' AND LOWER(vertical) = ?';
         params.push('non-motor');
