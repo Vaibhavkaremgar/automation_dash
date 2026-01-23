@@ -247,13 +247,11 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
         { label: '🚙 All Motor', value: 'motor-all' }
       ]},
       { label: '🏥 Health', value: 'health', submenu: [
+        { label: '🏥 All Health', value: 'health-all' },
         { label: '🏥 Health Base', value: 'health-base' },
         { label: '🏥 Health Topup', value: 'health-topup' },
-        { label: '🏥 GHI', value: 'health-ghi' },
-        { label: '🏥 GPA', value: 'health-gpa' },
         { label: '🏥 PA', value: 'health-pa' },
-        { label: '🏥 Others', value: 'health-others' },
-        { label: '🏥 All Health', value: 'health-all' }
+        { label: '🏥 GHI/GPA', value: 'health-ghi-gpa' }
       ]},
       { label: '🏠 Non-Motor', value: 'non-motor', submenu: [
         { label: '🌊 Marine', value: 'marine' },
@@ -279,10 +277,8 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       'health-all': '🏥 All Health',
       'health-base': '🏥 Health Base',
       'health-topup': '🏥 Health Topup',
-      'health-ghi': '🏥 GHI',
-      'health-gpa': '🏥 GPA',
       'health-pa': '🏥 PA',
-      'health-others': '🏥 Others',
+      'health-ghi-gpa': '🏥 GHI/GPA',
       'non-motor': '🏠 Non-Motor',
       'non-motor-all': '🏠 All Non-Motor',
       'marine': '🌊 Marine',
