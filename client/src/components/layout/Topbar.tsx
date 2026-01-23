@@ -34,7 +34,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
   const [showVerticalMenu, setShowVerticalMenu] = useState(false)
-  const [activeMenu, setActiveMenu] = useState<string | null>(null)
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
   const [selectedMonths, setSelectedMonths] = useState<string[]>(() => {
     const stored = localStorage.getItem('insuranceMonthFilter')
     return stored ? JSON.parse(stored) : []
@@ -181,7 +181,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     }
     window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: vertical }))
     setShowVerticalMenu(false)
-    setActiveMenu(null)
+    setExpandedMenu(null)
   }
 
   const handleMonthToggle = (month: string) => {
@@ -244,30 +244,27 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     { label: '👤 Life', value: 'life' }
   ]
 
-  const renderSubmenu = (items: any[], level: number, parentKey: string) => (
-    <div 
-      className="absolute top-0 left-full mt-0 bg-slate-800 border border-slate-700 rounded shadow-lg min-w-max z-50"
-      onMouseEnter={() => setActiveMenu(parentKey)}
-      onMouseLeave={() => setActiveMenu(null)}
-    >
+  const renderSubmenu = (items: any[], level: number) => (
+    <div className="absolute top-0 left-full mt-0 bg-slate-800 border border-slate-700 rounded shadow-lg min-w-max z-50">
       {items.map((item) => {
         const itemKey = `${level}-${item.value}`
         return (
-          <div
-            key={item.value}
-            className="relative"
-            onMouseEnter={() => setActiveMenu(itemKey)}
-            onMouseLeave={() => !item.submenu && setActiveMenu(null)}
-          >
+          <div key={item.value} className="relative">
             <button
               className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 transition-all flex items-center justify-between whitespace-nowrap"
-              onClick={() => handleSelectVertical(item.value, item.value)}
+              onClick={() => {
+                if (item.submenu) {
+                  setExpandedMenu(expandedMenu === itemKey ? null : itemKey)
+                } else {
+                  handleSelectVertical(item.value, item.value)
+                }
+              }}
             >
               <span>{item.label}</span>
-              {item.submenu && <span className="ml-2">›</span>}
+              {item.submenu && <span className={`ml-2 transition-transform ${expandedMenu === itemKey ? 'rotate-90' : ''}`}>›</span>}
             </button>
-            {item.submenu && activeMenu === itemKey && (
-              renderSubmenu(item.submenu, level + 1, itemKey)
+            {item.submenu && expandedMenu === itemKey && (
+              renderSubmenu(item.submenu, level + 1)
             )}
           </div>
         )
@@ -371,7 +368,6 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       </div>
     </header>
 
-    {/* Month & Year Filter Modal */}
     <Modal open={showMonthFilter} onClose={() => setShowMonthFilter(false)} title="Filter by Year & Months">
       <div className="space-y-4">
         <div>
@@ -434,27 +430,27 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       </div>
     </Modal>
 
-    {/* Vertical Filter Modal */}
-    <Modal open={showVerticalMenu} onClose={() => { setShowVerticalMenu(false); setActiveMenu(null); }} title="Select Insurance Type">
+    <Modal open={showVerticalMenu} onClose={() => { setShowVerticalMenu(false); setExpandedMenu(null); }} title="Select Insurance Type">
       <div className="relative">
         {menuStructure.map((item) => {
           const itemKey = `0-${item.value}`
           return (
-            <div
-              key={item.value}
-              className="relative"
-              onMouseEnter={() => setActiveMenu(itemKey)}
-              onMouseLeave={() => !item.submenu && setActiveMenu(null)}
-            >
+            <div key={item.value} className="relative">
               <button
                 className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all flex items-center justify-between"
-                onClick={() => handleSelectVertical(item.value, item.value)}
+                onClick={() => {
+                  if (item.submenu) {
+                    setExpandedMenu(expandedMenu === itemKey ? null : itemKey)
+                  } else {
+                    handleSelectVertical(item.value, item.value)
+                  }
+                }}
               >
                 <span>{item.label}</span>
-                {item.submenu && <span className="ml-2">›</span>}
+                {item.submenu && <span className={`ml-2 transition-transform ${expandedMenu === itemKey ? 'rotate-90' : ''}`}>›</span>}
               </button>
-              {item.submenu && activeMenu === itemKey && (
-                renderSubmenu(item.submenu, 1, itemKey)
+              {item.submenu && expandedMenu === itemKey && (
+                renderSubmenu(item.submenu, 1)
               )}
             </div>
           )
@@ -462,7 +458,6 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       </div>
     </Modal>
     
-    {/* Search Modal */}
     <Modal open={showSearch} onClose={() => { setShowSearch(false); setSearchTerm(''); setSearchResults([]); }} title="Search Customers">
       <div className="space-y-4">
         <div className="flex gap-2">
