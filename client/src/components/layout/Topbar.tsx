@@ -34,7 +34,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
   const [showVerticalMenu, setShowVerticalMenu] = useState(false)
-  const [hoveredMenu, setHoveredMenu] = useState<string | null>(null)
+  const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [selectedMonths, setSelectedMonths] = useState<string[]>(() => {
     const stored = localStorage.getItem('insuranceMonthFilter')
     return stored ? JSON.parse(stored) : []
@@ -181,6 +181,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     }
     window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: vertical }))
     setShowVerticalMenu(false)
+    setActiveMenu(null)
   }
 
   const handleMonthToggle = (month: string) => {
@@ -243,27 +244,34 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     { label: '👤 Life', value: 'life' }
   ]
 
-  const renderSubmenu = (items: any[], level: number = 0) => (
-    <div className={`absolute top-0 left-full mt-0 bg-slate-800 border border-slate-700 rounded shadow-lg min-w-max z-50`}>
-      {items.map((item) => (
-        <div
-          key={item.value}
-          className="relative group"
-          onMouseEnter={() => item.submenu && setHoveredMenu(`${level}-${item.value}`)}
-          onMouseLeave={() => item.submenu && setHoveredMenu(null)}
-        >
-          <button
-            className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 transition-all flex items-center justify-between whitespace-nowrap"
-            onClick={() => handleSelectVertical(item.value, item.value)}
+  const renderSubmenu = (items: any[], level: number, parentKey: string) => (
+    <div 
+      className="absolute top-0 left-full mt-0 bg-slate-800 border border-slate-700 rounded shadow-lg min-w-max z-50"
+      onMouseEnter={() => setActiveMenu(parentKey)}
+      onMouseLeave={() => setActiveMenu(null)}
+    >
+      {items.map((item) => {
+        const itemKey = `${level}-${item.value}`
+        return (
+          <div
+            key={item.value}
+            className="relative"
+            onMouseEnter={() => setActiveMenu(itemKey)}
+            onMouseLeave={() => !item.submenu && setActiveMenu(null)}
           >
-            <span>{item.label}</span>
-            {item.submenu && <span className="ml-2">›</span>}
-          </button>
-          {item.submenu && hoveredMenu === `${level}-${item.value}` && (
-            renderSubmenu(item.submenu, level + 1)
-          )}
-        </div>
-      ))}
+            <button
+              className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 transition-all flex items-center justify-between whitespace-nowrap"
+              onClick={() => handleSelectVertical(item.value, item.value)}
+            >
+              <span>{item.label}</span>
+              {item.submenu && <span className="ml-2">›</span>}
+            </button>
+            {item.submenu && activeMenu === itemKey && (
+              renderSubmenu(item.submenu, level + 1, itemKey)
+            )}
+          </div>
+        )
+      })}
     </div>
   )
   
@@ -426,28 +434,31 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       </div>
     </Modal>
 
-    {/* Vertical Filter Modal with Hierarchical Menu */}
-    <Modal open={showVerticalMenu} onClose={() => { setShowVerticalMenu(false); setHoveredMenu(null); }} title="Select Insurance Type">
+    {/* Vertical Filter Modal */}
+    <Modal open={showVerticalMenu} onClose={() => { setShowVerticalMenu(false); setActiveMenu(null); }} title="Select Insurance Type">
       <div className="relative">
-        {menuStructure.map((item) => (
-          <div
-            key={item.value}
-            className="relative group"
-            onMouseEnter={() => item.submenu && setHoveredMenu(`0-${item.value}`)}
-            onMouseLeave={() => item.submenu && setHoveredMenu(null)}
-          >
-            <button
-              className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all flex items-center justify-between"
-              onClick={() => handleSelectVertical(item.value, item.value)}
+        {menuStructure.map((item) => {
+          const itemKey = `0-${item.value}`
+          return (
+            <div
+              key={item.value}
+              className="relative"
+              onMouseEnter={() => setActiveMenu(itemKey)}
+              onMouseLeave={() => !item.submenu && setActiveMenu(null)}
             >
-              <span>{item.label}</span>
-              {item.submenu && <span className="ml-2">›</span>}
-            </button>
-            {item.submenu && hoveredMenu === `0-${item.value}` && (
-              renderSubmenu(item.submenu, 1)
-            )}
-          </div>
-        ))}
+              <button
+                className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all flex items-center justify-between"
+                onClick={() => handleSelectVertical(item.value, item.value)}
+              >
+                <span>{item.label}</span>
+                {item.submenu && <span className="ml-2">›</span>}
+              </button>
+              {item.submenu && activeMenu === itemKey && (
+                renderSubmenu(item.submenu, 1, itemKey)
+              )}
+            </div>
+          )
+        })}
       </div>
     </Modal>
     
