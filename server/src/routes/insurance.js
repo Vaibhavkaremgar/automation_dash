@@ -79,8 +79,8 @@ router.get('/customers', (req, res) => {
         query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
         params.push('health', 'topup');
       } else if (vertical === 'ghi-gpa') {
-        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'ghi/gpa');
+        query += ' AND LOWER(vertical) = ? AND (LOWER(product_type) = ? OR LOWER(product_type) = ?)';
+        params.push('health', 'ghi/gpa', 'gpa');
       } else if (vertical === 'pa') {
         query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
         params.push('health', 'pa');

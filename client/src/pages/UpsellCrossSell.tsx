@@ -25,19 +25,16 @@ interface Customer {
 }
 
 const ALL_POLICY_TYPES = [
-  { key: 'motor', label: 'Motor Insurance', icon: '🚗', description: 'Car/Bike Insurance', subcategories: [
-    { key: 'motor-2wh', label: '2-Wheeler', icon: '🏍️' },
-    { key: 'motor-4wh', label: '4-Wheeler', icon: '🚗' },
-    { key: 'motor-commercial', label: 'Commercial Vehicle', icon: '🚚' }
-  ]},
-  { key: 'health', label: 'Health Insurance', icon: '🏥', description: 'Medical Coverage' },
-  { key: 'life', label: 'Life Insurance', icon: '👤', description: 'Life Coverage' },
-  { key: 'non-motor', label: 'Non-Motor Insurance', icon: '🏠', description: 'Home/Travel/Other', subcategories: [
-    { key: 'non-motor-home', label: 'Home Insurance', icon: '🏠' },
-    { key: 'non-motor-travel', label: 'Travel Insurance', icon: '✈️' },
-    { key: 'non-motor-personal', label: 'Personal Accident', icon: '🛡️' },
-    { key: 'non-motor-cyber', label: 'Cyber Insurance', icon: '💻' }
-  ]},
+  { key: 'motor-2wh', label: 'Motor - 2-Wheeler', icon: '🏍️', vertical: 'motor', productType: '2-wheeler' },
+  { key: 'motor-4wh', label: 'Motor - 4-Wheeler', icon: '🚗', vertical: 'motor', productType: '4-wheeler' },
+  { key: 'health-base', label: 'Health - Base', icon: '🏥', vertical: 'health', productType: 'health base' },
+  { key: 'health-topup', label: 'Health - Topup', icon: '💊', vertical: 'health', productType: 'topup' },
+  { key: 'health-ghi-gpa', label: 'Health - GHI/GPA', icon: '🏥', vertical: 'health', productType: 'ghi/gpa' },
+  { key: 'health-pa', label: 'Health - PA', icon: '🛡️', vertical: 'health', productType: 'pa' },
+  { key: 'non-motor-marine', label: 'Non-Motor - Marine', icon: '⛵', vertical: 'non-motor', productType: 'marine' },
+  { key: 'non-motor-fire', label: 'Non-Motor - Fire', icon: '🔥', vertical: 'non-motor', productType: 'fire' },
+  { key: 'non-motor-burglary', label: 'Non-Motor - Burglary', icon: '🏠', vertical: 'non-motor', productType: 'burglary' },
+  { key: 'life', label: 'Life Insurance', icon: '👤', vertical: 'life', productType: null },
 ];
 
 export default function UpsellCrossSell() {
@@ -75,10 +72,8 @@ export default function UpsellCrossSell() {
   const openPortfolio = async (customer: Customer) => {
     setSelectedCustomer(customer);
     
-    // Get all policies for this customer using priority-based matching
     const res = await api.get(`/api/insurance/customers?vertical=all`);
     const allCustomerPolicies = res.data.filter((c: Customer) => {
-      // Priority matching: Name > DOB > G Code > PAN > Aadhar
       if (customer.name && c.name && customer.name.toLowerCase().trim() === c.name.toLowerCase().trim()) return true;
       if (customer.dob && c.dob && customer.dob.trim() === c.dob.trim()) return true;
       if (customer.g_code && c.g_code && customer.g_code.toLowerCase().trim() === c.g_code.toLowerCase().trim()) return true;
@@ -87,43 +82,34 @@ export default function UpsellCrossSell() {
       return false;
     });
     
-    const policyTypes = [...new Set(allCustomerPolicies.map((p: Customer) => p.vertical))];
-    setCustomerPolicies(policyTypes);
+    const existingKeys = allCustomerPolicies.map((p: Customer) => {
+      if (p.vertical === 'motor') {
+        if (p.product_type?.includes('2')) return 'motor-2wh';
+        if (p.product_type?.includes('4')) return 'motor-4wh';
+      } else if (p.vertical === 'health') {
+        if (p.product_type?.toLowerCase() === 'health base') return 'health-base';
+        if (p.product_type?.toLowerCase() === 'topup') return 'health-topup';
+        if (p.product_type?.toLowerCase() === 'ghi/gpa') return 'health-ghi-gpa';
+        if (p.product_type?.toLowerCase() === 'pa') return 'health-pa';
+      } else if (p.vertical === 'non-motor') {
+        if (p.product_type?.toLowerCase() === 'marine') return 'non-motor-marine';
+        if (p.product_type?.toLowerCase() === 'fire') return 'non-motor-fire';
+        if (p.product_type?.toLowerCase() === 'burglary') return 'non-motor-burglary';
+      } else if (p.vertical === 'life') return 'life';
+      return null;
+    }).filter(Boolean);
+    
+    setCustomerPolicies(existingKeys);
     setSelectedPolicies([]);
     setShowPortfolioModal(true);
   };
 
   const getMissingPolicies = () => {
-    const missing = ALL_POLICY_TYPES.filter(policy => !customerPolicies.includes(policy.key));
-    
-    // If customer has 2-wheeler, add all non-motor subcategories
-    const has2Wheeler = customerPolicies.some(p => p.includes('2wh') || p === 'motor');
-    if (has2Wheeler) {
-      const nonMotorPolicy = missing.find(p => p.key === 'non-motor');
-      if (nonMotorPolicy && nonMotorPolicy.subcategories) {
-        // Ensure non-motor is in the list with subcategories
-        if (!missing.find(p => p.key === 'non-motor')) {
-          missing.push(nonMotorPolicy);
-        }
-      }
-    }
-    
-    return missing;
+    return ALL_POLICY_TYPES.filter(policy => !customerPolicies.includes(policy.key));
   };
 
   const getExistingPolicies = () => {
-    const policies = ALL_POLICY_TYPES.filter(policy => customerPolicies.includes(policy.key));
-    return policies.map(policy => {
-      const res = customers.filter((c: Customer) => {
-        if (selectedCustomer?.name && c.name && selectedCustomer.name.toLowerCase().trim() === c.name.toLowerCase().trim()) return true;
-        if (selectedCustomer?.dob && c.dob && selectedCustomer.dob.trim() === c.dob.trim()) return true;
-        if (selectedCustomer?.g_code && c.g_code && selectedCustomer.g_code.toLowerCase().trim() === c.g_code.toLowerCase().trim()) return true;
-        if (selectedCustomer?.pancard && c.pancard && selectedCustomer.pancard.toUpperCase().trim() === c.pancard.toUpperCase().trim()) return true;
-        if (selectedCustomer?.aadhar_card && c.aadhar_card && selectedCustomer.aadhar_card.trim() === c.aadhar_card.trim()) return true;
-        return false;
-      }).find(c => c.vertical === policy.key);
-      return { ...policy, productType: res?.product_type };
-    });
+    return ALL_POLICY_TYPES.filter(policy => customerPolicies.includes(policy.key));
   };
 
   const togglePolicy = (policyKey: string) => {
@@ -378,42 +364,30 @@ export default function UpsellCrossSell() {
             {getMissingPolicies().length > 0 ? (
               <div className="space-y-2">
                 {getMissingPolicies().map((policy) => (
-                  <div key={policy.key}>
-                    <div 
-                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                  <div 
+                    key={policy.key}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      selectedPolicies.includes(policy.key)
+                        ? 'bg-indigo-500/20 border-indigo-500/50'
+                        : 'bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-500/50'
+                    }`}
+                    onClick={() => togglePolicy(policy.key)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
                         selectedPolicies.includes(policy.key)
-                          ? 'bg-indigo-500/20 border-indigo-500/50'
-                          : 'bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-500/50'
-                      }`}
-                      onClick={() => togglePolicy(policy.key)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                          selectedPolicies.includes(policy.key)
-                            ? 'bg-indigo-500 border-indigo-500'
-                            : 'border-slate-500'
-                        }`}>
-                          {selectedPolicies.includes(policy.key) && (
-                            <span className="text-white text-xs">✓</span>
-                          )}
-                        </div>
-                        <span className="text-2xl">{policy.icon}</span>
-                        <div className="flex-1">
-                          <p className="font-medium text-white">{policy.label}</p>
-                          <p className="text-xs text-slate-400">{policy.description}</p>
-                        </div>
+                          ? 'bg-indigo-500 border-indigo-500'
+                          : 'border-slate-500'
+                      }`}>
+                        {selectedPolicies.includes(policy.key) && (
+                          <span className="text-white text-xs">✓</span>
+                        )}
+                      </div>
+                      <span className="text-2xl">{policy.icon}</span>
+                      <div className="flex-1">
+                        <p className="font-medium text-white">{policy.label}</p>
                       </div>
                     </div>
-                    {policy.subcategories && (
-                      <div className="ml-8 mt-2 space-y-1">
-                        {policy.subcategories.map((sub) => (
-                          <div key={sub.key} className="text-xs text-slate-400 flex items-center gap-2">
-                            <span>{sub.icon}</span>
-                            <span>{sub.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
