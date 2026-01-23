@@ -351,6 +351,8 @@ export default function InsuranceDashboard() {
   useEffect(() => {
     loadData();
   }, [verticalFilter, generalSubFilter, filterEnabled, globalYearFilter, globalMonthFilter]);
+
+  const loadRenewalStats = async () => {
     try {
       const res = await api.get('/api/insurance/renewal-stats');
       setRenewalStats(res.data);
@@ -359,11 +361,23 @@ export default function InsuranceDashboard() {
     }
   };
 
+  useEffect(() => {
+    if (currentTab === 'renewals') {
+      loadRenewalStats();
+    }
+  }, [currentTab]);
+
   const parseAmount = (value: any): number => {
     if (!value) return 0;
     const str = String(value).replace(/[^0-9.-]/g, '');
     const num = parseFloat(str);
     return isNaN(num) ? 0 : num;
+  };
+
+  const getDisplayDate = (customer: Customer) => {
+    const modifiedDate = customer.renewal_date?.trim();
+    const originalDate = customer.od_expiry_date?.trim();
+    return modifiedDate || originalDate || '';
   };
 
   const applyGlobalFilter = (customersToFilter: Customer[]) => {
@@ -389,14 +403,7 @@ export default function InsuranceDashboard() {
     });
   };
 
-  const getDisplayDate = (customer: Customer) => {
-    // Always prioritize renewal_date (MODIFIED EXPIRY DATE) first
-    // Fall back to od_expiry_date (DATE OF EXPIRY) if renewal_date is empty
-    const modifiedDate = customer.renewal_date?.trim();
-    const originalDate = customer.od_expiry_date?.trim();
-    
-    return modifiedDate || originalDate || '';
-  };
+
 
   const getDaysUntilExpiry = (customer: Customer) => {
     const renewalDate = getDisplayDate(customer);
@@ -1943,7 +1950,7 @@ export default function InsuranceDashboard() {
             </button>
           </div>
         </div>
-      )}}
+      )}
       {renderTabContent()}
     </div>
 
