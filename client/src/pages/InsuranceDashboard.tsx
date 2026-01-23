@@ -2311,8 +2311,10 @@ export default function InsuranceDashboard() {
                       value={data.status}
                       onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, status: e.target.value}})}
                     >
+                      <option value="DUE">DUE</option>
                       <option value="RENEWED">RENEWED</option>
                       <option value="INPROCESS">IN PROCESS</option>
+                      <option value="NOT RENEWED">NOT RENEWED</option>
                     </select>
                   </div>
                   <div>
