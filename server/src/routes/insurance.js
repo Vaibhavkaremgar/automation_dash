@@ -60,6 +60,15 @@ router.get('/customers', (req, res) => {
       if (vertical === 'general') {
         query += ' AND LOWER(vertical) IN (?, ?, ?)';
         params.push('motor', 'health', 'non-motor');
+      } else if (vertical === 'motor') {
+        query += ' AND LOWER(vertical) = ?';
+        params.push('motor');
+      } else if (vertical === '2-wheeler') {
+        query += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
+        params.push('motor', '%2%');
+      } else if (vertical === '4-wheeler') {
+        query += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
+        params.push('motor', '%4%');
       } else if (vertical === 'health') {
         query += ' AND LOWER(vertical) = ?';
         params.push('health');
@@ -69,18 +78,30 @@ router.get('/customers', (req, res) => {
       } else if (vertical === 'health-topup') {
         query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
         params.push('health', 'topup');
+      } else if (vertical === 'ghi-gpa') {
+        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
+        params.push('health', 'ghi/gpa');
+      } else if (vertical === 'pa') {
+        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
+        params.push('health', 'pa');
       } else if (vertical === 'non-motor') {
-        query += ' AND (LOWER(REPLACE(product, " ", "")) = ? OR LOWER(REPLACE(product, "-", "")) = ?)';
-        params.push('nonmotor', 'nonmotor');
-      } else if (vertical === '2-wheeler') {
-        query += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
-        params.push('motor', '%2%');
-      } else if (vertical === '4-wheeler') {
-        query += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
-        params.push('motor', '%4%');
-      } else if (vertical === 'motor') {
         query += ' AND LOWER(vertical) = ?';
-        params.push('motor');
+        params.push('non-motor');
+      } else if (vertical === 'marine') {
+        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
+        params.push('non-motor', 'marine');
+      } else if (vertical === 'fire') {
+        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
+        params.push('non-motor', 'fire');
+      } else if (vertical === 'burglary') {
+        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
+        params.push('non-motor', 'burglary');
+      } else if (vertical === 'non-motor-others') {
+        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) NOT IN (?, ?, ?)';
+        params.push('non-motor', 'marine', 'fire', 'burglary');
+      } else if (vertical === 'life') {
+        query += ' AND LOWER(vertical) = ?';
+        params.push('life');
       } else {
         query += ' AND LOWER(vertical) = ?';
         params.push(vertical.toLowerCase());
