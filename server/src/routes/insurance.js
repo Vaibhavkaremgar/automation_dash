@@ -79,11 +79,11 @@ router.get('/customers', (req, res) => {
         query += ' AND LOWER(vertical) = ?';
         params.push('health');
       } else if (vertical === 'health-base') {
-        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'health base');
+        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) LIKE ?';
+        params.push('health', '%health base%');
       } else if (vertical === 'health-topup') {
-        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
-        params.push('health', 'topup');
+        query += ' AND LOWER(vertical) = ? AND LOWER(product_type) LIKE ?';
+        params.push('health', '%topup%');
       } else if (vertical === 'ghi-gpa') {
         query += ' AND LOWER(vertical) = ? AND (LOWER(product_type) = ? OR LOWER(product_type) = ?)';
         params.push('health', 'ghi', 'gpa');
