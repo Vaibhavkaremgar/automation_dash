@@ -486,7 +486,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
         <Button
           onClick={() => {
             setShowMonthFilter(false)
-            navigate('/dashboard')
+            navigate('/insurance/dashboard')
           }}
           className="w-full"
         >
