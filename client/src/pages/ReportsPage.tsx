@@ -188,7 +188,7 @@ export default function ReportsPage() {
       if (verticalFilter === 'general') {
         vertical = 'general';
       }
-      const params = `?vertical=${vertical}&reportMonth=${reportMonthFilter}&_t=${Date.now()}`;
+      const params = `?vertical=${vertical}&_t=${Date.now()}`;
       const response = await api.get(`/api/insurance/reports${params}`);
       setReportData(response.data);
     } catch (error) {
@@ -202,7 +202,7 @@ export default function ReportsPage() {
     return <LoadingSpinner />;
   }
 
-  if (!reportData) {
+  if (!reportData || !reportData.renewalPerformance) {
     return (
       <div className="p-6 space-y-4">
         <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 text-center">
