@@ -171,8 +171,7 @@ export default function UpsellCrossSell() {
       missing.forEach((policy, i) => {
         message += `${policy.icon} *${policy.label}*\n`;
         
-        // Add compelling benefits for each policy type
-        if (policy.key === 'health') {
+        if (policy.key === 'health-base' || policy.key === 'health-topup' || policy.key === 'health-ghi-gpa' || policy.key === 'health-pa') {
           message += `   ✓ Cashless hospitalization at 10,000+ hospitals\n`;
           message += `   ✓ Coverage for medical emergencies & critical illnesses\n`;
           message += `   ✓ Tax benefits up to ₹25,000 under Section 80D\n`;
@@ -180,11 +179,11 @@ export default function UpsellCrossSell() {
           message += `   ✓ Financial security for your family's future\n`;
           message += `   ✓ Coverage for loans, education & daily expenses\n`;
           message += `   ✓ Tax benefits up to ₹1.5 lakhs under Section 80C\n`;
-        } else if (policy.key === 'motor') {
+        } else if (policy.key === 'motor-2wh' || policy.key === 'motor-4wh') {
           message += `   ✓ Comprehensive coverage for your vehicle\n`;
           message += `   ✓ Protection against accidents, theft & damages\n`;
           message += `   ✓ Cashless repairs at authorized garages\n`;
-        } else if (policy.key === 'non-motor') {
+        } else if (policy.key === 'non-motor-marine' || policy.key === 'non-motor-fire' || policy.key === 'non-motor-burglary') {
           message += `   ✓ Protection for home, travel & valuable assets\n`;
           message += `   ✓ Coverage against fire, theft & natural calamities\n`;
           message += `   ✓ Peace of mind for unexpected events\n`;
@@ -218,7 +217,6 @@ export default function UpsellCrossSell() {
     customer.mobile_number.includes(searchTerm)
   );
 
-  // Group customers by priority-based matching: Name > DOB > G Code > PAN > Aadhar
   const uniqueCustomers = filteredCustomers.reduce((acc, customer) => {
     const isDuplicate = acc.some(c => {
       if (customer.name && c.name && customer.name.toLowerCase().trim() === c.name.toLowerCase().trim()) return true;
@@ -310,96 +308,96 @@ export default function UpsellCrossSell() {
         onClose={() => { setShowPortfolioModal(false); setSelectedCustomer(null); }}
         title={`${selectedCustomer?.name} - Portfolio`}
       >
-        <div className="space-y-6">
-          {/* Customer Info */}
-          <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
-            <h3 className="font-semibold text-white mb-2">Customer Details</h3>
-            <p className="text-sm text-slate-300">📱 {selectedCustomer?.mobile_number}</p>
-            {selectedCustomer?.email && (
-              <p className="text-sm text-slate-300">📧 {selectedCustomer?.email}</p>
-            )}
-          </div>
-
-          {/* Existing Policies */}
-          <div>
-            <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-              <span className="text-green-400">✅</span> Current Policies ({getExistingPolicies().length})
-            </h3>
-            {getExistingPolicies().length > 0 ? (
-              <div className="space-y-2">
-                {getExistingPolicies().map((policy) => (
-                  <div key={policy.key} className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{policy.icon}</span>
-                      <div>
-                        <p className="font-medium text-white">{policy.label}</p>
-                        <p className="text-xs text-slate-400">{policy.description}</p>
-                        {policy.productType && <p className="text-xs text-green-400 mt-1">📋 {policy.productType}</p>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-slate-400 text-sm">No policies yet</p>
-            )}
-          </div>
-
-          {/* Suggested Policies */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-white flex items-center gap-2">
-                <span className="text-yellow-400">💡</span> Suggested Policies ({getMissingPolicies().length})
-              </h3>
-              {getMissingPolicies().length > 0 && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={selectAllPolicies}
-                >
-                  Select All
-                </Button>
+        <div className="flex flex-col h-[70vh]">
+          <div className="flex-1 overflow-y-auto pr-4 space-y-6">
+            {/* Customer Info */}
+            <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50">
+              <h3 className="font-semibold text-white mb-2">Customer Details</h3>
+              <p className="text-sm text-slate-300">📱 {selectedCustomer?.mobile_number}</p>
+              {selectedCustomer?.email && (
+                <p className="text-sm text-slate-300">📧 {selectedCustomer?.email}</p>
               )}
             </div>
-            {getMissingPolicies().length > 0 ? (
-              <div className="space-y-2">
-                {getMissingPolicies().map((policy) => (
-                  <div 
-                    key={policy.key}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                      selectedPolicies.includes(policy.key)
-                        ? 'bg-indigo-500/20 border-indigo-500/50'
-                        : 'bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-500/50'
-                    }`}
-                    onClick={() => togglePolicy(policy.key)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                        selectedPolicies.includes(policy.key)
-                          ? 'bg-indigo-500 border-indigo-500'
-                          : 'border-slate-500'
-                      }`}>
-                        {selectedPolicies.includes(policy.key) && (
-                          <span className="text-white text-xs">✓</span>
-                        )}
-                      </div>
-                      <span className="text-2xl">{policy.icon}</span>
-                      <div className="flex-1">
-                        <p className="font-medium text-white">{policy.label}</p>
+
+            {/* Existing Policies */}
+            <div>
+              <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
+                <span className="text-green-400">✅</span> Current Policies ({getExistingPolicies().length})
+              </h3>
+              {getExistingPolicies().length > 0 ? (
+                <div className="space-y-2">
+                  {getExistingPolicies().map((policy) => (
+                    <div key={policy.key} className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{policy.icon}</span>
+                        <div>
+                          <p className="font-medium text-white">{policy.label}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-400 text-sm">No policies yet</p>
+              )}
+            </div>
+
+            {/* Suggested Policies */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  <span className="text-yellow-400">💡</span> Suggested Policies ({getMissingPolicies().length})
+                </h3>
+                {getMissingPolicies().length > 0 && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={selectAllPolicies}
+                  >
+                    Select All
+                  </Button>
+                )}
               </div>
-            ) : (
-              <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-center">
-                <p className="text-green-400 font-medium">🎉 Customer has all policy types!</p>
-              </div>
-            )}
+              {getMissingPolicies().length > 0 ? (
+                <div className="space-y-2">
+                  {getMissingPolicies().map((policy) => (
+                    <div 
+                      key={policy.key}
+                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                        selectedPolicies.includes(policy.key)
+                          ? 'bg-indigo-500/20 border-indigo-500/50'
+                          : 'bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-500/50'
+                      }`}
+                      onClick={() => togglePolicy(policy.key)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                          selectedPolicies.includes(policy.key)
+                            ? 'bg-indigo-500 border-indigo-500'
+                            : 'border-slate-500'
+                        }`}>
+                          {selectedPolicies.includes(policy.key) && (
+                            <span className="text-white text-xs">✓</span>
+                          )}
+                        </div>
+                        <span className="text-2xl">{policy.icon}</span>
+                        <div className="flex-1">
+                          <p className="font-medium text-white">{policy.label}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg text-center">
+                  <p className="text-green-400 font-medium">🎉 Customer has all policy types!</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-shrink-0 border-t border-slate-700 pt-4 mt-4 flex flex-col sm:flex-row gap-3">
             {getMissingPolicies().length > 0 && (
               <Button 
                 onClick={sendUpsellMessage} 
@@ -469,7 +467,6 @@ export default function UpsellCrossSell() {
               try {
                 await api.post(`/api/insurance/customers/${noteCustomerId}/notes`, { note });
                 
-                // Sync to Google Sheets
                 try {
                   const { data: config } = await api.get('/api/insurance-config/config');
                   await api.post('/api/insurance/sync/to-sheet', {
@@ -482,7 +479,7 @@ export default function UpsellCrossSell() {
                 setShowNoteModal(false);
                 setNote('');
                 setNoteCustomerId(null);
-                loadCustomers(); // Reload data
+                loadCustomers();
                 alert('Note added and synced successfully');
               } catch (error) {
                 console.error('Failed to add note:', error);
