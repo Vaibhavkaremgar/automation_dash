@@ -289,6 +289,8 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     }
     return labelMap[selectedVertical] || '📊 All'
   }
+
+  const renderMenuItems = (items: any[], level: number = 0): JSX.Element => (
     <>
       {items.map((item) => {
         const itemKey = `${level}-${item.value}`
