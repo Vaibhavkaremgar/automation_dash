@@ -115,18 +115,32 @@ export default function ReportsPage() {
   };
 
   const applyMonthFilter = (custs: any[]) => {
-    if (!reportMonthFilter) return custs;
-    const [filterYear, filterMonth] = reportMonthFilter.split('-').map(Number);
+    if (!filterEnabled || selectedMonths.length === 0) return custs;
     return custs.filter(c => {
       const dateStr = c.renewal_date || c.od_expiry_date;
       if (!dateStr) return false;
       try {
         const [d, m, y] = dateStr.split('/');
-        return parseInt(y) === filterYear && parseInt(m) === filterMonth;
+        return parseInt(y) === selectedYear && selectedMonths.includes(parseInt(m));
       } catch (e) {
         return false;
       }
     });
+  };
+
+  const handleFilterApply = () => {
+    localStorage.setItem('reportFilterEnabled', filterEnabled.toString());
+    localStorage.setItem('reportSelectedYear', selectedYear.toString());
+    localStorage.setItem('reportSelectedMonths', JSON.stringify(selectedMonths));
+    setShowFilterModal(false);
+    loadReports();
+  };
+
+  const handleNoFilter = () => {
+    setFilterEnabled(false);
+    localStorage.setItem('reportFilterEnabled', 'false');
+    setShowFilterModal(false);
+    loadReports();
   };
 
   const [verticalFilter, setVerticalFilter] = useState(() => {
@@ -139,10 +153,17 @@ export default function ReportsPage() {
   const [detailsModalTitle, setDetailsModalTitle] = useState('');
   const [detailsModalCustomers, setDetailsModalCustomers] = useState<any[]>([]);
   const [modalSearchTerm, setModalSearchTerm] = useState('');
-  const [reportMonthFilter, setReportMonthFilter] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const [filterEnabled, setFilterEnabled] = useState(() => {
+    return localStorage.getItem('reportFilterEnabled') === 'true';
   });
+  const [selectedYear, setSelectedYear] = useState(() => {
+    return parseInt(localStorage.getItem('reportSelectedYear') || new Date().getFullYear().toString());
+  });
+  const [selectedMonths, setSelectedMonths] = useState<number[]>(() => {
+    const saved = localStorage.getItem('reportSelectedMonths');
+    return saved ? JSON.parse(saved) : [new Date().getMonth() + 1];
+  });
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   useEffect(() => {
     const handleVerticalChange = (e: any) => {
@@ -158,7 +179,7 @@ export default function ReportsPage() {
   useEffect(() => {
     console.log('📊 Reports: Loading data with vertical filter:', verticalFilter);
     loadReports();
-  }, [verticalFilter, reportMonthFilter]);
+  }, [verticalFilter, filterEnabled, selectedYear, selectedMonths]);
 
   const loadReports = async () => {
     try {
@@ -208,18 +229,111 @@ export default function ReportsPage() {
         <Button onClick={loadReports}>Refresh</Button>
       </div>
 
-      {/* Month Filter */}
+      {/* Filter Bar */}
       <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4">
-        <div className="flex items-center gap-3">
-          <label className="text-sm text-slate-300 font-medium">Filter by Month:</label>
-          <input
-            type="month"
-            value={reportMonthFilter}
-            onChange={(e) => setReportMonthFilter(e.target.value)}
-            className="px-3 py-2 border rounded bg-slate-700 text-white text-sm"
-          />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-slate-300 font-medium">Report Filter:</label>
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+              filterEnabled 
+                ? 'bg-indigo-500/20 text-indigo-300' 
+                : 'bg-slate-600/30 text-slate-400'
+            }`}>
+              {filterEnabled ? `${selectedMonths.length} month(s) - ${selectedYear}` : 'No Filter'}
+            </span>
+          </div>
+          <Button onClick={() => setShowFilterModal(true)} size="sm">⚙️ Configure</Button>
         </div>
       </div>
+
+      {/* Filter Modal */}
+      <Modal open={showFilterModal} onClose={() => setShowFilterModal(false)} title="Configure Report Filter">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Filter Status</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilterEnabled(true)}
+                className={`flex-1 px-3 py-2 rounded-lg font-medium transition-all ${
+                  filterEnabled
+                    ? 'bg-indigo-500 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                With Filter
+              </button>
+              <button
+                onClick={() => setFilterEnabled(false)}
+                className={`flex-1 px-3 py-2 rounded-lg font-medium transition-all ${
+                  !filterEnabled
+                    ? 'bg-indigo-500 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                No Filter
+              </button>
+            </div>
+          </div>
+
+          {filterEnabled && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Year</label>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border rounded bg-slate-700 text-white text-sm"
+                >
+                  {[2020, 2021, 2022, 2023, 2024, 2025, 2026].map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Select Months</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        const monthNum = idx + 1;
+                        setSelectedMonths(prev =>
+                          prev.includes(monthNum)
+                            ? prev.filter(m => m !== monthNum)
+                            : [...prev, monthNum].sort((a, b) => a - b)
+                        );
+                      }}
+                      className={`px-2 py-2 rounded text-xs font-medium transition-all ${
+                        selectedMonths.includes(idx + 1)
+                          ? 'bg-indigo-500 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {month}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="flex gap-2 pt-4">
+            <button
+              onClick={handleNoFilter}
+              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-all"
+            >
+              Clear Filter
+            </button>
+            <button
+              onClick={handleFilterApply}
+              className="flex-1 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-all"
+            >
+              Apply Filter
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-700 overflow-x-auto">
