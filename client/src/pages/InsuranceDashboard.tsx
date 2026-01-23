@@ -1593,9 +1593,9 @@ export default function InsuranceDashboard() {
               >
                 <option value="" disabled>Select Status</option>
                 <option value="due">🔴 DUE</option>
-                <option value="renewed">🟢 Renewed</option>
-                <option value="not renewed">⚫ Not Renewed</option>
-                <option value="inprocess">🔵 In Process</option>
+                <option value="renewed">🟢 RENEWED</option>
+                <option value="inprocess">🔵 IN PROCESS</option>
+                <option value="not renewed">⚫ NOT RENEWED</option>
               </select>
               <Button 
                 variant="outline" 
@@ -2180,9 +2180,9 @@ export default function InsuranceDashboard() {
                   >
                     <option value="" disabled>Mark as...</option>
                     <option value="due">🔴 DUE</option>
-                    <option value="renewed">🟢 Renewed</option>
-                    <option value="not renewed">⚫ Not Renewed</option>
-                    <option value="inprocess">🔵 In Process</option>
+                    <option value="renewed">🟢 RENEWED</option>
+                    <option value="inprocess">🔵 IN PROCESS</option>
+                    <option value="not renewed">⚫ NOT RENEWED</option>
                   </select>
                   <Button size="sm" onClick={(e) => {
                     e.stopPropagation();
