@@ -86,7 +86,7 @@ router.get('/customers', (req, res) => {
         params.push('health', 'topup');
       } else if (vertical === 'ghi-gpa') {
         query += ' AND LOWER(vertical) = ? AND (LOWER(product_type) = ? OR LOWER(product_type) = ?)';
-        params.push('health', 'ghi/gpa', 'gpa');
+        params.push('health', 'ghi', 'gpa');
       } else if (vertical === 'pa') {
         query += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
         params.push('health', 'pa');
@@ -1167,7 +1167,7 @@ router.get('/reports', async (req, res) => {
         params.push('health', 'topup');
       } else if (vertical === 'ghi-gpa') {
         whereClause += ' AND LOWER(vertical) = ? AND (LOWER(product_type) = ? OR LOWER(product_type) = ?)';
-        params.push('health', 'ghi/gpa', 'gpa');
+        params.push('health', 'ghi', 'gpa');
       } else if (vertical === 'pa') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
         params.push('health', 'pa');
@@ -1576,7 +1576,7 @@ router.get('/analytics', (req, res) => {
         params.push('health', 'topup');
       } else if (vertical === 'ghi-gpa') {
         whereClause += ' AND LOWER(vertical) = ? AND (LOWER(product_type) = ? OR LOWER(product_type) = ?)';
-        params.push('health', 'ghi/gpa', 'gpa');
+        params.push('health', 'ghi', 'gpa');
       } else if (vertical === 'pa') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(product_type) = ?';
         params.push('health', 'pa');
