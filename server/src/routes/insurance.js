@@ -80,7 +80,7 @@ router.get('/customers', (req, res) => {
         params.push('health');
       } else if (vertical === 'health-base') {
         query += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
-        params.push('health', '%base%');
+        params.push('health', '%health base%');
       } else if (vertical === 'health-topup') {
         query += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
         params.push('health', '%topup%');
@@ -95,7 +95,7 @@ router.get('/customers', (req, res) => {
         params.push('health', '%pa%');
       } else if (vertical === 'health-others') {
         query += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ?';
-        params.push('health', '%base%', '%topup%', '%ghi%', '%gpa%', '%pa%');
+        params.push('health', '%health base%', '%topup%', '%ghi%', '%gpa%', '%pa%');
       } else if (vertical === 'non-motor-all') {
         query += ' AND LOWER(vertical) = ?';
         params.push('non-motor');
@@ -1167,7 +1167,7 @@ router.get('/reports', async (req, res) => {
         params.push('health');
       } else if (vertical === 'health-base') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
-        params.push('health', '%base%');
+        params.push('health', '%health base%');
       } else if (vertical === 'health-topup') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
         params.push('health', '%topup%');
@@ -1182,7 +1182,7 @@ router.get('/reports', async (req, res) => {
         params.push('health', '%pa%');
       } else if (vertical === 'health-others') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ?';
-        params.push('health', '%base%', '%topup%', '%ghi%', '%gpa%', '%pa%');
+        params.push('health', '%health base%', '%topup%', '%ghi%', '%gpa%', '%pa%');
       } else if (vertical === 'non-motor-all') {
         whereClause += ' AND LOWER(vertical) = ?';
         params.push('non-motor');
@@ -1582,7 +1582,7 @@ router.get('/analytics', (req, res) => {
         params.push('health');
       } else if (vertical === 'health-base') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
-        params.push('health', '%base%');
+        params.push('health', '%health base%');
       } else if (vertical === 'health-topup') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) LIKE ?';
         params.push('health', '%topup%');
@@ -1597,7 +1597,7 @@ router.get('/analytics', (req, res) => {
         params.push('health', '%pa%');
       } else if (vertical === 'health-others') {
         whereClause += ' AND LOWER(vertical) = ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ? AND LOWER(COALESCE(product_type, "")) NOT LIKE ?';
-        params.push('health', '%base%', '%topup%', '%ghi%', '%gpa%', '%pa%');
+        params.push('health', '%health base%', '%topup%', '%ghi%', '%gpa%', '%pa%');
       } else if (vertical === 'non-motor-all') {
         whereClause += ' AND LOWER(vertical) = ?';
         params.push('non-motor');
