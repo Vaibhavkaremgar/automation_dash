@@ -243,28 +243,24 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     { label: '👤 Life', value: 'life' }
   ]
 
-  const renderSubmenu = (items: any[], level: number = 0, parentKey?: string) => (
-    <div 
-      className={`absolute top-0 ${level === 0 ? 'left-full' : 'left-full'} mt-0 bg-slate-800 border border-slate-700 rounded shadow-lg min-w-max z-50`}
-      onMouseEnter={() => parentKey && setHoveredMenu(parentKey)}
-      onMouseLeave={() => setHoveredMenu(null)}
-    >
+  const renderSubmenu = (items: any[], level: number = 0) => (
+    <div className={`absolute top-0 left-full mt-0 bg-slate-800 border border-slate-700 rounded shadow-lg min-w-max z-50`}>
       {items.map((item) => (
         <div
           key={item.value}
-          className="relative"
-          onMouseEnter={() => setHoveredMenu(`${level}-${item.value}`)}
-          onMouseLeave={() => item.submenu && setHoveredMenu(`${level}-${item.value}`)}
+          className="relative group"
+          onMouseEnter={() => item.submenu && setHoveredMenu(`${level}-${item.value}`)}
+          onMouseLeave={() => item.submenu && setHoveredMenu(null)}
         >
           <button
-            className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 transition-all flex items-center justify-between"
+            className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 transition-all flex items-center justify-between whitespace-nowrap"
             onClick={() => handleSelectVertical(item.value, item.value)}
           >
             <span>{item.label}</span>
             {item.submenu && <span className="ml-2">›</span>}
           </button>
           {item.submenu && hoveredMenu === `${level}-${item.value}` && (
-            renderSubmenu(item.submenu, level + 1, `${level}-${item.value}`)
+            renderSubmenu(item.submenu, level + 1)
           )}
         </div>
       ))}
@@ -436,9 +432,9 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
         {menuStructure.map((item) => (
           <div
             key={item.value}
-            className="relative"
+            className="relative group"
             onMouseEnter={() => item.submenu && setHoveredMenu(`0-${item.value}`)}
-            onMouseLeave={() => setHoveredMenu(null)}
+            onMouseLeave={() => item.submenu && setHoveredMenu(null)}
           >
             <button
               className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all flex items-center justify-between"
