@@ -42,6 +42,10 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const [selectedYear, setSelectedYear] = useState<string>(() => {
     return localStorage.getItem('insuranceYearFilter') || new Date().getFullYear().toString()
   })
+  const [filterEnabled, setFilterEnabled] = useState<boolean>(() => {
+    const stored = localStorage.getItem('insuranceFilterEnabled')
+    return stored ? JSON.parse(stored) : true
+  })
   const [showMonthFilter, setShowMonthFilter] = useState(false)
 
   const handleSync = async () => {
@@ -199,6 +203,12 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     window.dispatchEvent(new CustomEvent('insuranceYearFilterChange', { detail: year }))
   }
 
+  const handleFilterToggle = (enabled: boolean) => {
+    setFilterEnabled(enabled)
+    localStorage.setItem('insuranceFilterEnabled', JSON.stringify(enabled))
+    window.dispatchEvent(new CustomEvent('insuranceFilterEnabledChange', { detail: enabled }))
+  }
+
   const toggleMenu = (key: string) => {
     const newSet = new Set(expandedMenu)
     if (newSet.has(key)) {
@@ -337,11 +347,17 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
             </button>
             <button
               onClick={() => setShowMonthFilter(!showMonthFilter)}
-              className="px-3 py-2 bg-slate-800/60 border border-slate-700 rounded-lg text-white text-sm hover:bg-slate-700 transition-all"
+              className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                filterEnabled
+                  ? 'bg-slate-800/60 border border-slate-700 text-white hover:bg-slate-700'
+                  : 'bg-slate-700/40 border border-slate-600 text-slate-400'
+              }`}
               title="Filter by Year & Months"
             >
               <span className="md:hidden">📅</span>
-              <span className="hidden md:inline">📅 {selectedYear} {selectedMonths.length > 0 ? `(${selectedMonths.length}m)` : '(All)'}</span>
+              <span className="hidden md:inline">
+                📅 {filterEnabled ? `${selectedYear} ${selectedMonths.length > 0 ? `(${selectedMonths.length}m)` : '(All)'}` : 'No Filter'}
+              </span>
             </button>
           </>
         )}
@@ -383,63 +399,99 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
 
     <Modal open={showMonthFilter} onClose={() => setShowMonthFilter(false)} title="Filter by Year & Months">
       <div className="space-y-4">
-        <div>
-          <label className="text-sm text-slate-300 mb-2 block">Select Year</label>
-          <select
-            value={selectedYear}
-            onChange={(e) => handleYearChange(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm"
-          >
-            {years.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-sm text-slate-300 mb-2 block">Select Months</label>
-          <div className="grid grid-cols-3 gap-2">
-            {months.map((month) => (
-              <button
-                key={month.value}
-                onClick={() => handleMonthToggle(month.value)}
-                className={`px-3 py-2 rounded text-sm font-medium transition-all ${
-                  selectedMonths.includes(month.value)
-                    ? 'bg-cyan-500/30 border border-cyan-500 text-cyan-300'
-                    : 'bg-slate-700/50 border border-slate-600 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                {month.label.slice(0, 3)}
-              </button>
-            ))}
-          </div>
-        </div>
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            onClick={() => {
-              setSelectedMonths([])
-              localStorage.setItem('insuranceMonthFilter', JSON.stringify([]))
-              window.dispatchEvent(new CustomEvent('insuranceMonthFilterChange', { detail: [] }))
-            }}
-            variant="outline"
+          <button
+            onClick={() => handleFilterToggle(true)}
+            className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+              filterEnabled
+                ? 'bg-cyan-500/30 border border-cyan-500 text-cyan-300'
+                : 'bg-slate-700/50 border border-slate-600 text-slate-300 hover:bg-slate-700'
+            }`}
           >
-            Clear Months
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => {
-              const allMonths = months.map(m => m.value)
-              setSelectedMonths(allMonths)
-              localStorage.setItem('insuranceMonthFilter', JSON.stringify(allMonths))
-              window.dispatchEvent(new CustomEvent('insuranceMonthFilterChange', { detail: allMonths }))
-            }}
-            variant="outline"
+            With Filter
+          </button>
+          <button
+            onClick={() => handleFilterToggle(false)}
+            className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+              !filterEnabled
+                ? 'bg-cyan-500/30 border border-cyan-500 text-cyan-300'
+                : 'bg-slate-700/50 border border-slate-600 text-slate-300 hover:bg-slate-700'
+            }`}
           >
-            Select All Months
-          </Button>
+            No Filter
+          </button>
         </div>
+
+        {filterEnabled && (
+          <>
+            <div>
+              <label className="text-sm text-slate-300 mb-2 block">Select Year</label>
+              <select
+                value={selectedYear}
+                onChange={(e) => handleYearChange(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white text-sm"
+              >
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm text-slate-300 mb-2 block">Select Months</label>
+              <div className="grid grid-cols-3 gap-2">
+                {months.map((month) => (
+                  <button
+                    key={month.value}
+                    onClick={() => handleMonthToggle(month.value)}
+                    className={`px-3 py-2 rounded text-sm font-medium transition-all ${
+                      selectedMonths.includes(month.value)
+                        ? 'bg-cyan-500/30 border border-cyan-500 text-cyan-300'
+                        : 'bg-slate-700/50 border border-slate-600 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    {month.label.slice(0, 3)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSelectedMonths([])
+                  localStorage.setItem('insuranceMonthFilter', JSON.stringify([]))
+                  window.dispatchEvent(new CustomEvent('insuranceMonthFilterChange', { detail: [] }))
+                }}
+                variant="outline"
+              >
+                Clear Months
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  const allMonths = months.map(m => m.value)
+                  setSelectedMonths(allMonths)
+                  localStorage.setItem('insuranceMonthFilter', JSON.stringify(allMonths))
+                  window.dispatchEvent(new CustomEvent('insuranceMonthFilterChange', { detail: allMonths }))
+                }}
+                variant="outline"
+              >
+                Select All Months
+              </Button>
+            </div>
+          </>
+        )}
+        <Button
+          onClick={() => {
+            setShowMonthFilter(false)
+            navigate('/dashboard')
+          }}
+          className="w-full"
+        >
+          Apply Filter
+        </Button>
       </div>
     </Modal>
 

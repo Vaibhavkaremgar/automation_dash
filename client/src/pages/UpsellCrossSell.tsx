@@ -349,13 +349,22 @@ export default function UpsellCrossSell() {
                   <span className="text-yellow-400">💡</span> Suggested Policies ({getMissingPolicies().length})
                 </h3>
                 {getMissingPolicies().length > 0 && (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={selectAllPolicies}
-                  >
-                    Select All
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={selectAllPolicies}
+                    >
+                      Select All
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setSelectedPolicies([])}
+                    >
+                      Clear
+                    </Button>
+                  </div>
                 )}
               </div>
               {getMissingPolicies().length > 0 ? (
