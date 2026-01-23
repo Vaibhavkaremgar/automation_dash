@@ -34,7 +34,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [searching, setSearching] = useState(false)
   const [showVerticalMenu, setShowVerticalMenu] = useState(false)
-  const [expandedMenu, setExpandedMenu] = useState<string | null>(null)
+  const [expandedMenu, setExpandedMenu] = useState<Set<string>>(new Set())
   const [selectedMonths, setSelectedMonths] = useState<string[]>(() => {
     const stored = localStorage.getItem('insuranceMonthFilter')
     return stored ? JSON.parse(stored) : []
@@ -181,7 +181,7 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     }
     window.dispatchEvent(new CustomEvent('insuranceVerticalChange', { detail: vertical }))
     setShowVerticalMenu(false)
-    setExpandedMenu(null)
+    setExpandedMenu(new Set())
   }
 
   const handleMonthToggle = (month: string) => {
@@ -197,6 +197,16 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     setSelectedYear(year)
     localStorage.setItem('insuranceYearFilter', year)
     window.dispatchEvent(new CustomEvent('insuranceYearFilterChange', { detail: year }))
+  }
+
+  const toggleMenu = (key: string) => {
+    const newSet = new Set(expandedMenu)
+    if (newSet.has(key)) {
+      newSet.delete(key)
+    } else {
+      newSet.add(key)
+    }
+    setExpandedMenu(newSet)
   }
 
   const currentYear = new Date().getFullYear()
@@ -244,32 +254,35 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
     { label: '👤 Life', value: 'life' }
   ]
 
-  const renderSubmenu = (items: any[], level: number) => (
-    <div className="absolute top-0 left-full mt-0 bg-slate-800 border border-slate-700 rounded shadow-lg min-w-max z-50">
+  const renderMenuItems = (items: any[], level: number = 0) => (
+    <>
       {items.map((item) => {
         const itemKey = `${level}-${item.value}`
+        const isExpanded = expandedMenu.has(itemKey)
         return (
-          <div key={item.value} className="relative">
+          <div key={item.value}>
             <button
-              className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 transition-all flex items-center justify-between whitespace-nowrap"
+              className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all flex items-center justify-between"
               onClick={() => {
                 if (item.submenu) {
-                  setExpandedMenu(expandedMenu === itemKey ? null : itemKey)
+                  toggleMenu(itemKey)
                 } else {
                   handleSelectVertical(item.value, item.value)
                 }
               }}
             >
               <span>{item.label}</span>
-              {item.submenu && <span className={`ml-2 transition-transform ${expandedMenu === itemKey ? 'rotate-90' : ''}`}>›</span>}
+              {item.submenu && <span className={`ml-2 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>›</span>}
             </button>
-            {item.submenu && expandedMenu === itemKey && (
-              renderSubmenu(item.submenu, level + 1)
+            {item.submenu && isExpanded && (
+              <div className="pl-4 bg-slate-700/30">
+                {renderMenuItems(item.submenu, level + 1)}
+              </div>
             )}
           </div>
         )
       })}
-    </div>
+    </>
   )
   
   return (
@@ -430,31 +443,9 @@ export default memo(function Topbar({ onMenu }: { onMenu?: () => void }) {
       </div>
     </Modal>
 
-    <Modal open={showVerticalMenu} onClose={() => { setShowVerticalMenu(false); setExpandedMenu(null); }} title="Select Insurance Type">
-      <div className="relative">
-        {menuStructure.map((item) => {
-          const itemKey = `0-${item.value}`
-          return (
-            <div key={item.value} className="relative">
-              <button
-                className="w-full px-4 py-3 text-left text-white hover:bg-slate-700 rounded transition-all flex items-center justify-between"
-                onClick={() => {
-                  if (item.submenu) {
-                    setExpandedMenu(expandedMenu === itemKey ? null : itemKey)
-                  } else {
-                    handleSelectVertical(item.value, item.value)
-                  }
-                }}
-              >
-                <span>{item.label}</span>
-                {item.submenu && <span className={`ml-2 transition-transform ${expandedMenu === itemKey ? 'rotate-90' : ''}`}>›</span>}
-              </button>
-              {item.submenu && expandedMenu === itemKey && (
-                renderSubmenu(item.submenu, 1)
-              )}
-            </div>
-          )
-        })}
+    <Modal open={showVerticalMenu} onClose={() => { setShowVerticalMenu(false); setExpandedMenu(new Set()); }} title="Select Insurance Type">
+      <div className="space-y-2">
+        {renderMenuItems(menuStructure)}
       </div>
     </Modal>
     
