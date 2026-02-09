@@ -41,11 +41,10 @@ export default function DocUploader() {
       setLoading(true)
       const token = localStorage.getItem('token')
       
-      // Fetch recent activities from external doc uploader API
-      const response = await fetch(`${DOC_API_URL}/documents/activity?limit=10`, {
+      // Fetch from backend proxy endpoint
+      const response = await fetch(`/api/doc-uploader/activity?limit=10`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'X-Client-Email': user?.email || '',
         },
       })
 

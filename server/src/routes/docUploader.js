@@ -7,7 +7,7 @@
 
 const express = require('express')
 const axios = require('axios')
-const { authenticateToken } = require('../middleware/auth')
+const { authRequired } = require('../middleware/auth')
 
 const router = express.Router()
 
@@ -18,7 +18,7 @@ const DOC_UPLOADER_API = process.env.DOC_UPLOADER_API_URL || 'http://localhost:3
  * GET /api/doc-uploader/activity
  * Fetch recent document activities from external service
  */
-router.get('/activity', authenticateToken, async (req, res) => {
+router.get('/activity', authRequired, async (req, res) => {
   try {
     const { limit = 10 } = req.query
     const clientEmail = req.user?.email
@@ -61,7 +61,7 @@ router.get('/activity', authenticateToken, async (req, res) => {
  * GET /api/doc-uploader/stats
  * Fetch document statistics
  */
-router.get('/stats', authenticateToken, async (req, res) => {
+router.get('/stats', authRequired, async (req, res) => {
   try {
     const clientEmail = req.user?.email
 
@@ -94,7 +94,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
  * POST /api/doc-uploader/redirect-token
  * Generate a secure redirect token for accessing external doc uploader
  */
-router.post('/redirect-token', authenticateToken, (req, res) => {
+router.post('/redirect-token', authRequired, (req, res) => {
   try {
     const user = req.user
     const token = req.headers.authorization?.split(' ')[1]
@@ -123,7 +123,7 @@ router.post('/redirect-token', authenticateToken, (req, res) => {
  * GET /api/doc-uploader/documents
  * List documents from external service
  */
-router.get('/documents', authenticateToken, async (req, res) => {
+router.get('/documents', authRequired, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query
     const clientEmail = req.user?.email
