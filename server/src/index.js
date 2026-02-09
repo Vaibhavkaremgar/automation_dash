@@ -29,6 +29,7 @@ const messageWebhooksRoutes = require('./routes/messageWebhooks');
 const profilesRoutes = require('./routes/profiles');
 const backupRoutes = require('./routes/backup');
 const leadsRoutes = require('./routes/leads');
+const docUploaderRoutes = require('./routes/docUploader');
 
 
 const app = express();
@@ -187,6 +188,7 @@ app.use('/api/profiles', profilesRoutes);
 app.use('/api/reset-passwords', require('./routes/reset-passwords'));
 app.use('/api/backup', require('./routes/backup'));
 app.use('/api/leads', leadsRoutes);
+app.use('/api/doc-uploader', docUploaderRoutes);
 
 // Serve index.html for all non-API routes in production
 if (config.nodeEnv === 'production') {

@@ -1,7 +1,7 @@
 import { memo, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { LayoutDashboard, Briefcase, Users, Upload, Wallet, BarChart3, Mail, Settings, Receipt, Shield, MessageSquare, UserPlus } from 'lucide-react'
+import { LayoutDashboard, Briefcase, Users, Upload, Wallet, BarChart3, Mail, Settings, Receipt, Shield, MessageSquare, UserPlus, FileText } from 'lucide-react'
 import AIBackground from '../ui/AIBackground'
 import AICube from '../ui/AICube'
 
@@ -33,6 +33,7 @@ export default memo(function Sidebar() {
         { to: '/insurance/claims', icon: Briefcase, label: 'Claims', emoji: '📝' },
         { to: '/insurance/reports', icon: BarChart3, label: 'Reports', emoji: '📊' },
         { to: '/insurance/leads', icon: UserPlus, label: 'Lead Management', emoji: '🎯' },
+        { to: '/insurance/doc-uploader', icon: FileText, label: 'Doc Uploader', emoji: '📄' },
         { to: '#', icon: Wallet, label: 'Wallet 🔒', emoji: '💰', disabled: true },
       ]
     }

@@ -35,6 +35,7 @@ const AdminToolsPricingPage = retryImport(() => import('./pages/admin/AdminTools
 const AdminTransactionsPage = retryImport(() => import('./pages/admin/AdminTransactions'))
 const AccessDeniedPage = retryImport(() => import('./pages/AccessDenied'))
 const ProfileSelectionPage = retryImport(() => import('./pages/ProfileSelection'))
+const DocUploaderPage = retryImport(() => import('./pages/DocUploader'))
 
 const ProtectedRoute = memo(function ProtectedRoute({ roles }: { roles?: Array<'admin' | 'client'> }) {
   const { user, loading } = useAuth()
@@ -105,6 +106,7 @@ export default function App() {
               <Route path="/insurance/messages" element={<MessagesHistory />} />
               <Route path="/insurance/reports" element={<ReportsPage />} />
               <Route path="/insurance/leads" element={<LeadManagement />} />
+              <Route path="/insurance/doc-uploader" element={<DocUploaderPage />} />
               
               {/* Shared Routes */}
               <Route path="/wallet" element={<WalletPage />} />
