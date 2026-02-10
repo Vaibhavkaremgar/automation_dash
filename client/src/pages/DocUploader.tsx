@@ -25,10 +25,10 @@ export default function DocUploader() {
   const [stats, setStats] = useState<DocStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   // External doc uploader software URL - configure this
-  const DOC_UPLOADER_URL = process.env.REACT_APP_DOC_UPLOADER_URL || 'http://localhost:3001'
-  const DOC_API_URL = process.env.REACT_APP_DOC_API_URL || 'http://localhost:3001/api'
+  const DOC_UPLOADER_URL = 'https://document-system-production-1a7e.up.railway.app/'
 
   useEffect(() => {
     fetchDocActivity()
@@ -65,12 +65,13 @@ export default function DocUploader() {
   }
 
   const handleRedirectToDocUploader = () => {
-    const clientEmail = user?.email || ''
-    const token = localStorage.getItem('token')
-    
-    // Redirect to external doc uploader with auth token
-    const redirectUrl = `${DOC_UPLOADER_URL}?email=${encodeURIComponent(clientEmail)}&token=${token}`
-    window.open(redirectUrl, '_blank')
+    window.open(DOC_UPLOADER_URL, '_blank')
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    // Search functionality can be added when external API supports it
+    console.log('Search query:', searchQuery)
   }
 
   const getStatusColor = (status: string) => {
@@ -118,6 +119,25 @@ export default function DocUploader() {
             </button>
           </div>
           <p className="text-slate-400">Manage and track your document uploads and downloads</p>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-6">
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Search documents by name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+            >
+              Search
+            </button>
+          </form>
         </div>
 
         {/* Stats Cards */}

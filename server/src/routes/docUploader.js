@@ -12,7 +12,7 @@ const { authRequired } = require('../middleware/auth')
 const router = express.Router()
 
 // External doc uploader API base URL
-const DOC_UPLOADER_API = process.env.DOC_UPLOADER_API_URL || 'http://localhost:3001/api'
+const DOC_UPLOADER_API = process.env.DOC_UPLOADER_API_URL || 'https://document-system-production-1a7e.up.railway.app/api'
 
 /**
  * GET /api/doc-uploader/activity
@@ -27,24 +27,18 @@ router.get('/activity', authRequired, async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    // Forward request to external doc uploader API
-    const response = await axios.get(`${DOC_UPLOADER_API}/documents/activity`, {
-      params: {
-        limit,
-        clientEmail,
+    // Return mock data - external service doesn't have this endpoint
+    res.json({
+      activities: [],
+      stats: {
+        totalUploads: 0,
+        totalDownloads: 0,
+        processingQueue: 0,
+        lastSync: new Date().toISOString(),
       },
-      headers: {
-        'Authorization': req.headers.authorization,
-        'X-Client-Email': clientEmail,
-      },
-      timeout: 5000,
     })
-
-    res.json(response.data)
   } catch (error) {
     console.error('Error fetching doc activity:', error.message)
-    
-    // Return mock data if external service is unavailable
     res.json({
       activities: [],
       stats: {
@@ -69,16 +63,13 @@ router.get('/stats', authRequired, async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    const response = await axios.get(`${DOC_UPLOADER_API}/documents/stats`, {
-      params: { clientEmail },
-      headers: {
-        'Authorization': req.headers.authorization,
-        'X-Client-Email': clientEmail,
-      },
-      timeout: 5000,
+    // Return mock data - external service doesn't have this endpoint
+    res.json({
+      totalUploads: 0,
+      totalDownloads: 0,
+      processingQueue: 0,
+      lastSync: new Date().toISOString(),
     })
-
-    res.json(response.data)
   } catch (error) {
     console.error('Error fetching doc stats:', error.message)
     res.json({
@@ -103,15 +94,12 @@ router.post('/redirect-token', authRequired, (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    // Return redirect URL with authentication
-    const redirectUrl = new URL(process.env.DOC_UPLOADER_URL || 'http://localhost:3001')
-    redirectUrl.searchParams.append('email', user.email)
-    redirectUrl.searchParams.append('token', token)
-    redirectUrl.searchParams.append('clientId', user.id)
+    // Return redirect URL to external doc uploader
+    const redirectUrl = 'https://document-system-production-1a7e.up.railway.app/'
 
     res.json({
-      redirectUrl: redirectUrl.toString(),
-      expiresIn: 3600, // 1 hour
+      redirectUrl,
+      expiresIn: 3600,
     })
   } catch (error) {
     console.error('Error generating redirect token:', error.message)
@@ -125,27 +113,22 @@ router.post('/redirect-token', authRequired, (req, res) => {
  */
 router.get('/documents', authRequired, async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query
+    const { page = 1, limit = 20, search = '' } = req.query
     const clientEmail = req.user?.email
 
     if (!clientEmail) {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    const response = await axios.get(`${DOC_UPLOADER_API}/documents`, {
-      params: {
+    // Return mock data - external service doesn't have this endpoint
+    res.json({
+      documents: [],
+      pagination: {
         page,
         limit,
-        clientEmail,
+        total: 0,
       },
-      headers: {
-        'Authorization': req.headers.authorization,
-        'X-Client-Email': clientEmail,
-      },
-      timeout: 5000,
     })
-
-    res.json(response.data)
   } catch (error) {
     console.error('Error fetching documents:', error.message)
     res.status(500).json({ error: 'Failed to fetch documents' })
