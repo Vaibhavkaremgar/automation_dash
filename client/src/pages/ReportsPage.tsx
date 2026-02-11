@@ -466,12 +466,12 @@ export default function ReportsPage() {
         const now = new Date();
         const collectedThisMonth = reportData.premiumCollection.customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = c.renewal_date || c.od_expiry_date; if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
         const collectedThisYear = reportData.premiumCollection.customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = c.renewal_date || c.od_expiry_date; if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).reduce((sum, c) => sum + (parseFloat(c.premium) || 0), 0);
-        const filtered = applyMonthFilter(reportData.premiumCollection.customers);
-        const topCustomer = [...filtered].sort((a, b) => (parseFloat(b.premium) || 0) - (parseFloat(a.premium) || 0))[0] || { name: 'N/A', premium: 0 };
+        const topCustomer = [...reportData.premiumCollection.customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'renewed' || status === 'inprocess' || status === 'inprogress'; })].sort((a, b) => (parseFloat(b.premium) || 0) - (parseFloat(a.premium) || 0))[0] || { name: 'N/A', premium: 0 };
         const companyTotals = {};
-        filtered.forEach(c => { const co = c.company || 'Unknown'; companyTotals[co] = (companyTotals[co] || 0) + (parseFloat(c.premium) || 0); });
+        reportData.premiumCollection.customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'renewed' || status === 'inprocess' || status === 'inprogress'; }).forEach(c => { const co = c.company || 'Unknown'; companyTotals[co] = (companyTotals[co] || 0) + (parseFloat(c.premium) || 0); });
         const topCompany = Object.entries(companyTotals).sort((a, b) => b[1] - a[1])[0] || ['N/A', 0];
         const byCompanyFiltered = Object.entries(companyTotals).map(([company, amount]) => ({ company, amount })).sort((a, b) => b.amount - a.amount);
+        const statusFilteredForCompany = reportData.premiumCollection.customers.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'renewed' || status === 'inprocess' || status === 'inprogress'; });
         const filteredMonthlyPremium = reportData.premiumCollection.monthlyPremium.map(m => ({
           month: m.month,
           amount: filterEnabled ? Math.round(m.amount * (filtered.length / (reportData.premiumCollection.customers.length || 1))) : m.amount
@@ -487,7 +487,7 @@ export default function ReportsPage() {
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Collected This Year</span><span className="md:hidden">Year</span></h4>
               <p className="text-xl font-semibold text-cyan-400">₹{collectedThisYear}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const tc = filtered.filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'renewed' || status === 'inprocess' || status === 'inprogress'; }).filter(c => c.name === topCustomer.name); setDetailsModalTitle('Highest Premium Customer'); setDetailsModalCustomers(sortCustomersByExpiry(tc)); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const tc = statusFilteredForCompany.filter(c => c.name === topCustomer.name); setDetailsModalTitle('Highest Premium Customer'); setDetailsModalCustomers(sortCustomersByExpiry(tc)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Highest Premium Customer</span><span className="md:hidden">Top Cust</span></h4>
               <p className="text-base font-semibold text-purple-400 truncate">{topCustomer.name}</p>
               <p className="text-xs text-slate-400">₹{topCustomer.premium || 0}</p>
