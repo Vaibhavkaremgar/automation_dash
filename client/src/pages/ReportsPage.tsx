@@ -492,7 +492,7 @@ export default function ReportsPage() {
               <p className="text-base font-semibold text-purple-400 truncate">{topCustomer.name}</p>
               <p className="text-xs text-slate-400">₹{topCustomer.premium || 0}</p>
             </div>
-            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const tc = filtered.filter(c => c.company === topCompany[0]); setDetailsModalTitle(`${topCompany[0]} - Customers`); setDetailsModalCustomers(sortCustomersByExpiry(tc)); setShowDetailsModal(true); }}>
+            <div className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const tc = statusFilteredForCompany.filter(c => c.company === topCompany[0]); setDetailsModalTitle(`${topCompany[0]} - Customers`); setDetailsModalCustomers(sortCustomersByExpiry(tc)); setShowDetailsModal(true); }}>
               <h4 className="text-xs text-slate-400 mb-1"><span className="hidden md:inline">Top Insurance Company</span><span className="md:hidden">Top Co</span></h4>
               <p className="text-base font-semibold text-orange-400 truncate">{topCompany[0]}</p>
               <p className="text-xs text-slate-400">₹{topCompany[1]}</p>
@@ -540,7 +540,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
-                {filtered.map((customer, idx) => (
+                {statusFilteredForCompany.map((customer, idx) => (
                   <tr key={idx} className="hover:bg-slate-700/30">
                     <td className="px-6 py-4 text-sm text-white">{customer.name}</td>
                     <td className="px-6 py-4 text-sm text-slate-100">{customer.company}</td>
