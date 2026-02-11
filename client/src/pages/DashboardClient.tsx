@@ -32,13 +32,13 @@ export default function DashboardClient() {
     if (!candidatesData || !jobsData) return null
     
     const total = candidatesData.length
-    const shortlisted = candidatesData.filter(c => 
+    const shortlisted = candidatesData.filter((c: any) => 
       c.status?.toLowerCase().includes('shortlist') ||
       c.status?.toLowerCase().includes('selected')
     ).length
     
     const avgScore = candidatesData.length > 0 
-      ? Math.round(candidatesData.reduce((sum, c) => sum + (c.match_score || 0), 0) / candidatesData.length)
+      ? Math.round(candidatesData.reduce((sum: number, c: any) => sum + (c.match_score || 0), 0) / candidatesData.length)
       : 0
 
     return {

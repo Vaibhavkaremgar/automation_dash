@@ -36,7 +36,7 @@ export default function DocUploader() {
             src={DOC_UPLOADER_URL}
             className="w-full h-full border-0"
             title="Document Uploader"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation allow-downloads"
           />
         </div>
       </div>
