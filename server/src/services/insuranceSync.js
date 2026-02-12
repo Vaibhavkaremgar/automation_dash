@@ -421,6 +421,7 @@ class InsuranceSyncService {
       const policyColIndex = headers.findIndex(h => h === schema.current_policy_no);
       const nameColIndex = headers.findIndex(h => h === schema.name);
       const mobileColIndex = headers.findIndex(h => h === schema.mobile_number);
+      const productTypeColIndex = headers.findIndex(h => h === schema.product_type);
       
       const reverseSchema = {};
       Object.entries(schema).forEach(([field, colName]) => {
@@ -433,15 +434,18 @@ class InsuranceSyncService {
         const policyNo = row[policyColIndex] ? row[policyColIndex].trim() : '';
         const name = row[nameColIndex] ? row[nameColIndex].trim().toLowerCase() : '';
         const mobile = row[mobileColIndex] ? row[mobileColIndex].trim() : '';
+        const productType = productTypeColIndex !== -1 ? (row[productTypeColIndex] ? row[productTypeColIndex].trim() : '') : '';
         
         const rowInfo = { row, rowNumber: index + 2, sheetIndex: index };
         
-        if (policyNo) {
-          sheetRowMap.set(`policy:${policyNo}`, rowInfo);
+        // Primary: Policy Number + Product Type
+        if (policyNo && productType) {
+          sheetRowMap.set(`policy_product:${policyNo}:${productType}`, rowInfo);
         }
         
-        if (name && mobile) {
-          sheetRowMap.set(`name_mobile:${name}:${mobile}`, rowInfo);
+        // Fallback: Name + Mobile + Product Type
+        if (name && mobile && productType) {
+          sheetRowMap.set(`name_mobile_product:${name}:${mobile}:${productType}`, rowInfo);
         }
       });
       
@@ -582,15 +586,16 @@ class InsuranceSyncService {
             const policyNo = row[policyColIndex] ? row[policyColIndex].trim() : '';
             const name = row[nameColIndex] ? row[nameColIndex].trim().toLowerCase() : '';
             const mobile = row[mobileColIndex] ? row[mobileColIndex].trim() : '';
+            const productType = productTypeColIndex !== -1 ? (row[productTypeColIndex] ? row[productTypeColIndex].trim() : '') : '';
             
             const rowInfo = { row, rowNumber: index + 2, sheetIndex: index };
             
-            if (policyNo) {
-              sheetRowMap.set(`policy:${policyNo}`, rowInfo);
+            if (policyNo && productType) {
+              sheetRowMap.set(`policy_product:${policyNo}:${productType}`, rowInfo);
             }
             
-            if (name && mobile) {
-              sheetRowMap.set(`name_mobile:${name}:${mobile}`, rowInfo);
+            if (name && mobile && productType) {
+              sheetRowMap.set(`name_mobile_product:${name}:${mobile}:${productType}`, rowInfo);
             }
           });
           
@@ -608,21 +613,21 @@ class InsuranceSyncService {
         // Try to find matching row in sheet - MULTIPLE MATCHING STRATEGIES
         let existingEntry = null;
         
-        // Strategy 1: Match by Name + Mobile (most reliable for updates)
-        if (customer.name && customer.mobile_number) {
-          const key = `name_mobile:${customer.name.trim().toLowerCase()}:${customer.mobile_number.trim()}`;
+        // Strategy 1: Match by Policy Number + Product Type (most reliable for multiple policies)
+        if (customer.current_policy_no && customer.current_policy_no.trim() && customer.product_type) {
+          const key = `policy_product:${customer.current_policy_no.trim()}:${customer.product_type.trim()}`;
           existingEntry = sheetRowMap.get(key);
           if (existingEntry) {
-            console.log(`✓ Matched by name+mobile: ${customer.name}`);
+            console.log(`✓ Matched by policy+product: ${customer.current_policy_no} (${customer.product_type})`);
           }
         }
         
-        // Strategy 2: Match by Policy Number (current_policy_no)
-        if (!existingEntry && customer.current_policy_no && customer.current_policy_no.trim()) {
-          const key = `policy:${customer.current_policy_no.trim()}`;
+        // Strategy 2: Match by Name + Mobile + Product Type (for customers with same name/mobile but different vehicles)
+        if (!existingEntry && customer.name && customer.mobile_number && customer.product_type) {
+          const key = `name_mobile_product:${customer.name.trim().toLowerCase()}:${customer.mobile_number.trim()}:${customer.product_type.trim()}`;
           existingEntry = sheetRowMap.get(key);
           if (existingEntry) {
-            console.log(`✓ Matched by policy: ${customer.current_policy_no}`);
+            console.log(`✓ Matched by name+mobile+product: ${customer.name} (${customer.product_type})`);
           }
         }
         
