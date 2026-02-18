@@ -1,0 +1,47 @@
+########################################
+# GLOBAL IGNORE FOR FULL PROJECT
+########################################
+
+# Environment files (critical!)
+.env
+*.env
+server/.env
+client/.env
+
+# Node modules (both client & server)
+node_modules/
+server/node_modules/
+client/node_modules/
+# Build outputs
+dist/
+dist-ssr/
+build/
+server/dist/
+client/dist/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS / editor trash
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Misc IDE files
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+########################################
+# PROJECT-SPECIFIC
+########################################
