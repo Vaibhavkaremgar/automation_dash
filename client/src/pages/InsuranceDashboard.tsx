@@ -657,7 +657,7 @@ export default function InsuranceDashboard() {
     
     if (compact) {
       return (
-        <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
+        <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer `} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
           <div className="flex items-start gap-3">
             <input
               type="checkbox"
@@ -694,7 +694,7 @@ export default function InsuranceDashboard() {
             <div className="flex items-center gap-2 flex-shrink-0">
               {isSelected ? (
                 <button
-                  className="px-3 py-1 text-xs border border-green-500/50 rounded bg-green-500/10 text-green-400 hover:bg-green-500/20 transition-all font-medium"
+                  className="px-3 py-1 text-xs border border-green-500/50 rounded bg-green-500/10 text-green-400  font-medium"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -707,7 +707,7 @@ export default function InsuranceDashboard() {
               ) : (
                 <>
                   <button
-                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                    className="px-2 py-1 text-xs border border-slate-600 rounded  transition-all"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -746,7 +746,7 @@ export default function InsuranceDashboard() {
                   </button>
                   <button
                     type="button"
-                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                    className="px-2 py-1 text-xs border border-slate-600 rounded  transition-all"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -766,7 +766,7 @@ export default function InsuranceDashboard() {
     }
     
     return (
-      <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
+      <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer `} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
         <div className="flex items-start gap-3">
           <input
             type="checkbox"
@@ -792,7 +792,7 @@ export default function InsuranceDashboard() {
             <div className="flex flex-wrap gap-2">
               {isSelected && (
                 <select 
-                  className="px-3 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium hover:bg-slate-700 cursor-pointer"
+                  className="px-3 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium  cursor-pointer"
                   onChange={(e) => { e.stopPropagation(); if (e.target.value) { handleBulkStatusUpdate(e.target.value); e.target.value = ''; } }}
                   onClick={(e) => e.stopPropagation()}
                   defaultValue=""
@@ -807,7 +807,7 @@ export default function InsuranceDashboard() {
               {!isSelected && (
                 <>
                   <button
-                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all opacity-60"
+                    className="px-2 py-1 text-xs border border-slate-600 rounded  transition-all opacity-60"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -818,7 +818,7 @@ export default function InsuranceDashboard() {
                     📞🔒
                   </button>
                   <button
-                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                    className="px-2 py-1 text-xs border border-slate-600 rounded  transition-all"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -859,7 +859,7 @@ export default function InsuranceDashboard() {
                   </button>
                   <button
                     type="button"
-                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                    className="px-2 py-1 text-xs border border-slate-600 rounded  transition-all"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -871,7 +871,7 @@ export default function InsuranceDashboard() {
                     📝
                   </button>
                   <button
-                    className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                    className="px-2 py-1 text-xs border border-slate-600 rounded  transition-all"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -1213,7 +1213,7 @@ export default function InsuranceDashboard() {
                 const displayDate = getDisplayDate(customer);
                 
                 return (
-                  <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer hover:bg-slate-700/70 transition-all`} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
+                  <div key={customer.id} className={`p-3 bg-slate-700/50 rounded-lg border ${colorClass} cursor-pointer `} onClick={() => { setDetailsModalTitle(`${customer.name} - Details`); setDetailsModalCustomers([customer]); setShowDetailsModal(true); }}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
@@ -1229,7 +1229,7 @@ export default function InsuranceDashboard() {
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <span className="text-sm font-bold text-white whitespace-nowrap">₹{parseAmount(customer.premium).toLocaleString()}</span>
                         <button
-                          className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                          className="px-2 py-1 text-xs border border-slate-600 rounded  transition-all"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -1255,7 +1255,7 @@ export default function InsuranceDashboard() {
                         </button>
                         <button
                           type="button"
-                          className="px-2 py-1 text-xs border border-slate-600 rounded hover:bg-slate-700 transition-all"
+                          className="px-2 py-1 text-xs border border-slate-600 rounded  transition-all"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -1302,7 +1302,7 @@ export default function InsuranceDashboard() {
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => { setDetailsModalTitle('Expiring Today'); setDetailsModalCustomers(expiringToday); setShowDetailsModal(true); }}>
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 cursor-pointer " onClick={() => { setDetailsModalTitle('Expiring Today'); setDetailsModalCustomers(expiringToday); setShowDetailsModal(true); }}>
             <h4 className="text-xs text-red-300 mb-1">Expiring Today</h4>
             <p className="text-2xl font-bold text-red-400">{expiringToday.length}</p>
             <Button 
@@ -1315,7 +1315,7 @@ export default function InsuranceDashboard() {
             </Button>
           </div>
           
-          <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 cursor-pointer hover:bg-orange-500/20 transition-all" onClick={() => { const all7Days = [...expiringToday, ...expiring1Day, ...expiring7]; setDetailsModalTitle('Expiring in 7 Days'); setDetailsModalCustomers(all7Days); setShowDetailsModal(true); }}>
+          <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3 cursor-pointer " onClick={() => { const all7Days = [...expiringToday, ...expiring1Day, ...expiring7]; setDetailsModalTitle('Expiring in 7 Days'); setDetailsModalCustomers(all7Days); setShowDetailsModal(true); }}>
             <h4 className="text-xs text-orange-300 mb-1">Expiring in 7 Days</h4>
             <p className="text-2xl font-bold text-orange-400">{expiringToday.length + expiring1Day.length + expiring7.length}</p>
             <Button 
@@ -1328,7 +1328,7 @@ export default function InsuranceDashboard() {
             </Button>
           </div>
           
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 cursor-pointer hover:bg-yellow-500/20 transition-all" onClick={() => { const { expiring15, expiring30 } = categorizeCustomers(); const all30Days = [...expiring15, ...expiring30]; setDetailsModalTitle('Expiring in 30 Days'); setDetailsModalCustomers(all30Days); setShowDetailsModal(true); }}>
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 cursor-pointer " onClick={() => { const { expiring15, expiring30 } = categorizeCustomers(); const all30Days = [...expiring15, ...expiring30]; setDetailsModalTitle('Expiring in 30 Days'); setDetailsModalCustomers(all30Days); setShowDetailsModal(true); }}>
             <h4 className="text-xs text-yellow-300 mb-1">Expiring in 30 Days</h4>
             <p className="text-2xl font-bold text-yellow-400">{categorizeCustomers().expiring15.length + categorizeCustomers().expiring30.length}</p>
             <Button 
@@ -1484,31 +1484,31 @@ export default function InsuranceDashboard() {
       {/* Policy Tabs */}
       <div className="flex flex-wrap gap-2">
         <button
-          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-cyan-300 border border-slate-700 rounded"
+          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer  border border-slate-700 rounded"
           onClick={() => { setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(applyGlobalFilter(customers)); setShowDetailsModal(true); }}
         >
           Total ({applyGlobalFilter(customers).length})
         </button>
         <button
-          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-green-300 border border-slate-700 rounded"
+          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer  border border-slate-700 rounded"
           onClick={() => { const activePolicies = applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'renewed'); setDetailsModalTitle('Active Policies'); setDetailsModalCustomers(activePolicies); setShowDetailsModal(true); }}
         >
           Active ({applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'renewed').length})
         </button>
         <button
-          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-blue-300 border border-slate-700 rounded"
+          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer  border border-slate-700 rounded"
           onClick={() => { const inprocessPolicies = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }); setDetailsModalTitle('In Process'); setDetailsModalCustomers(inprocessPolicies); setShowDetailsModal(true); }}
         >
           In Process ({applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).length})
         </button>
         <button
-          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-red-300 border border-slate-700 rounded"
+          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer  border border-slate-700 rounded"
           onClick={() => { const pendingPolicies = applyGlobalFilter(customers).filter(c => { const daysLeft = getDaysUntilExpiry(c); return (daysLeft < 0 || daysLeft <= 30) && c.status.trim().toLowerCase() === 'due'; }); setDetailsModalTitle('Pending Policies'); setDetailsModalCustomers(pendingPolicies); setShowDetailsModal(true); }}
         >
           Pending ({applyGlobalFilter(customers).filter(c => { const daysLeft = getDaysUntilExpiry(c); return (daysLeft < 0 || daysLeft <= 30) && c.status.trim().toLowerCase() === 'due'; }).length})
         </button>
         <button
-          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer hover:text-orange-300 border border-slate-700 rounded"
+          className="px-3 py-2 text-xs sm:text-sm font-medium text-slate-400 cursor-pointer  border border-slate-700 rounded"
           onClick={() => { const lostPolicies = applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'not renewed'); setDetailsModalTitle('Lost Policies'); setDetailsModalCustomers(lostPolicies); setShowDetailsModal(true); }}
         >
           Lost ({applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'not renewed').length})
@@ -1520,7 +1520,7 @@ export default function InsuranceDashboard() {
         <h3 className="text-base font-semibold mb-3 text-white">Company-wise Policies</h3>
         
         {/* Total Amount Card */}
-        <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg cursor-pointer hover:bg-purple-500/20 transition-all" onClick={() => { setDetailsModalTitle('All Policies - Total Premium'); setDetailsModalCustomers(applyGlobalFilter(customers)); setShowDetailsModal(true); }}>
+        <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg cursor-pointer " onClick={() => { setDetailsModalTitle('All Policies - Total Premium'); setDetailsModalCustomers(applyGlobalFilter(customers)); setShowDetailsModal(true); }}>
           <h4 className="text-sm font-medium text-purple-300 mb-1">Total Premium (All Companies)</h4>
           <p className="text-3xl font-bold text-purple-400">₹{applyGlobalFilter(customers).reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString()}</p>
           <p className="text-xs text-slate-300 mt-1">{applyGlobalFilter(customers).length} total policies</p>
@@ -1542,7 +1542,7 @@ export default function InsuranceDashboard() {
               return acc;
             }, {})
           ).map(([company, data]: [string, any]) => (
-            <div key={company} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer hover:bg-slate-700/70 transition-all" onClick={() => { const sorted = [...data.customers].sort((a, b) => { const aIsDue = a.status.trim().toLowerCase() === 'due' ? 0 : 1; const bIsDue = b.status.trim().toLowerCase() === 'due' ? 0 : 1; return aIsDue - bIsDue; }); setDetailsModalTitle(`${company} - Customers`); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
+            <div key={company} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600/50 cursor-pointer " onClick={() => { const sorted = [...data.customers].sort((a, b) => { const aIsDue = a.status.trim().toLowerCase() === 'due' ? 0 : 1; const bIsDue = b.status.trim().toLowerCase() === 'due' ? 0 : 1; return aIsDue - bIsDue; }); setDetailsModalTitle(`${company} - Customers`); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h4 className="text-sm font-medium text-white mb-1">{company}</h4>
               <p className="text-xs text-slate-300">Total: {data.count} | <span className="text-green-400">Renewed: {data.renewed}</span> | <span className="text-blue-400">In Process: {data.inprocess}</span> | <span className="text-red-400">Due: {data.due}</span> | <span className="text-gray-400">Lost: {data.lost}</span></p>
               <p className="text-base font-bold text-cyan-400">₹{data.premium.toLocaleString()}</p>
@@ -1580,23 +1580,23 @@ export default function InsuranceDashboard() {
 
           {/* Statistics - Fixed */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg cursor-pointer hover:bg-red-500/20 transition-all" onClick={() => document.getElementById('today-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg cursor-pointer " onClick={() => document.getElementById('today-section')?.scrollIntoView({  })}>
               <h4 className="text-xs text-red-300 mb-1">Expiring Today</h4>
               <p className="text-2xl font-bold text-red-400">{expiringToday.length}</p>
             </div>
-            <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg cursor-pointer hover:bg-orange-500/20 transition-all" onClick={() => document.getElementById('expiring3-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg cursor-pointer " onClick={() => document.getElementById('expiring3-section')?.scrollIntoView({  })}>
               <h4 className="text-xs text-orange-300 mb-1">Within 3 Days</h4>
               <p className="text-2xl font-bold text-orange-400">{expiring1Day.length + expiring3.length}</p>
             </div>
-            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg cursor-pointer hover:bg-yellow-500/20 transition-all" onClick={() => document.getElementById('expiring7-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg cursor-pointer " onClick={() => document.getElementById('expiring7-section')?.scrollIntoView({  })}>
               <h4 className="text-xs text-yellow-300 mb-1">Within 7 Days</h4>
               <p className="text-2xl font-bold text-yellow-400">{expiring7.length}</p>
             </div>
-            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer hover:bg-blue-500/20 transition-all" onClick={() => document.getElementById('inprocess-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg cursor-pointer " onClick={() => document.getElementById('inprocess-section')?.scrollIntoView({  })}>
               <h4 className="text-xs text-blue-300 mb-1">In Process</h4>
               <p className="text-2xl font-bold text-blue-400">{inProcess.length}</p>
             </div>
-            <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg cursor-pointer hover:bg-green-500/20 transition-all" onClick={() => document.getElementById('renewed-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg cursor-pointer " onClick={() => document.getElementById('renewed-section')?.scrollIntoView({  })}>
               <h4 className="text-xs text-green-300 mb-1">Renewed</h4>
               <p className="text-2xl font-bold text-green-400">{renewed.length}</p>
             </div>
@@ -1608,7 +1608,7 @@ export default function InsuranceDashboard() {
 
         {/* Renewal Update Modal - Shows when customers are selected */}
         {selectedCustomers.length > 0 && (
-          <div className="sticky top-0 z-20 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 backdrop-blur-md shadow-lg">
+          <div className="sticky top-0 z-20 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 backdrop-blur-md ">
             <p className="text-white font-semibold text-base">
               <span className="bg-cyan-500/30 px-2 py-1 rounded">{selectedCustomers.length}</span> customer{selectedCustomers.length > 1 ? 's' : ''} selected
             </p>
@@ -1617,13 +1617,13 @@ export default function InsuranceDashboard() {
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowRenewalUpdateModal(true)}
-                className="border-green-500/50 text-green-400 hover:bg-green-500/10"
+                className="border-green-500/50 text-green-400 "
               >
                 ✏️ Update & Sync
               </Button>
               <span className="text-sm text-slate-200 font-medium">Mark as:</span>
               <select 
-                className="px-4 py-2 border-2 border-cyan-500/50 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 focus:ring-2 focus:ring-cyan-500 transition-all cursor-pointer"
+                className="px-4 py-2 border-2 border-cyan-500/50 rounded-lg bg-slate-800 text-white text-sm font-medium   cursor-pointer"
                 onChange={(e) => { if (e.target.value) handleBulkStatusUpdate(e.target.value); e.target.value = ''; }}
                 defaultValue=""
               >
@@ -1637,7 +1637,7 @@ export default function InsuranceDashboard() {
                 variant="outline" 
                 size="sm"
                 onClick={() => setSelectedCustomers([])}
-                className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                className="border-red-500/50 text-red-400 "
               >
                 ✕ Clear Selection
               </Button>
@@ -1937,7 +1937,7 @@ export default function InsuranceDashboard() {
                 }
                 setShowUniqueCustomersModal(true);
               }}
-              className="px-3 py-1 text-sm font-medium bg-purple-500/20 border border-purple-500/50 rounded-lg text-purple-300 hover:bg-purple-500/30 transition-all disabled:opacity-50"
+              className="px-3 py-1 text-sm font-medium bg-purple-500/20 border border-purple-500/50 rounded-lg text-purple-300  transition-all disabled:opacity-50"
               disabled={customers.length === 0}
             >
               👥 Unique CX ({getUniqueCustomerCount()})
@@ -1967,37 +1967,37 @@ export default function InsuranceDashboard() {
     <div>
       {/* Sticky Stats - Visible across all sections */}
       {analytics && (
-        <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50 shadow-lg mb-4">
+        <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50  mb-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-1 p-2 w-full">
-            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const statusOrder = { 'due': 0, 'inprocess': 1, 'inprogress': 1, 'renewed': 2, 'not renewed': 3 }; const sorted = [...applyGlobalFilter(customers)].sort((a, b) => { const aStatus = a.status.trim().toLowerCase().replace(/[\s-]/g, ''); const bStatus = b.status.trim().toLowerCase().replace(/[\s-]/g, ''); const aOrder = statusOrder[aStatus] ?? 4; const bOrder = statusOrder[bStatus] ?? 4; if (aOrder !== bOrder) return aOrder - bOrder; return getDaysUntilExpiry(a) - getDaysUntilExpiry(b); }); setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const statusOrder = { 'due': 0, 'inprocess': 1, 'inprogress': 1, 'renewed': 2, 'not renewed': 3 }; const sorted = [...applyGlobalFilter(customers)].sort((a, b) => { const aStatus = a.status.trim().toLowerCase().replace(/[\s-]/g, ''); const bStatus = b.status.trim().toLowerCase().replace(/[\s-]/g, ''); const aOrder = statusOrder[aStatus] ?? 4; const bOrder = statusOrder[bStatus] ?? 4; if (aOrder !== bOrder) return aOrder - bOrder; return getDaysUntilExpiry(a) - getDaysUntilExpiry(b); }); setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Total</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).length}</p>
             </button>
-            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const upcoming = applyGlobalFilter(customers).filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const upcoming = applyGlobalFilter(customers).filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Upcoming</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).length}</p>
             </button>
-            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const renewed = applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const renewed = applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Renewed</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'renewed').length}</p>
             </button>
-            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const inprocess = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('In Process'); setDetailsModalCustomers(inprocess); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const inprocess = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('In Process'); setDetailsModalCustomers(inprocess); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">In Process</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).length}</p>
             </button>
-            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const expired = applyGlobalFilter(customers).filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const expired = applyGlobalFilter(customers).filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Expired</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').length}</p>
             </button>
-            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const lost = applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'not renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Lost Policies'); setDetailsModalCustomers(lost); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const lost = applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'not renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Lost Policies'); setDetailsModalCustomers(lost); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Lost</h3>
               <p className="text-2xl font-bold bg-gradient-to-r from-gray-400 to-slate-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'not renewed').length}</p>
             </button>
-            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const now = new Date(); const thisMonth = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Month Premium'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const now = new Date(); const thisMonth = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Month Premium'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Month Prem</h3>
               <p className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent break-words">₹{(() => { const now = new Date(); const thisMonth = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </button>
-            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer hover:bg-slate-800/70 transition-all text-left" onClick={() => { const now = new Date(); const thisYear = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Year Premium'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const now = new Date(); const thisYear = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Year Premium'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Year Prem</h3>
               <p className="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent break-words">₹{(() => { const now = new Date(); const thisYear = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </button>
@@ -2175,7 +2175,7 @@ export default function InsuranceDashboard() {
                 const isRenewed = customer.status?.trim().toLowerCase() === 'renewed';
                 const displayDate = getDisplayDate(customer);
                 return (
-              <div key={customer.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 hover:bg-slate-700/70 transition-all space-y-3">
+              <div key={customer.id} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50  space-y-3">
                 {isRenewed && (customer.new_company || customer.new_policy_no) && (
                   <div className="pb-3 border-b border-slate-600">
                     <h5 className="text-xs font-semibold text-green-400 mb-2">NEW POLICY DETAILS</h5>
@@ -2227,7 +2227,7 @@ export default function InsuranceDashboard() {
                 </div>
                 <div className="flex gap-2 pt-2 border-t border-slate-600 flex-wrap">
                   <select 
-                    className="px-2 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium hover:bg-slate-700 cursor-pointer"
+                    className="px-2 py-1 text-xs border border-cyan-500/50 rounded bg-slate-800 text-white font-medium  cursor-pointer"
                     onChange={(e) => { if (e.target.value) { handleBulkStatusUpdate(e.target.value, [customer.id]); e.target.value = ''; } }}
                     defaultValue=""
                   >
@@ -2401,7 +2401,7 @@ export default function InsuranceDashboard() {
                       autoComplete="off"
                     />
                     {data.bank_name && !['HDFC Bank', 'ICICI Bank', 'Axis Bank', 'SBI', 'Kotak Mahindra Bank', 'IndusInd Bank', 'IDBI Bank', 'Bank of Baroda', 'Punjab National Bank', 'Canara Bank', 'Union Bank of India', 'Bank of India', 'Central Bank of India', 'Indian Bank', 'Yes Bank', 'RBL Bank', 'IDFCFIRST Bank', 'Federal Bank', 'Karur Vysya Bank', 'South Indian Bank', 'Bandhan Bank', 'ICICI Prudential', 'HDFC Life', 'LIC', 'Bajaj Allianz', 'Reliance General', 'TATA AIG', 'New India Assurance', 'Oriental Insurance', 'United India Insurance'].includes(data.bank_name) && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-slate-700 border border-slate-600 rounded shadow-lg z-50 max-h-48 overflow-y-auto">
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-slate-700 border border-slate-600 rounded  z-50 max-h-48 overflow-y-auto">
                         {['HDFC Bank', 'ICICI Bank', 'Axis Bank', 'SBI', 'Kotak Mahindra Bank', 'IndusInd Bank', 'IDBI Bank', 'Bank of Baroda', 'Punjab National Bank', 'Canara Bank', 'Union Bank of India', 'Bank of India', 'Central Bank of India', 'Indian Bank', 'Yes Bank', 'RBL Bank', 'IDFCFIRST Bank', 'Federal Bank', 'Karur Vysya Bank', 'South Indian Bank', 'Bandhan Bank', 'ICICI Prudential', 'HDFC Life', 'LIC', 'Bajaj Allianz', 'Reliance General', 'TATA AIG', 'New India Assurance', 'Oriental Insurance', 'United India Insurance'].filter(bank => bank.toLowerCase().includes(data.bank_name.toLowerCase())).map(bank => (
                           <div
                             key={bank}
@@ -2492,19 +2492,30 @@ export default function InsuranceDashboard() {
                   </div>
                   <div>
                     <label className="text-xs text-slate-300 mb-1 block">Premium Mode</label>
-                    <select
-                      className="w-full p-2 border rounded bg-slate-700 text-white text-sm"
-                      value={data.premium_mode}
-                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, premium_mode: e.target.value}})}
-                    >
-                      <option value="">Select...</option>
-                      <option value="1 Year">1 Year</option>
-                      <option value="2 Years">2 Years</option>
-                      <option value="3 Years">3 Years</option>
-                      <option value="1 Month">1 Month</option>
-                      <option value="3 Months">3 Months</option>
-                      <option value="6 Months">6 Months</option>
-                    </select>
+                    {data.premium_mode === 'Others' ? (
+                      <input
+                        type="text"
+                        placeholder="Enter custom term (e.g., 18 Months, 4 Years)"
+                        value={data.custom_premium_mode || ''}
+                        onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, custom_premium_mode: e.target.value, premium_mode: e.target.value}})}
+                        className="w-full p-2 border rounded bg-slate-700 text-white text-sm"
+                      />
+                    ) : (
+                      <select
+                        className="w-full p-2 border rounded bg-slate-700 text-white text-sm"
+                        value={data.premium_mode}
+                        onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, premium_mode: e.target.value, custom_premium_mode: ''}})}
+                      >
+                        <option value="">Select...</option>
+                        <option value="1 Year">1 Year</option>
+                        <option value="2 Years">2 Years</option>
+                        <option value="3 Years">3 Years</option>
+                        <option value="1 Month">1 Month</option>
+                        <option value="3 Months">3 Months</option>
+                        <option value="6 Months">6 Months</option>
+                        <option value="Others">Others (Custom)</option>
+                      </select>
+                    )}
                   </div>
                 </div>
                 
