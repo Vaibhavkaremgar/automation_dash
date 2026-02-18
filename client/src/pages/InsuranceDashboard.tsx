@@ -137,13 +137,14 @@ export default function InsuranceDashboard() {
   const [showAll7Days, setShowAll7Days] = useState(false);
   const [showAll15Days, setShowAll15Days] = useState(false);
   const [showAll30Days, setShowAll30Days] = useState(false);
+  const [showAllAfter30Days, setShowAllAfter30Days] = useState(false);
   const [showAllRenewed, setShowAllRenewed] = useState(false);
   const [showAllInProcess, setShowAllInProcess] = useState(false);
   const [showAllCustomers, setShowAllCustomers] = useState(false);
   const [quickActionsLimit, setQuickActionsLimit] = useState(5);
   const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
   const [showRenewalUpdateModal, setShowRenewalUpdateModal] = useState(false);
-  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { payment_date: string; cheque_no: string; bank_name: string; customer_id: string; agent_code: string; amount: string; new_policy_no: string; new_company: string; paid_by: string; remarks: string; status: string }>>({});
+  const [bulkRenewalData, setBulkRenewalData] = useState<Record<number, { payment_date: string; cheque_no: string; bank_name: string; customer_id: string; agent_code: string; amount: string; new_policy_no: string; new_company: string; paid_by: string; remarks: string; status: string; premium_mode: string }>>({});
   const [deletedCustomers, setDeletedCustomers] = useState<Customer[]>([]);
   const [renewalMonthFilter, setRenewalMonthFilter] = useState(() => {
     const now = new Date();
@@ -491,6 +492,10 @@ export default function InsuranceDashboard() {
       const days = getDaysUntilExpiry(c);
       return days > 15 && days <= 30 && c.status.trim().toLowerCase() === 'due';
     }).sort(sortByExpiry);
+    const after30Days = filtered.filter(c => {
+      const days = getDaysUntilExpiry(c);
+      return days > 30 && c.status.trim().toLowerCase() === 'due';
+    }).sort(sortByExpiry);
     const overdue = filtered.filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').sort(sortByExpiry);
     const renewed = filtered.filter(c => c.status.trim().toLowerCase() === 'renewed').sort(sortByExpiry);
     const inProcess = filtered.filter(c => {
@@ -498,7 +503,7 @@ export default function InsuranceDashboard() {
       return status === 'inprocess' || status === 'inprogress';
     }).sort(sortByExpiry);
     
-    return { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed, inProcess };
+    return { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, after30Days, overdue, renewed, inProcess };
   };
 
   const handleBulkStatusUpdate = async (newStatus: string, customerIds?: number[]) => {
@@ -1552,7 +1557,7 @@ export default function InsuranceDashboard() {
 
 
   const renderRenewalsTab = () => {
-    const { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, overdue, renewed, inProcess } = categorizeCustomers();
+    const { expiringToday, expiring1Day, expiring3, expiring7, expiring15, expiring30, after30Days, overdue, renewed, inProcess } = categorizeCustomers();
     
     return (
       <div className="space-y-6">
@@ -1641,7 +1646,7 @@ export default function InsuranceDashboard() {
         )}
 
         {/* Show message if no renewals at all */}
-        {expiringToday.length === 0 && expiring1Day.length === 0 && expiring3.length === 0 && expiring7.length === 0 && expiring15.length === 0 && expiring30.length === 0 && overdue.length === 0 && renewed.length === 0 && inProcess.length === 0 && (
+        {expiringToday.length === 0 && expiring1Day.length === 0 && expiring3.length === 0 && expiring7.length === 0 && expiring15.length === 0 && expiring30.length === 0 && after30Days.length === 0 && overdue.length === 0 && renewed.length === 0 && inProcess.length === 0 && (
           <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-12 text-center">
             <p className="text-2xl text-slate-400">✅ No renewals to display</p>
             <p className="text-sm text-slate-500 mt-2">All customers are up to date!</p>
@@ -1744,6 +1749,23 @@ export default function InsuranceDashboard() {
               <div className="text-center mt-4">
                 <Button variant="outline" onClick={() => setShowAll30Days(!showAll30Days)}>
                   {showAll30Days ? 'Show Less' : `Show All (${expiring30.length - 5} more)`}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Expiring After 30 Days */}
+        {after30Days.length > 0 && (
+          <div id="after30-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+            <h3 className="text-base font-semibold mb-3 text-slate-400">⚪ Expiring After 30 Days ({after30Days.length})</h3>
+            <div className="space-y-3">
+              {after30Days.slice(0, showAllAfter30Days ? after30Days.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-slate-500/50', false, true))}
+            </div>
+            {after30Days.length > 5 && (
+              <div className="text-center mt-4">
+                <Button variant="outline" onClick={() => setShowAllAfter30Days(!showAllAfter30Days)}>
+                  {showAllAfter30Days ? 'Show Less' : `Show All (${after30Days.length - 5} more)`}
                 </Button>
               </div>
             )}
@@ -2297,7 +2319,7 @@ export default function InsuranceDashboard() {
             const customer = customers.find(c => c.id === customerId);
             if (!customer) return null;
             
-            const data = bulkRenewalData[customerId] || { payment_date: '', cheque_no: '', bank_name: '', customer_id: '', agent_code: '', amount: '', new_policy_no: '', new_company: '', paid_by: '', remarks: '', status: 'RENEWED' };
+            const data = bulkRenewalData[customerId] || { payment_date: '', cheque_no: '', bank_name: '', customer_id: '', agent_code: '', amount: '', new_policy_no: '', new_company: '', paid_by: '', remarks: '', status: 'RENEWED', premium_mode: '' };
             
             return (
               <div key={customerId} className="p-4 bg-slate-700/50 rounded-lg border border-slate-600/50 space-y-3">
@@ -2468,6 +2490,22 @@ export default function InsuranceDashboard() {
                       className="text-sm"
                     />
                   </div>
+                  <div>
+                    <label className="text-xs text-slate-300 mb-1 block">Premium Mode</label>
+                    <select
+                      className="w-full p-2 border rounded bg-slate-700 text-white text-sm"
+                      value={data.premium_mode}
+                      onChange={(e) => setBulkRenewalData({...bulkRenewalData, [customerId]: {...data, premium_mode: e.target.value}})}
+                    >
+                      <option value="">Select...</option>
+                      <option value="1 Year">1 Year</option>
+                      <option value="2 Years">2 Years</option>
+                      <option value="3 Years">3 Years</option>
+                      <option value="1 Month">1 Month</option>
+                      <option value="3 Months">3 Months</option>
+                      <option value="6 Months">6 Months</option>
+                    </select>
+                  </div>
                 </div>
                 
                 <div>
@@ -2505,6 +2543,7 @@ export default function InsuranceDashboard() {
                     new_policy_no: data.new_policy_no || customer.new_policy_no,
                     new_company: data.new_company || customer.new_company,
                     paid_by: data.paid_by || customer.paid_by,
+                    premium_mode: data.premium_mode || customer.premium_mode,
                     notes: data.remarks || customer.notes,
                     status: data.status || 'RENEWED'
                   };
