@@ -16,7 +16,7 @@ export default function AnimatedCard({ children, className = '', delay = 0, hove
       transition={{ duration: 0.3, delay }}
       whileHover={hover ? { y: -2, transition: { duration: 0.1 } } : undefined}
       className={`
-        bg-slate-800/60 backdrop-blur-xl border border-slate-700/50 rounded-xl
+        bg-slate-800/60  border border-slate-700/50 rounded-xl
         shadow-lg hover:shadow-xl transition-all duration-200
         ${className}
       `}

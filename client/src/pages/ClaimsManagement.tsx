@@ -304,7 +304,7 @@ export default function ClaimsManagement() {
           </div>
 
           {/* Claims Table */}
-          <div id="claims-table" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg overflow-hidden">
+          <div id="claims-table" className="bg-slate-800/50  border border-slate-700/50 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-700/50">

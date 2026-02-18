@@ -58,7 +58,7 @@ export function EmailModal({ isOpen, onClose, candidateId, candidateIds, jobId }
   return (
     <AnimatePresence>
       <motion.div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+        className="fixed inset-0 bg-black/50  flex items-center justify-center z-50"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -91,7 +91,7 @@ export function EmailModal({ isOpen, onClose, candidateId, candidateIds, jobId }
               <select 
                 value={selectedTemplate}
                 onChange={e => setSelectedTemplate(e.target.value)}
-                className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm text-white"
+                className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all  text-white"
               >
                 <option value="">Select template...</option>
                 {templates?.map((template: any) => (

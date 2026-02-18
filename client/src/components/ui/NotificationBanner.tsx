@@ -61,7 +61,7 @@ export default function NotificationBanner() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 300, scale: 0.8 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="bg-gradient-to-r from-green-600/90 to-emerald-600/90 backdrop-blur-md border border-green-400/30 rounded-lg p-4 shadow-xl max-w-sm"
+            className="bg-gradient-to-r from-green-600/90 to-emerald-600/90  border border-green-400/30 rounded-lg p-4 shadow-xl max-w-sm"
           >
             <div className="flex items-start justify-between">
               <div className="flex items-center space-x-3">

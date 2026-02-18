@@ -18,7 +18,7 @@ export default function FloatingParticles() {
       {particles.map((particle) => (
         <motion.div
           key={particle.id}
-          className="absolute rounded-full bg-gradient-to-r from-cyan-400/20 to-purple-400/20 backdrop-blur-sm"
+          className="absolute rounded-full bg-gradient-to-r from-cyan-400/20 to-purple-400/20 "
           style={{
             left: `${particle.x}%`,
             top: `${particle.y}%`,

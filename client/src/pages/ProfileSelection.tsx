@@ -143,7 +143,7 @@ export default function ProfileSelection() {
             <div
               key={profile.id}
               onClick={() => handleProfileClick(profile)}
-              className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 cursor-pointer hover:bg-slate-800/70 transition-all hover:scale-105"
+              className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6 cursor-pointer hover:bg-slate-800/70 transition-all hover:scale-105"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-2xl font-bold text-white">
@@ -191,7 +191,7 @@ export default function ProfileSelection() {
           {profiles.length < 5 && (
             <div
               onClick={() => setShowCreateModal(true)}
-              className="bg-slate-800/30 backdrop-blur-xl border-2 border-dashed border-slate-600/50 rounded-xl p-6 cursor-pointer hover:bg-slate-800/50 transition-all hover:scale-105 flex flex-col items-center justify-center"
+              className="bg-slate-800/30  border-2 border-dashed border-slate-600/50 rounded-xl p-6 cursor-pointer hover:bg-slate-800/50 transition-all hover:scale-105 flex flex-col items-center justify-center"
             >
               <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center text-3xl text-slate-400 mb-4">
                 +

@@ -48,7 +48,7 @@ export default function ProfileActivity() {
 
   if (loading) {
     return (
-      <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+      <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
         <p className="text-slate-400">Loading...</p>
       </div>
@@ -57,7 +57,7 @@ export default function ProfileActivity() {
 
   if (activities.length === 0) {
     return (
-      <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+      <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
         <p className="text-slate-400">No recent activity</p>
       </div>
@@ -65,7 +65,7 @@ export default function ProfileActivity() {
   }
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+    <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6">
       <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
       <div className="space-y-3">
         {activities.slice(0, 10).map((activity) => {

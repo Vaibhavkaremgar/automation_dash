@@ -32,7 +32,7 @@ export default function ActivityFeed() {
   if (activities.length === 0) return null;
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+    <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6">
       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
         <span>📊</span> Recent Activity
       </h3>

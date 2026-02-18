@@ -389,7 +389,7 @@ export default function ResumeUploadPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/40 rounded-xl text-green-300 backdrop-blur-sm"
+              className="p-4 bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/40 rounded-xl text-green-300 "
             >
               <div className="flex items-center gap-3">
                 <motion.span 
@@ -408,7 +408,7 @@ export default function ResumeUploadPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="p-4 bg-gradient-to-r from-red-900/30 to-rose-900/30 border border-red-500/40 rounded-xl text-red-300 backdrop-blur-sm"
+              className="p-4 bg-gradient-to-r from-red-900/30 to-rose-900/30 border border-red-500/40 rounded-xl text-red-300 "
             >
               <div className="flex items-center gap-3">
                 <span className="text-xl">🚨</span>

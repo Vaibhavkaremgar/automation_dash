@@ -37,7 +37,7 @@ export default function Toast({ message, type = 'info', duration = 3000, onClose
       {isVisible && (
         <motion.div
           className={`
-            fixed top-4 right-4 z-50 p-4 rounded-lg border backdrop-blur-xl
+            fixed top-4 right-4 z-50 p-4 rounded-lg border 
             shadow-lg max-w-sm ${variants[type]}
           `}
           initial={{ opacity: 0, x: 300, scale: 0.8 }}

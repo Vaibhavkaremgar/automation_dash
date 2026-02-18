@@ -230,7 +230,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4">
+      <div className="sticky top-0 bg-slate-900/80  z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <label className="text-sm text-slate-300 font-medium">Report Filter:</label>
@@ -416,7 +416,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+          <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Monthly Renewal Trend</h3>
             <ResponsiveContainer width="100%" height={300}>
               <ComposedChart data={filteredTrend}>
@@ -432,7 +432,7 @@ export default function ReportsPage() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl overflow-hidden">
+          <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl overflow-hidden">
             <table className="w-full">
               <thead className="bg-slate-700/50">
                 <tr>
@@ -500,7 +500,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+            <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Month-wise Premium Trend</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={filteredMonthlyPremium}>
@@ -513,7 +513,7 @@ export default function ReportsPage() {
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+            <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Premium Distribution by Company</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -528,7 +528,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl overflow-hidden">
+          <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl overflow-hidden">
             <table className="w-full">
               <thead className="bg-slate-700/50">
                 <tr>
@@ -596,7 +596,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+          <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-4">Customer Growth Trend</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={filteredGrowthTrend}>
@@ -609,7 +609,7 @@ export default function ReportsPage() {
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl overflow-hidden">
+          <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl overflow-hidden">
             <table className="w-full">
               <thead className="bg-slate-700/50">
                 <tr>
@@ -748,7 +748,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+            <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Claims Distribution by Insurer</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -762,7 +762,7 @@ export default function ReportsPage() {
               </ResponsiveContainer>
             </div>
 
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
+            <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Claims Distribution by Type</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -777,7 +777,7 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl overflow-hidden">
+          <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl overflow-hidden">
             <table className="w-full">
               <thead className="bg-slate-700/50">
                 <tr>

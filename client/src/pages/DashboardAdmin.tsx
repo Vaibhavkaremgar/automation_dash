@@ -117,7 +117,7 @@ function ClientTile({ client, onClick }: { client: any; onClick: () => void }) {
   
   return (
     <motion.div
-      className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 group cursor-pointer overflow-hidden relative hover:scale-105 transition-all duration-300 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/10"
+      className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-6 group cursor-pointer overflow-hidden relative hover:scale-105 transition-all duration-300 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-400/10"
       onClick={onClick}
       whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}

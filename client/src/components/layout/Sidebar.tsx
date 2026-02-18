@@ -62,7 +62,7 @@ export default memo(function Sidebar() {
   const sidebarTitle = getSidebarTitle()
   
   return (
-    <aside className="hidden md:flex md:flex-col w-[var(--sidebar-width)] h-screen border-r border-slate-800/50 bg-slate-900/40 backdrop-blur-xl relative z-10">
+    <aside className="hidden md:flex md:flex-col w-[var(--sidebar-width)] h-screen border-r border-slate-800/50 bg-slate-900/40  relative z-10">
       <AIBackground />
       <div className="p-3 border-b border-slate-800/50 flex-shrink-0">
         {/* Client Logo at Top */}

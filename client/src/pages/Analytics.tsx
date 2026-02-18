@@ -237,7 +237,7 @@ export default function AnalyticsPage() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.5 }}
       >
-        <div className="flex bg-slate-800/50 rounded-2xl p-2 backdrop-blur-sm border border-slate-700">
+        <div className="flex bg-slate-800/50 rounded-2xl p-2  border border-slate-700">
           {[
             { id: 'overview', label: '📈 Overview', icon: '📈' },
             { id: 'candidates', label: '👥 Candidates', icon: '👥' },

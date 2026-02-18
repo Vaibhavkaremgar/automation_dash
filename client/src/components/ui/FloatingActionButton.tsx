@@ -35,7 +35,7 @@ export default function FloatingActionButton({ actions }: FloatingActionButtonPr
                 }}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-full shadow-lg
-                  bg-slate-800/90 backdrop-blur-xl border border-slate-700/50
+                  bg-slate-800/90  border border-slate-700/50
                   text-white hover:bg-slate-700/90 transition-all
                   ${action.color || 'hover:border-cyan-400'}
                 `}

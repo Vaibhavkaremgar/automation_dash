@@ -68,7 +68,7 @@ export default function EmailHistoryPage() {
             transition={{ delay: 0.4 + index * 0.1 }}
             whileHover={{ y: -5, scale: 1.02 }}
           >
-            <AnimatedCard className={`p-4 relative overflow-hidden border-0 ${stat.bgColor} backdrop-blur-sm`}>
+            <AnimatedCard className={`p-4 relative overflow-hidden border-0 ${stat.bgColor} `}>
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${stat.color} flex items-center justify-center text-xl shadow-lg`}>
                   {stat.icon}
@@ -97,7 +97,7 @@ export default function EmailHistoryPage() {
       <AnimatedCard className="overflow-hidden">
         <div className="overflow-auto">
           <table className="w-full">
-            <thead className="bg-slate-800/40 backdrop-blur-sm">
+            <thead className="bg-slate-800/40 ">
               <tr>
                 <th className="text-left p-4 font-medium text-slate-300 text-sm">👤 Recipient</th>
                 <th className="text-left p-4 font-medium text-slate-300 text-sm">📝 Email Type</th>

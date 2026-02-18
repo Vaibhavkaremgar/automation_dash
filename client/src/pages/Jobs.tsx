@@ -121,31 +121,31 @@ export default function JobsPage() {
             value={title} 
             onChange={e=>setTitle(e.target.value)} 
             placeholder="Job title" 
-            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm" 
+            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all " 
           />
           <input 
             value={department} 
             onChange={e=>setDepartment(e.target.value)} 
             placeholder="Department" 
-            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm" 
+            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all " 
           />
           <textarea 
             value={description} 
             onChange={e=>setDescription(e.target.value)} 
             placeholder="Job description" 
-            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm h-24 resize-none" 
+            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all  h-24 resize-none" 
           />
           <input 
             value={requiredSkills} 
             onChange={e=>setRequiredSkills(e.target.value)} 
             placeholder="Required skills (e.g., Python, React, SQL)" 
-            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm" 
+            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all " 
           />
           <input 
             value={experienceRequired} 
             onChange={e=>setExperienceRequired(e.target.value)} 
             placeholder="Experience required (e.g., 2-5 years)" 
-            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm" 
+            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all " 
           />
           <AnimatedButton 
             onClick={()=>createJob.mutate()} 
@@ -180,7 +180,7 @@ export default function JobsPage() {
             value={search} 
             onChange={e => setSearch(e.target.value)} 
             placeholder="🔍 Search jobs..." 
-            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm" 
+            className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all " 
           />
         </div>
       </AnimatedCard>
@@ -254,7 +254,7 @@ export default function JobsPage() {
       <AnimatePresence>
         {editModal && (
           <motion.div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black/50  flex items-center justify-center z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -273,36 +273,36 @@ export default function JobsPage() {
                   value={editForm.title} 
                   onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))}
                   placeholder="Job title" 
-                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm text-white" 
+                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all  text-white" 
                 />
                 <input 
                   value={editForm.department} 
                   onChange={e => setEditForm(prev => ({ ...prev, department: e.target.value }))}
                   placeholder="Department" 
-                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm text-white" 
+                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all  text-white" 
                 />
                 <textarea 
                   value={editForm.description} 
                   onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Job description" 
-                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm h-24 resize-none text-white" 
+                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all  h-24 resize-none text-white" 
                 />
                 <input 
                   value={editForm.requiredSkills} 
                   onChange={e => setEditForm(prev => ({ ...prev, requiredSkills: e.target.value }))}
                   placeholder="Required skills" 
-                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm text-white" 
+                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all  text-white" 
                 />
                 <input 
                   value={editForm.experienceRequired} 
                   onChange={e => setEditForm(prev => ({ ...prev, experienceRequired: e.target.value }))}
                   placeholder="Experience required" 
-                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm text-white" 
+                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all  text-white" 
                 />
                 <select 
                   value={editForm.status} 
                   onChange={e => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm text-white"
+                  className="w-full bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-3 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all  text-white"
                 >
                   <option value="open">Open</option>
                   <option value="closed">Closed</option>

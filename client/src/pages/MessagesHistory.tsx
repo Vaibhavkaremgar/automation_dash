@@ -350,7 +350,7 @@ export default function MessagesHistory() {
       </div>
 
       {/* Messages Table */}
-      <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl overflow-hidden">
+      <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-700/50">

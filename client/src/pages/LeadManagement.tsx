@@ -193,7 +193,7 @@ export default function LeadManagement() {
         </div>
       </div>
 
-      <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl">
+      <div className="sticky top-0 bg-slate-900/80  z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl">
         <Input
           placeholder="Search leads..."
           value={searchTerm}

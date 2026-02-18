@@ -19,7 +19,7 @@ export default function DataSyncStatus() {
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="fixed top-4 right-4 z-50 bg-slate-800/90 backdrop-blur-sm border border-slate-600 rounded-lg p-3 text-xs"
+      className="fixed top-4 right-4 z-50 bg-slate-800/90  border border-slate-600 rounded-lg p-3 text-xs"
     >
       <div className="text-cyan-400 font-medium mb-1">Data Status</div>
       <div className="space-y-1 text-slate-300">

@@ -104,7 +104,7 @@ export default function CandidatesPage() {
           { label: 'Under Review', count: data?.filter((c: any) => !c.status || c.status === '' || (!c.status?.toLowerCase().includes('shortlist') && !c.status?.toLowerCase().includes('reject') && !c.status?.toLowerCase().includes('selected'))).length || 0, icon: '⏳', color: 'from-purple-600 to-indigo-600', bgColor: 'bg-purple-500/10' }
         ].map((stat) => (
           <div key={stat.label}>
-            <AnimatedCard className={`p-4 relative overflow-hidden border-0 ${stat.bgColor} backdrop-blur-sm`}>
+            <AnimatedCard className={`p-4 relative overflow-hidden border-0 ${stat.bgColor} `}>
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${stat.color} flex items-center justify-center text-xl shadow-lg`}>
                   {stat.icon}
@@ -144,7 +144,7 @@ export default function CandidatesPage() {
               value={search} 
               onChange={e => setSearch(e.target.value)} 
               placeholder="🔍 Search candidates..." 
-              className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all backdrop-blur-sm" 
+              className="bg-slate-900/50 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all " 
             />
             
             <AnimatedButton 
@@ -169,7 +169,7 @@ export default function CandidatesPage() {
       <AnimatedCard className="overflow-hidden">
         <div className="overflow-auto">
           <table className="w-full">
-            <thead className="bg-slate-800/40 backdrop-blur-sm">
+            <thead className="bg-slate-800/40 ">
               <tr>
                 <th className="text-left p-4 font-medium text-slate-300 text-sm">👤 Candidate</th>
                 {isAdmin && <th className="text-left p-4 font-medium text-slate-300 text-sm">🏢 Client</th>}
@@ -314,14 +314,14 @@ export default function CandidatesPage() {
       <AnimatePresence>
         {selectedCandidate && (
           <motion.div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60  flex items-center justify-center z-50 p-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSelectedCandidate(null)}
           >
             <motion.div 
-              className="bg-slate-800/95 backdrop-blur-md rounded-2xl p-8 w-full max-w-2xl border border-slate-700/50 shadow-2xl"
+              className="bg-slate-800/95  rounded-2xl p-8 w-full max-w-2xl border border-slate-700/50 shadow-2xl"
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
