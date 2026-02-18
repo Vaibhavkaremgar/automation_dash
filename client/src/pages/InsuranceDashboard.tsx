@@ -5,10 +5,9 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import ActivityFeed from '../components/ActivityFeed';
+import ProfileActivity from '../components/dashboard/ProfileActivity';
 import CustomerTable from '../components/CustomerTable';
-import SimpleActivityFeed from '../components/SimpleActivityFeed';
-import SimpleProfileActivity from '../components/SimpleProfileActivity';
-import DocumentUploader from '../components/DocumentUploader';
 import { api } from '../lib/api';
 import { generateRenewalReminder, generateThankYouMessage, generatePolicyDetailsMessage } from '../utils/whatsappTemplates';
 
@@ -298,11 +297,11 @@ export default function InsuranceDashboard() {
     }
   }, [currentTab]);
 
-  // Auto-sync from sheets every 5 minutes
+  // Auto-sync from sheets every 2 minutes
   useEffect(() => {
     const interval = setInterval(() => {
       syncFromSheets(true);
-    }, 300000);
+    }, 120000);
     return () => clearInterval(interval);
   }, []);
 
@@ -1196,7 +1195,7 @@ export default function InsuranceDashboard() {
     
     return (
       <div className="space-y-4">
-        <div className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4">
+        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4">
           <h3 className="text-base font-semibold mb-3 text-white flex items-center gap-2">
             ⚡ Quick Actions - Today's Priority ({todayTasks.length})
           </h3>
@@ -1299,11 +1298,7 @@ export default function InsuranceDashboard() {
         </div>
 
         {/* Profile Activity */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <SimpleProfileActivity />
-          <SimpleActivityFeed />
-          <DocumentUploader />
-        </div>
+        <ProfileActivity />
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1393,7 +1388,7 @@ export default function InsuranceDashboard() {
     
     return (
       <div className="space-y-4">
-        <div className="sticky top-0 bg-slate-900/80  z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4">
+        <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4">
           <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
             <div className="flex flex-col sm:flex-row gap-3 flex-1">
               <Input
@@ -1521,11 +1516,11 @@ export default function InsuranceDashboard() {
       </div>
 
       {/* Company-wise Breakdown */}
-      <div className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4">
+      <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4">
         <h3 className="text-base font-semibold mb-3 text-white">Company-wise Policies</h3>
         
         {/* Total Amount Card */}
-        <div className="mb-4 p-4 bg-slate-800 bg-slate-700/30 border border-purple-500/30 rounded-lg cursor-pointer " onClick={() => { setDetailsModalTitle('All Policies - Total Premium'); setDetailsModalCustomers(applyGlobalFilter(customers)); setShowDetailsModal(true); }}>
+        <div className="mb-4 p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg cursor-pointer " onClick={() => { setDetailsModalTitle('All Policies - Total Premium'); setDetailsModalCustomers(applyGlobalFilter(customers)); setShowDetailsModal(true); }}>
           <h4 className="text-sm font-medium text-purple-300 mb-1">Total Premium (All Companies)</h4>
           <p className="text-3xl font-bold text-purple-400">₹{applyGlobalFilter(customers).reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString()}</p>
           <p className="text-xs text-slate-300 mt-1">{applyGlobalFilter(customers).length} total policies</p>
@@ -1567,7 +1562,7 @@ export default function InsuranceDashboard() {
     return (
       <div className="space-y-6">
         {/* Filter and Stats Section */}
-        <div className="sticky top-0 bg-slate-900/80  z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4 space-y-4">
+        <div className="sticky top-0 bg-slate-900/80 backdrop-blur-md z-10 pb-4 pt-2 border border-slate-700/50 rounded-xl mb-4 space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <Input
               placeholder="Search by name, mobile, vehicle, company, policy no, G code..."
@@ -1613,7 +1608,7 @@ export default function InsuranceDashboard() {
 
         {/* Renewal Update Modal - Shows when customers are selected */}
         {selectedCustomers.length > 0 && (
-          <div className="sticky top-0 z-20 bg-slate-800 bg-slate-700/30 border border-cyan-500/40 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3  ">
+          <div className="sticky top-0 z-20 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 backdrop-blur-md ">
             <p className="text-white font-semibold text-base">
               <span className="bg-cyan-500/30 px-2 py-1 rounded">{selectedCustomers.length}</span> customer{selectedCustomers.length > 1 ? 's' : ''} selected
             </p>
@@ -1652,7 +1647,7 @@ export default function InsuranceDashboard() {
 
         {/* Show message if no renewals at all */}
         {expiringToday.length === 0 && expiring1Day.length === 0 && expiring3.length === 0 && expiring7.length === 0 && expiring15.length === 0 && expiring30.length === 0 && after30Days.length === 0 && overdue.length === 0 && renewed.length === 0 && inProcess.length === 0 && (
-          <div className="bg-slate-800/50  border border-slate-700/50 rounded-xl p-12 text-center">
+          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-12 text-center">
             <p className="text-2xl text-slate-400">✅ No renewals to display</p>
             <p className="text-sm text-slate-500 mt-2">All customers are up to date!</p>
           </div>
@@ -1660,7 +1655,7 @@ export default function InsuranceDashboard() {
 
         {/* Expiring Today */}
         {expiringToday.length > 0 && (
-          <div id="today-section" className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div id="today-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-red-400">🚨 Expiring Today ({expiringToday.length})</h3>
             <div className="space-y-3">
               {expiringToday.slice(0, showAllToday ? expiringToday.length : 5).map(c => renderRenewalCard(c, `Expires TODAY`, 'border-red-500/50', false, true))}
@@ -1677,7 +1672,7 @@ export default function InsuranceDashboard() {
 
         {/* Expiring Tomorrow */}
         {expiring1Day.length > 0 && (
-          <div className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-orange-400">⚠️ Expiring Tomorrow ({expiring1Day.length})</h3>
             <div className="space-y-3">
               {expiring1Day.slice(0, showAllTomorrow ? expiring1Day.length : 5).map(c => renderRenewalCard(c, 'Expires TOMORROW', 'border-orange-500/50', false, true))}
@@ -1694,7 +1689,7 @@ export default function InsuranceDashboard() {
 
         {/* Expiring Within 3 Days */}
         {expiring3.length > 0 && (
-          <div id="expiring3-section" className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div id="expiring3-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-orange-400">🟠 Expiring Within 3 Days ({expiring3.length})</h3>
             <div className="space-y-3">
               {expiring3.slice(0, showAll7Days ? expiring3.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-orange-500/50', false, true))}
@@ -1711,7 +1706,7 @@ export default function InsuranceDashboard() {
 
         {/* Expiring Within 7 Days */}
         {expiring7.length > 0 && (
-          <div id="expiring7-section" className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div id="expiring7-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-yellow-400">🟡 Expiring Within 7 Days ({expiring7.length})</h3>
             <div className="space-y-3">
               {expiring7.slice(0, showAll7Days ? expiring7.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-yellow-500/50', false, true))}
@@ -1728,7 +1723,7 @@ export default function InsuranceDashboard() {
 
         {/* Expiring Within 15 Days */}
         {expiring15.length > 0 && (
-          <div className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-yellow-400">🟡 Expiring Within 15 Days ({expiring15.length})</h3>
             <div className="space-y-3">
               {expiring15.slice(0, showAll15Days ? expiring15.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-yellow-500/50', false, true))}
@@ -1745,7 +1740,7 @@ export default function InsuranceDashboard() {
 
         {/* Expiring Within 30 Days */}
         {expiring30.length > 0 && (
-          <div id="expiring30-section" className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div id="expiring30-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-yellow-400">🟡 Expiring Within 30 Days ({expiring30.length})</h3>
             <div className="space-y-3">
               {expiring30.slice(0, showAll30Days ? expiring30.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-yellow-500/50', false, true))}
@@ -1762,7 +1757,7 @@ export default function InsuranceDashboard() {
 
         {/* Expiring After 30 Days */}
         {after30Days.length > 0 && (
-          <div id="after30-section" className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div id="after30-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-slate-400">⚪ Expiring After 30 Days ({after30Days.length})</h3>
             <div className="space-y-3">
               {after30Days.slice(0, showAllAfter30Days ? after30Days.length : 5).map(c => renderRenewalCard(c, `${getDaysUntilExpiry(c)} days left`, 'border-slate-500/50', false, true))}
@@ -1779,7 +1774,7 @@ export default function InsuranceDashboard() {
 
         {/* Overdue */}
         {overdue.length > 0 && (
-          <div id="overdue-section" className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div id="overdue-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-red-500">🔴 Overdue ({overdue.length})</h3>
             <div className="space-y-3">
               {overdue.slice(0, showAllOverdue ? overdue.length : 5).map(c => renderRenewalCard(c, `${Math.abs(getDaysUntilExpiry(c))} days overdue`, 'border-red-600/50', false, true))}
@@ -1796,7 +1791,7 @@ export default function InsuranceDashboard() {
 
         {/* In Process */}
         {inProcess.length > 0 && (
-          <div id="inprocess-section" className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div id="inprocess-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-blue-400">🔵 In Process ({inProcess.length})</h3>
             <div className="space-y-3">
               {inProcess.slice(0, showAllInProcess ? inProcess.length : 5).map(c => renderRenewalCard(c, 'In Process', 'border-blue-500/50', false, true))}
@@ -1813,7 +1808,7 @@ export default function InsuranceDashboard() {
 
         {/* Recently Renewed */}
         {renewed.length > 0 && (
-          <div id="renewed-section" className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
+          <div id="renewed-section" className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-4 scroll-mt-48">
             <h3 className="text-base font-semibold mb-3 text-green-400">🟢 Recently Renewed ({renewed.length})</h3>
             <div className="space-y-3">
               {renewed.slice(0, showAllRenewed ? renewed.length : 5).map(c => renderRenewalCard(c, 'Renewed', 'border-green-500/50', true, true))}
@@ -1930,7 +1925,7 @@ export default function InsuranceDashboard() {
     <div className="flex justify-between items-center mb-4 relative z-30">
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-slate-800 ">
+          <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">
             {getPageTitle()}
           </h1>
           {currentTab === 'customers' && (
@@ -1972,39 +1967,39 @@ export default function InsuranceDashboard() {
     <div>
       {/* Sticky Stats - Visible across all sections */}
       {analytics && (
-        <div className="sticky top-0 z-20 bg-slate-800 bg-slate-900  border-b border-slate-700/50  mb-4">
+        <div className="sticky top-0 z-20 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-md border-b border-slate-700/50  mb-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-1 p-2 w-full">
-            <button className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const statusOrder = { 'due': 0, 'inprocess': 1, 'inprogress': 1, 'renewed': 2, 'not renewed': 3 }; const sorted = [...applyGlobalFilter(customers)].sort((a, b) => { const aStatus = a.status.trim().toLowerCase().replace(/[\s-]/g, ''); const bStatus = b.status.trim().toLowerCase().replace(/[\s-]/g, ''); const aOrder = statusOrder[aStatus] ?? 4; const bOrder = statusOrder[bStatus] ?? 4; if (aOrder !== bOrder) return aOrder - bOrder; return getDaysUntilExpiry(a) - getDaysUntilExpiry(b); }); setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const statusOrder = { 'due': 0, 'inprocess': 1, 'inprogress': 1, 'renewed': 2, 'not renewed': 3 }; const sorted = [...applyGlobalFilter(customers)].sort((a, b) => { const aStatus = a.status.trim().toLowerCase().replace(/[\s-]/g, ''); const bStatus = b.status.trim().toLowerCase().replace(/[\s-]/g, ''); const aOrder = statusOrder[aStatus] ?? 4; const bOrder = statusOrder[bStatus] ?? 4; if (aOrder !== bOrder) return aOrder - bOrder; return getDaysUntilExpiry(a) - getDaysUntilExpiry(b); }); setDetailsModalTitle('Total Policies'); setDetailsModalCustomers(sorted); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Total</h3>
-              <p className="text-2xl font-bold bg-slate-800 from-indigo-400 to-cyan-400 ">{applyGlobalFilter(customers).length}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).length}</p>
             </button>
-            <button className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const upcoming = applyGlobalFilter(customers).filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const upcoming = applyGlobalFilter(customers).filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Upcoming Renewals'); setDetailsModalCustomers(upcoming); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Upcoming</h3>
-              <p className="text-2xl font-bold bg-slate-800  ">{applyGlobalFilter(customers).filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).length}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).filter(c => { const days = getDaysUntilExpiry(c); return days >= 0 && days <= 30 && c.status.trim().toLowerCase() === 'due'; }).length}</p>
             </button>
-            <button className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const renewed = applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const renewed = applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Renewed Policies'); setDetailsModalCustomers(renewed); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Renewed</h3>
-              <p className="text-2xl font-bold bg-slate-800  ">{applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'renewed').length}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'renewed').length}</p>
             </button>
-            <button className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const inprocess = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('In Process'); setDetailsModalCustomers(inprocess); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const inprocess = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('In Process'); setDetailsModalCustomers(inprocess); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">In Process</h3>
-              <p className="text-2xl font-bold bg-slate-800  ">{applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).length}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); return status === 'inprocess' || status === 'inprogress'; }).length}</p>
             </button>
-            <button className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const expired = applyGlobalFilter(customers).filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const expired = applyGlobalFilter(customers).filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Expired Policies'); setDetailsModalCustomers(expired); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Expired</h3>
-              <p className="text-2xl font-bold bg-slate-800 from-red-400 to-pink-400 ">{applyGlobalFilter(customers).filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').length}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).filter(c => getDaysUntilExpiry(c) < 0 && c.status.trim().toLowerCase() === 'due').length}</p>
             </button>
-            <button className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const lost = applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'not renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Lost Policies'); setDetailsModalCustomers(lost); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const lost = applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'not renewed').sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('Lost Policies'); setDetailsModalCustomers(lost); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Lost</h3>
-              <p className="text-2xl font-bold bg-slate-800  ">{applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'not renewed').length}</p>
+              <p className="text-2xl font-bold bg-gradient-to-r from-gray-400 to-slate-400 bg-clip-text text-transparent">{applyGlobalFilter(customers).filter(c => c.status.trim().toLowerCase() === 'not renewed').length}</p>
             </button>
-            <button className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const now = new Date(); const thisMonth = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Month Premium'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const now = new Date(); const thisMonth = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Month Premium'); setDetailsModalCustomers(thisMonth); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Month Prem</h3>
-              <p className="text-lg font-bold bg-slate-800   break-words">₹{(() => { const now = new Date(); const thisMonth = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+              <p className="text-lg font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent break-words">₹{(() => { const now = new Date(); const thisMonth = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisMonth.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </button>
-            <button className="bg-slate-800/50  border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const now = new Date(); const thisYear = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Year Premium'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
+            <button className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-3 cursor-pointer  text-left" onClick={() => { const now = new Date(); const thisYear = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }).sort((a, b) => getDaysUntilExpiry(a) - getDaysUntilExpiry(b)); setDetailsModalTitle('This Year Premium'); setDetailsModalCustomers(thisYear); setShowDetailsModal(true); }}>
               <h3 className="text-xs text-slate-400 mb-1">Year Prem</h3>
-              <p className="text-lg font-bold bg-slate-800   break-words">₹{(() => { const now = new Date(); const thisYear = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
+              <p className="text-lg font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent break-words">₹{(() => { const now = new Date(); const thisYear = applyGlobalFilter(customers).filter(c => { const status = c.status.trim().toLowerCase().replace(/[\s-]/g, ''); if (status !== 'renewed' && status !== 'inprocess' && status !== 'inprogress') return false; const dateStr = (c.renewal_date?.trim() || c.od_expiry_date?.trim()); if (!dateStr) return false; try { const [d, m, y] = dateStr.split('/'); const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d)); return date.getFullYear() === now.getFullYear(); } catch (e) { return false; } }); return thisYear.reduce((sum, c) => sum + parseAmount(c.premium), 0).toLocaleString(); })()}</p>
             </button>
           </div>
         </div>
