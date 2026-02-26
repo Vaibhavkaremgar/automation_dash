@@ -1,10 +1,34 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { FileText, ExternalLink } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { FileText, ExternalLink, Lock } from 'lucide-react'
 
 export default function DocUploader() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const DOC_UPLOADER_URL = 'https://document-system-production-1a7e.up.railway.app/'
+  const JOBAN_SHEET_URL = import.meta.env.VITE_JOBAN_SHEET_URL
+
+  // Check if user is Joban Putra
+  const isAuthorized = user?.email?.toLowerCase().includes('joban')
+
+  useEffect(() => {
+    if (!isAuthorized) {
+      navigate('/insurance')
+    }
+  }, [isAuthorized, navigate])
+
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
+        <div className="text-center">
+          <Lock className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-white mb-2">Access Denied</h1>
+          <p className="text-slate-400">This feature is not available for your account.</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleRedirectToDocUploader = () => {
     window.open(DOC_UPLOADER_URL, '_blank')
@@ -20,13 +44,22 @@ export default function DocUploader() {
               <FileText className="w-8 h-8 text-indigo-400" />
               <h1 className="text-3xl font-bold text-white">Document Management</h1>
             </div>
-            <button
-              onClick={handleRedirectToDocUploader}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Open in New Window
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRedirectToDocUploader}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open in New Window
+              </button>
+              <button
+                onClick={() => window.open(JOBAN_SHEET_URL, '_blank')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open Google Sheet
+              </button>
+            </div>
           </div>
         </div>
 

@@ -33,7 +33,7 @@ export default memo(function Sidebar() {
         { to: '/insurance/claims', icon: Briefcase, label: 'Claims', emoji: '📝' },
         { to: '/insurance/reports', icon: BarChart3, label: 'Reports', emoji: '📊' },
         { to: '/insurance/leads', icon: UserPlus, label: 'Lead Management', emoji: '🎯' },
-        { to: '/insurance/doc-uploader', icon: FileText, label: 'Doc Uploader', emoji: '📄' },
+        ...(user?.email?.toLowerCase().includes('joban') ? [{ to: '/insurance/doc-uploader', icon: FileText, label: 'Doc Uploader', emoji: '📄' }] : []),
         { to: '#', icon: Wallet, label: 'Wallet 🔒', emoji: '💰', disabled: true },
       ]
     }
