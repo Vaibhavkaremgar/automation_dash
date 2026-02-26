@@ -1,4 +1,6 @@
 // Insurance client-specific configurations
+const VALID_COMPANIES = ['OTHERS', 'Liberty General Insurance', 'ICICI Lombard', 'Bajaj Allianz', 'HDFC ERGO', 'Reliance General', 'Royal Sundaram', 'Cholamandalam', 'Digit Insurance', 'Bharti AXA', 'Edelweiss General', 'Acko', 'Shriram General', 'Tata AIG', 'United India', 'Oriental Insurance', 'National Insurance', 'New India Assurance', 'Go Digit', 'Niva Bupa', 'Star Health', 'Apollo Munich', 'Aditya Birla Health', 'Care Health', 'Manipal Cigna', 'Max Bupa', 'Religare', 'Bajaj Health', 'ICICI Lombard Health', 'HDFC ERGO Health'];
+
 const insuranceClients = {
   kmg: {
     identifier: ['kmg', 'kmginsurance'],
@@ -194,4 +196,4 @@ function getClientConfig(identifier) {
   return { key: 'kmg', ...insuranceClients.kmg };
 }
 
-module.exports = { insuranceClients, getClientConfig };
+module.exports = { insuranceClients, getClientConfig, VALID_COMPANIES };
